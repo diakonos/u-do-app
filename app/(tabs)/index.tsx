@@ -3,17 +3,18 @@ import {
   View, 
   TextInput, 
   Button, 
-  FlatList, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
   Platform,
   Modal,
-  SafeAreaView
+  SafeAreaView,
+  SectionList
 } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Animated, { FadeIn, SlideInDown, SlideOutDown } from 'react-native-reanimated';
+import { Collapsible } from '@/components/Collapsible';
 
 interface Task {
   id: string;
@@ -197,6 +198,48 @@ export default function TodoList() {
     setShowCompleted(current => !current);
   };
 
+  const categorizeTask = (task: Task): 'overdue' | 'today' | 'later' => {
+    if (!task.dueDate) return 'later';
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const taskDate = new Date(task.dueDate);
+    taskDate.setHours(0, 0, 0, 0);
+
+    if (taskDate < today) return 'overdue';
+    if (taskDate.getTime() === today.getTime()) return 'today';
+    return 'later';
+  };
+
+  const getGroupedTasks = () => {
+    const filteredTasks = showCompleted 
+      ? tasks 
+      : tasks.filter(task => !task.completed);
+
+    const overdueTasks = filteredTasks.filter(task => categorizeTask(task) === 'overdue');
+    const todayTasks = filteredTasks.filter(task => categorizeTask(task) === 'today');
+    const laterTasks = filteredTasks.filter(task => categorizeTask(task) === 'later');
+
+    const sortTaskGroup = (taskGroup: Task[]) => {
+      return [...taskGroup].sort((a, b) => {
+        if (sortBy === 'dueDate') {
+          if (!a.dueDate && !b.dueDate) return 0;
+          if (!a.dueDate) return 1;
+          if (!b.dueDate) return -1;
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        } else {
+          return new Date(a.creationDate).getTime() - new Date(b.creationDate).getTime();
+        }
+      });
+    };
+
+    return [
+      { title: 'Overdue', data: sortTaskGroup(overdueTasks) },
+      { title: 'Today', data: sortTaskGroup(todayTasks) },
+      { title: 'Later', data: sortTaskGroup(laterTasks) }
+    ];
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <TextInput
@@ -204,7 +247,7 @@ export default function TodoList() {
         placeholder="Enter task name"
         value={taskName}
         onChangeText={setTaskName}
-        onSubmitEditing={addTask}  // This already calls addTask which clears the input
+        onSubmitEditing={addTask}
       />
       <View style={styles.buttonContainer}>
         <Button title="Add Task" onPress={addTask} />
@@ -219,57 +262,64 @@ export default function TodoList() {
           onPress={toggleShowCompleted}
         />
       </View>
-      <FlatList
-        data={sortTasks(tasks)}
+      <SectionList
+        sections={getGroupedTasks()}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <Swipeable renderRightActions={() => renderRightActions(item.id)} containerStyle={{ }}>
-            <TouchableOpacity 
-              style={styles.taskContainer}
-            >
-              <View style={styles.taskHeader}>
-                <TouchableOpacity 
-                  style={styles.checkbox}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    toggleTaskCompletion(item.id);
-                  }}
-                >
-                  <View style={[styles.checkboxInner, item.completed && styles.checkboxChecked]} />
-                </TouchableOpacity>
-                <View style={styles.taskContent}>
-                  <Text style={[styles.taskText, item.completed && styles.completedTask]}>
-                    {item.name}
-                  </Text>
-                  <View style={styles.dueDateContainer}>
-                    {item.dueDate ? (
-                      <Text style={[
-                        styles.dueDate,
-                        isToday(new Date(item.dueDate)) && styles.todayDate
-                      ]}>
-                        Due: {formatDate(item.dueDate)}
-                      </Text>
-                    ) : (
-                      <Text style={styles.noDueDate}>No due date</Text>
-                    )}
+        renderSectionHeader={({ section: { title, data } }) => (
+          <Collapsible title={`${title} (${data.length})`}>
+            {data.map(item => (
+              <Swipeable 
+                key={item.id}
+                renderRightActions={() => renderRightActions(item.id)} 
+                containerStyle={{}}
+              >
+                <TouchableOpacity style={styles.taskContainer}>
+                  <View style={styles.taskHeader}>
                     <TouchableOpacity 
-                      style={styles.dateButton}
+                      style={styles.checkbox}
                       onPress={(e) => {
                         e.stopPropagation();
-                        setShowDatePicker(item.id);
+                        toggleTaskCompletion(item.id);
                       }}
                     >
-                      <Text style={styles.dateButtonText}>
-                        {item.dueDate ? 'Change Date' : 'Add Due Date'}
-                      </Text>
+                      <View style={[styles.checkboxInner, item.completed && styles.checkboxChecked]} />
                     </TouchableOpacity>
+                    <View style={styles.taskContent}>
+                      <Text style={[styles.taskText, item.completed && styles.completedTask]}>
+                        {item.name}
+                      </Text>
+                      <View style={styles.dueDateContainer}>
+                        {item.dueDate ? (
+                          <Text style={[
+                            styles.dueDate,
+                            isToday(new Date(item.dueDate)) && styles.todayDate
+                          ]}>
+                            Due: {formatDate(item.dueDate)}
+                          </Text>
+                        ) : (
+                          <Text style={styles.noDueDate}>No due date</Text>
+                        )}
+                        <TouchableOpacity 
+                          style={styles.dateButton}
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            setShowDatePicker(item.id);
+                          }}
+                        >
+                          <Text style={styles.dateButtonText}>
+                            {item.dueDate ? 'Change Date' : 'Add Due Date'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
                   </View>
-                </View>
-              </View>
-              {renderDatePicker(item)}
-            </TouchableOpacity>
-          </Swipeable>
+                  {renderDatePicker(item)}
+                </TouchableOpacity>
+              </Swipeable>
+            ))}
+          </Collapsible>
         )}
+        renderItem={() => null}
       />
     </SafeAreaView>
   );

@@ -38,6 +38,15 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "ea985cb2-fcdd-4a3f-a658-4c5cac8bfdfd"
+      }
+    },
+    "owner": "jling7"
   }
 }
