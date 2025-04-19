@@ -11,7 +11,8 @@ import {
   SafeAreaView,
   SectionList,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  RefreshControl
 } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -37,6 +38,7 @@ export default function TodoList() {
   const [showCompleted, setShowCompleted] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [tempDueDate, setTempDueDate] = useState<Date | null>(null);
   const { createTask, fetchTasks, updateTask, deleteTask } = useTask();
 
@@ -56,6 +58,12 @@ export default function TodoList() {
       setIsLoading(false);
     }
   };
+
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    await loadTasks();
+    setRefreshing(false);
+  }, []);
 
   const addTask = async () => {
     if (taskName.trim()) {
@@ -257,7 +265,7 @@ export default function TodoList() {
     </TouchableOpacity>
   );
 
-  if (isLoading) {
+  if (isLoading && tasks.length === 0) {
     return (
       <SafeAreaView style={[styles.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" />
@@ -288,6 +296,9 @@ export default function TodoList() {
         />
       </View>
       <SectionList
+        refreshControl={
+          <RefreshControl refreshing={refreshing || (isLoading && tasks.length > 0)} onRefresh={onRefresh} />
+        }
         sections={getGroupedTasks()}
         keyExtractor={(item) => item.id.toString()}
         renderSectionHeader={({ section: { title, data } }) => (
