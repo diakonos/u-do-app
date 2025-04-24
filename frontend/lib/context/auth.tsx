@@ -7,8 +7,9 @@ type AuthContextType = {
   isLoading: boolean;
   signIn: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
-  verifyOtp: (email: string, token: string) => Promise<void>;
+  verifyOtp: (email: string, token: string) => Promise<{requiresUsername: boolean}>;
   resendOtp: (email: string) => Promise<void>;
+  setUsername: (username: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -49,6 +50,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       type: 'email'
     });
     if (error) throw error;
+
+    // Check if user has username set in metadata
+    const { data: { user } } = await supabase.auth.getUser();
+    const requiresUsername = !user?.user_metadata?.username;
+    return { requiresUsername };
   };
 
   const resendOtp = async (email: string) => {
@@ -61,13 +67,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error;
   };
 
+  const setUsername = async (username: string) => {
+    const { error } = await supabase.auth.updateUser({
+      data: { username }
+    });
+    if (error) throw error;
+  };
+
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   };
 
   return (
-    <AuthContext.Provider value={{ session, isLoading, signIn, signOut, verifyOtp, resendOtp }}>
+    <AuthContext.Provider value={{ 
+      session, 
+      isLoading, 
+      signIn, 
+      signOut, 
+      verifyOtp, 
+      resendOtp,
+      setUsername 
+    }}>
       {children}
     </AuthContext.Provider>
   );

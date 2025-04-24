@@ -55,6 +55,7 @@ function ProfileInfo() {
   return (
     <ThemedView style={styles.profileContainer}>
       <ThemedText>Email: {user?.email}</ThemedText>
+      <ThemedText>Username: {user?.user_metadata?.username || 'Not set'}</ThemedText>
     </ThemedView>
   );
 }
