@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
     console.log("[search-users] Executing search query:", query);
     const { data: users, error } = await supabaseClient
       .from("user_profiles")
-      .select("id, email, username")
+      .select("id, email, username, user_id") // Include user_id
       .or(`email.ilike.%${query}%,username.ilike.%${query}%`)
       .neq("user_id", user.id) // Exclude the current user
       .limit(10);
@@ -101,6 +101,7 @@ Deno.serve(async (req) => {
       id: user.id,
       email: user.email,
       username: user.username,
+      user_id: user.user_id, // Add user_id to the response object
     }));
     return new Response(
       JSON.stringify({
