@@ -8,12 +8,10 @@ import { TouchableOpacity } from 'react-native-gesture-handler';
 
 export default function VerifyOTP() {
   const [otp, setOtp] = useState('');
-  const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [cooldown, setCooldown] = useState(60);
   const [resending, setResending] = useState(false);
-  const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
-  const { verifyOtp, resendOtp, setUsername: updateUsername } = useAuth();
+  const { verifyOtp, resendOtp } = useAuth();
   const { email } = useLocalSearchParams<{ email: string }>();
 
   useEffect(() => {
@@ -41,69 +39,13 @@ export default function VerifyOTP() {
   const handleVerify = async () => {
     try {
       setLoading(true);
-      const { requiresUsername } = await verifyOtp(email, otp);
-      if (requiresUsername) {
-        setShowUsernamePrompt(true);
-      } else {
-        router.replace('/(tabs)');
-      }
+      await verifyOtp(email, otp);
     } catch (error) {
       Alert.alert('Error', (error as Error).message);
     } finally {
       setLoading(false);
     }
   };
-
-  const handleSetUsername = async () => {
-    if (!username.trim()) {
-      Alert.alert('Error', 'Username cannot be empty');
-      return;
-    }
-    
-    try {
-      setLoading(true);
-      await updateUsername(username.trim());
-      router.replace('/(tabs)');
-    } catch (error) {
-      Alert.alert('Error', (error as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (showUsernamePrompt) {
-    return (
-      <ThemedView style={styles.container}>
-        <Stack.Screen options={{ headerShown: false }} />
-        
-        <View style={styles.contentContainer}>
-          <ThemedText style={styles.title}>Create Username</ThemedText>
-          <ThemedText style={styles.subtitle}>
-            Please create a username for your account
-          </ThemedText>
-
-          <TextInput
-            style={styles.input}
-            placeholder="Enter username"
-            value={username}
-            onChangeText={setUsername}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-
-          <TouchableOpacity 
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleSetUsername}
-            disabled={loading || !username.trim()}
-          >
-            <ThemedText style={styles.buttonText}>
-              {loading ? 'Setting username...' : 'Continue'}
-            </ThemedText>
-          </TouchableOpacity>
-        </View>
-      </ThemedView>
-    );
-  }
 
   return (
     <ThemedView style={styles.container}>

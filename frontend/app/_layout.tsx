@@ -21,20 +21,36 @@ function InitialLayout() {
   const colorScheme = useColorScheme();
 
   useEffect(() => {
-    if (!isLoading) {
-      // Check if the path is protected
-      const inAuthGroup = segments[0] === 'auth';
-      const isVerifyingOTP = segments[0] === 'verify-otp';
+    if (isLoading) return; // Don't run routing logic until session is loaded
 
-      if (!session && !inAuthGroup && !isVerifyingOTP) {
-        // Redirect to the sign-in page
+    const inAuthGroup = segments[0] === 'auth';
+    const isVerifyingOTP = segments[0] === 'verify-otp';
+    const isCreatingUsername = segments[0] === 'create-username';
+
+    if (session) {
+      const hasUsername = !!session.user?.user_metadata?.username;
+      
+      if (!hasUsername && !isCreatingUsername) {
+        // User is logged in but needs to create a username
+        router.replace('/create-username');
+      } else if (hasUsername && (inAuthGroup || isVerifyingOTP || isCreatingUsername)) {
+        // User is logged in, has username, redirect away from auth/setup screens
+        router.replace('/(tabs)');
+      } else if (!hasUsername && isCreatingUsername) {
+        // User is logged in, needs username, and is already on the correct screen
+        // Do nothing, let them stay on create-username
+      } else if (hasUsername && !inAuthGroup && !isVerifyingOTP && !isCreatingUsername) {
+        // User is logged in, has username, and is already in the main app area
+        // Do nothing, let them stay
+      }
+    } else {
+      // User is not logged in
+      if (!inAuthGroup && !isVerifyingOTP) {
+        // Redirect to the sign-in page if not already there or verifying
         router.replace('/auth');
-      } else if (session && (inAuthGroup || isVerifyingOTP)) {
-        // Redirect away from auth group if authenticated
-        router.replace('/');
       }
     }
-  }, [session, segments, isLoading]);
+  }, [session, segments, isLoading, router]);
 
   if (isLoading) {
     return <Slot />;
@@ -44,6 +60,8 @@ function InitialLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="auth" options={{ headerShown: false }} />
+        <Stack.Screen name="verify-otp" options={{ headerShown: false }} />
+        <Stack.Screen name="create-username" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" options={{ presentation: 'modal' }} />
       </Stack>

@@ -7,7 +7,7 @@ type AuthContextType = {
   isLoading: boolean;
   signIn: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
-  verifyOtp: (email: string, token: string) => Promise<{requiresUsername: boolean}>;
+  verifyOtp: (email: string, token: string) => Promise<void>; // Changed return type
   resendOtp: (email: string) => Promise<void>;
   setUsername: (username: string) => Promise<void>;
 };
@@ -50,11 +50,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       type: 'email'
     });
     if (error) throw error;
-
-    // Check if user has username set in metadata
-    const { data: { user } } = await supabase.auth.getUser();
-    const requiresUsername = !user?.user_metadata?.username;
-    return { requiresUsername };
   };
 
   const resendOtp = async (email: string) => {
@@ -68,10 +63,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const setUsername = async (username: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("User not found");
+
     const { error } = await supabase.auth.updateUser({
       data: { username }
     });
     if (error) throw error;
+
+    // Manually update the session state after setting username
+    // to trigger the navigation logic in _layout.tsx
+    const { data: { session: updatedSession } } = await supabase.auth.getSession();
+    setSession(updatedSession);
   };
 
   const signOut = async () => {
