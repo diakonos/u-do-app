@@ -22,6 +22,7 @@ export interface FriendTask {
   id: number;
   task_name: string;
   due_date: string;
+  is_done: boolean;
   user_id: string;
   created_at: string;
   updated_at: string;

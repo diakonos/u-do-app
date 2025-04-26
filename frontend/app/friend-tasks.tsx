@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, ActivityIndicator, FlatList, RefreshControl, Alert } from 'react-native';
+import { StyleSheet, ActivityIndicator, FlatList, RefreshControl, Alert, TouchableOpacity, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -12,16 +12,8 @@ export default function FriendTasksScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const textColor = useThemeColor({}, 'text');
+  const backgroundColor = useThemeColor({}, 'background');
   const { getFriendTasks } = useFriends();
-
-  // Function to check if a date is today
-  const isToday = (date: string) => {
-    const today = new Date();
-    const taskDate = new Date(date);
-    return taskDate.getDate() === today.getDate() &&
-      taskDate.getMonth() === today.getMonth() &&
-      taskDate.getFullYear() === today.getFullYear();
-  };
 
   const fetchFriendTasks = useCallback(async () => {
     if (!userId) return;
@@ -33,7 +25,6 @@ export default function FriendTasksScreen() {
       console.log('Friend tasks:', tasks);
       
       // Filter for tasks due today
-      // const tasksForToday = tasks.filter(task => task.due_date && isToday(task.due_date)) || [];
       setTodayTasks(tasks);
     } catch (error) {
       console.error('Error fetching friend tasks:', error);
@@ -77,10 +68,22 @@ export default function FriendTasksScreen() {
           data={todayTasks}
           renderItem={({ item }) => (
             <ThemedView style={styles.taskItem}>
+              <TouchableOpacity 
+                style={styles.checkbox}
+                // Read-only - we don't allow toggling friend's tasks
+                activeOpacity={1}
+              >
+                <View style={[
+                  styles.checkboxInner, 
+                  item.is_done && styles.checkboxChecked
+                ]} />
+              </TouchableOpacity>
               <ThemedView style={styles.taskInfo}>
-                <ThemedText style={styles.taskName}>{item.task_name}</ThemedText>
-                <ThemedText style={styles.taskDate}>
-                  Due today
+                <ThemedText style={[
+                  styles.taskName,
+                  item.is_done && styles.completedTask
+                ]}>
+                  {item.task_name}
                 </ThemedText>
               </ThemedView>
             </ThemedView>
@@ -149,12 +152,10 @@ const styles = StyleSheet.create({
   taskName: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 4,
   },
-  taskDate: {
-    fontSize: 12,
-    color: '#007AFF',
-    marginTop: 2,
+  completedTask: {
+    textDecorationLine: 'line-through',
+    opacity: 0.6,
   },
   emptyState: {
     flex: 1,
@@ -166,5 +167,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  checkboxInner: {
+    width: 14,
+    height: 14,
+    borderRadius: 2,
+  },
+  checkboxChecked: {
+    backgroundColor: '#6936D8',
   },
 });
