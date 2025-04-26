@@ -4,6 +4,8 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useFriends, UserSearchResult } from '@/lib/context/friends';
 import { useThemeColor } from '@/hooks/useThemeColor';
+import { Colors } from '@/constants/Colors';
+import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function SearchTab() {
   const [username, setUsername] = useState('');
@@ -11,10 +13,10 @@ export default function SearchTab() {
   const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
   const { sendFriendRequest, searchUsers } = useFriends();
   
+  const colorScheme = useColorScheme();
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const placeholderColor = useThemeColor({}, 'placeholderText');
-  const borderColor = useThemeColor({}, 'border');
 
   const handleSearchUser = async () => {
     if (!username.trim()) {
@@ -61,9 +63,16 @@ export default function SearchTab() {
 
       <ThemedView style={styles.inputContainer}>
         <TextInput
-          style={[styles.input, { backgroundColor, color: textColor, borderColor }]}
+          style={[
+            styles.input, 
+            { 
+              backgroundColor, 
+              color: textColor, 
+              borderColor: Colors[colorScheme ?? 'light'].icon 
+            }
+          ]}
           placeholder="Enter username"
-          placeholderTextColor={placeholderColor}
+          placeholderTextColor={Colors[colorScheme ?? 'light'].icon}
           value={username}
           onChangeText={setUsername}
           autoCapitalize="none"

@@ -12,13 +12,15 @@ import {
   SectionList,
   Alert,
   ActivityIndicator,
-  RefreshControl
+  RefreshControl,
+  useColorScheme
 } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Animated, { FadeIn, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { Collapsible } from '@/components/Collapsible';
 import { useTask } from '@/lib/context/task';
+import { Colors } from '@/constants/Colors';
 
 interface Task {
   id: number;
@@ -31,6 +33,7 @@ interface Task {
 }
 
 export default function TodoList() {
+  const colorScheme = useColorScheme();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [taskName, setTaskName] = useState('');
   const [showDatePicker, setShowDatePicker] = useState<string | null>(null);
@@ -221,13 +224,26 @@ export default function TodoList() {
             setTempDueDate(null);
           }}
         >
-          <Animated.View entering={SlideInDown} exiting={SlideOutDown} style={styles.modalContent}>
-            <View style={styles.modalHeader}>
+          <Animated.View 
+            entering={SlideInDown} 
+            exiting={SlideOutDown} 
+            style={[
+              styles.modalContent,
+              { backgroundColor: Colors[colorScheme ?? 'light'].background }
+            ]}
+          >
+            <View style={[
+              styles.modalHeader,
+              { borderBottomColor: Colors[colorScheme ?? 'light'].icon + '40' }
+            ]}>
               <TouchableOpacity onPress={() => {
                 setShowDatePicker(null);
                 setTempDueDate(null);
               }}>
-                <Text style={styles.modalButton}>Cancel</Text>
+                <Text style={[
+                  styles.modalButton,
+                  { color: Colors[colorScheme ?? 'light'].tint }
+                ]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 onPress={() => {
@@ -237,7 +253,11 @@ export default function TodoList() {
                   setTempDueDate(null);
                 }}
               >
-                <Text style={[styles.modalButton, styles.modalDoneButton]}>Done</Text>
+                <Text style={[
+                  styles.modalButton, 
+                  styles.modalDoneButton, 
+                  { color: Colors[colorScheme ?? 'light'].tint }
+                ]}>Done</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.datePickerWrapper}>
@@ -258,7 +278,7 @@ export default function TodoList() {
                   }
                 }}
                 style={styles.datePicker}
-                themeVariant="light"
+                themeVariant={colorScheme}
               />
             </View>
           </Animated.View>
@@ -364,27 +384,43 @@ export default function TodoList() {
   const renderListHeader = () => (
     <View style={styles.listHeader}>
       <TextInput
-        style={styles.input}
+        style={[
+          styles.input, 
+          { 
+            borderColor: Colors[colorScheme ?? 'light'].icon,
+            color: Colors[colorScheme ?? 'light'].text,
+            backgroundColor: Colors[colorScheme ?? 'light'].background
+          }
+        ]}
         placeholder="Enter task name"
+        placeholderTextColor={Colors[colorScheme ?? 'light'].icon}
         value={taskName}
         onChangeText={setTaskName}
         onSubmitEditing={addTask}
       />
       <View style={styles.buttonContainer}>
-        <Button title="Add Task" onPress={addTask} color="#6936D8" />
+        <TouchableOpacity 
+          style={styles.addButton} 
+          onPress={addTask}
+        >
+          <Text style={styles.addButtonText}>Add Task</Text>
+        </TouchableOpacity>
       </View>
       {/* <View style={styles.sortContainer}>
         <Button 
           title={`Sort: ${sortBy === 'dueDate' ? 'Due Date' : 'Creation Date'}`}
           onPress={toggleSortBy}
-          color="#6936D8"
+          color={Colors[colorScheme ?? 'light'].tint}
         />
       </View> */}
     </View>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[
+      styles.container, 
+      { backgroundColor: Colors[colorScheme ?? 'light'].background }
+    ]}>
       <SectionList
         ListHeaderComponent={renderListHeader}
         refreshControl={
@@ -393,42 +429,76 @@ export default function TodoList() {
         sections={getGroupedTasks()}
         keyExtractor={(item) => item.id.toString()}
         renderSectionHeader={({ section: { title, data } }) => (
-          <Collapsible title={`${title} (${data.length})`} defaultOpen={title !== 'Done'}>
+          <Collapsible 
+            title={`${title} (${data.length})`} 
+            defaultOpen={title !== 'Done'}
+            titleStyle={{ color: Colors[colorScheme ?? 'light'].text }}
+          >
             {data.map(item => (
               <Swipeable 
                 key={item.id}
                 renderRightActions={() => renderRightActions(item.id)} 
                 containerStyle={{}}
               >
-                <TouchableOpacity style={styles.taskContainer}>
+                <TouchableOpacity style={[
+                  styles.taskContainer,
+                  { 
+                    backgroundColor: Colors[colorScheme ?? 'light'].background,
+                    borderBottomColor: Colors[colorScheme ?? 'light'].icon + '40'
+                  }
+                ]}>
                   <View style={styles.taskHeader}>
                     <TouchableOpacity 
-                      style={[styles.checkbox, tasksInTransition[item.id] && styles.checkboxTransitioning]}
+                      style={[
+                        styles.checkbox, 
+                        { borderColor: Colors[colorScheme ?? 'light'].icon },
+                        tasksInTransition[item.id] && { borderColor: Colors[colorScheme ?? 'light'].tint }
+                      ]}
                       onPress={() => toggleTaskCompletion(item.id, !item.is_done)}
                     >
-                      <View style={[styles.checkboxInner, item.is_done && styles.checkboxChecked]} />
+                      <View style={[
+                        styles.checkboxInner, 
+                        item.is_done && { backgroundColor: Colors[colorScheme ?? 'light'].icon }
+                      ]} />
                     </TouchableOpacity>
                     <View style={styles.taskContent}>
-                      <Text style={[styles.taskText, item.is_done && styles.completedTask]}>
+                      <Text style={[
+                        styles.taskText, 
+                        { color: Colors[colorScheme ?? 'light'].text },
+                        item.is_done && { 
+                          textDecorationLine: 'line-through',
+                          color: Colors[colorScheme ?? 'light'].icon 
+                        }
+                      ]}>
                         {item.task_name}
                       </Text>
                       <View style={styles.dueDateContainer}>
                         {item.due_date ? (
                           <Text style={[
                             styles.dueDate,
-                            isToday(item.due_date) && styles.todayDate,
+                            { color: Colors[colorScheme ?? 'light'].icon },
+                            isToday(item.due_date) && { color: Colors[colorScheme ?? 'light'].tint },
                             isOverdue(item.due_date) && !item.is_done && styles.overdueDate
                           ]}>
                             Due: {formatDate(item.due_date)}
                           </Text>
                         ) : (
-                          <Text style={styles.noDueDate}>No due date</Text>
+                          <Text style={[
+                            styles.noDueDate,
+                            { color: Colors[colorScheme ?? 'light'].icon }
+                          ]}>No due date</Text>
                         )}
                         <TouchableOpacity 
-                          style={styles.dateButton}
+                          style={[
+                            styles.dateButton,
+                            { backgroundColor: Colors[colorScheme ?? 'light'].background === '#fff' ? '#f0f0f0' : '#2A2D2E' }
+                          ]}
                           onPress={() => setShowDatePicker(item.id.toString())}
                         >
-                          <Text style={styles.dateButtonText}>
+                          <Text style={[
+                            styles.dateButtonText,
+                            { color: Colors[colorScheme ?? 'light'].icon }
+                          ]}>
                             {item.due_date ? 'Change Date' : 'Add Due Date'}
                           </Text>
                         </TouchableOpacity>
@@ -460,7 +530,6 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
     padding: 8,
     marginBottom: 8,
     marginHorizontal: 16,
@@ -469,6 +538,18 @@ const styles = StyleSheet.create({
   buttonContainer: {
     marginHorizontal: 16,
     marginBottom: 16,
+  },
+  addButton: {
+    backgroundColor: '#6936D8',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   sortContainer: {
     flexDirection: 'row',

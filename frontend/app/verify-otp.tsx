@@ -5,6 +5,8 @@ import { useAuth } from '@/lib/context/auth';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { TouchableOpacity } from 'react-native-gesture-handler';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { Colors } from '@/constants/Colors';
 
 export default function VerifyOTP() {
   const [otp, setOtp] = useState('');
@@ -13,6 +15,7 @@ export default function VerifyOTP() {
   const [resending, setResending] = useState(false);
   const { verifyOtp, resendOtp } = useAuth();
   const { email } = useLocalSearchParams<{ email: string }>();
+  const colorScheme = useColorScheme();
 
   useEffect(() => {
     if (cooldown > 0) {
@@ -62,8 +65,16 @@ export default function VerifyOTP() {
           </ThemedText>
 
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              { 
+                color: Colors[colorScheme ?? 'light'].text,
+                borderColor: Colors[colorScheme ?? 'light'].icon,
+                backgroundColor: colorScheme === 'dark' ? '#2A2D2E' : '#F5F5F5'
+              }
+            ]}
             placeholder="Enter verification code"
+            placeholderTextColor={Colors[colorScheme ?? 'light'].icon}
             value={otp}
             onChangeText={setOtp}
             keyboardType="number-pad"

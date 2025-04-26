@@ -5,9 +5,12 @@ import { ThemedView } from '@/components/ThemedView';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useFriends } from '@/lib/context/friends';
+import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function FriendsTab() {
   const textColor = useThemeColor({}, 'text');
+  const colorScheme = useColorScheme();
+  const borderColor = colorScheme === 'dark' ? '#3A3A3C' : '#eee'; // Lighter gray for dark mode
   const { friends, isLoading, fetchFriends, isRefreshing } = useFriends();
   const router = useRouter();
 
@@ -41,12 +44,17 @@ export default function FriendsTab() {
     );
   }
 
+  const friendItemStyle = {
+    ...styles.friendItem,
+    borderColor: borderColor,
+  };
+
   return (
     <FlatList
       data={friends}
       renderItem={({ item }) => (
         <TouchableOpacity onPress={() => handleFriendPress(item)}>
-          <ThemedView style={styles.friendItem}>
+          <ThemedView style={friendItemStyle}>
             <ThemedView style={styles.friendInfo}>
               <ThemedText style={styles.username}>{item.username}</ThemedText>
               <ThemedText style={styles.friendSince}>
@@ -102,7 +110,6 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#eee',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
