@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
+import { createSupabaseClient } from "../_shared/supabase.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -16,147 +16,131 @@ Deno.serve(async (req) => {
 
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) {
-    return new Response(
-      JSON.stringify({
-        error: "No authorization header",
-      }),
-      {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
+    return new Response(JSON.stringify({ error: "No authorization header" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {
-    console.log("[send-friend-request] Creating Supabase client");
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error("[send-friend-request] Missing environment variables");
-      throw new Error("Missing required environment variables");
-    }
-
-    const supabase = createClient(
-      supabaseUrl,
-      supabaseKey,
-      {
-        global: {
-          headers: {
-            Authorization: authHeader,
-          },
-        },
-      },
-    );
-
-    console.log("[send-friend-request] Verifying user token");
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabase.auth.getUser(
-      token,
-    );
-
-    if (userError) {
-      console.error(
-        "[send-friend-request] User verification error:",
-        userError,
-      );
+    const { receiver_id } = await req.json();
+    if (!receiver_id) {
       return new Response(
-        JSON.stringify({
-          error: "Unauthorized",
-          details: userError.message,
-        }),
+        JSON.stringify({ error: "Receiver ID is required" }),
         {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 401,
-        },
-      );
-    }
-
-    if (!userData?.user) {
-      console.log("[send-friend-request] No user found for token");
-      return new Response(
-        JSON.stringify({
-          error: "Unauthorized",
-          details: "No user found",
-        }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 401,
-        },
-      );
-    }
-
-    const { user } = userData;
-    const body = await req.json();
-    const { recipient_id } = body;
-
-    if (!recipient_id) {
-      return new Response(
-        JSON.stringify({
-          error: "recipient_id is required",
-        }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         },
       );
     }
 
-    // Check if a friend request already exists
-    const { data: existingRequest, error: checkError } = await supabase
-      .from("friend_requests")
-      .select()
-      .or(`requester_id.eq.${user.id},recipient_id.eq.${user.id}`)
-      .or(`requester_id.eq.${recipient_id},recipient_id.eq.${recipient_id}`)
-      .single();
+    // Create client using shared function
+    const supabaseClient = createSupabaseClient(authHeader);
 
-    if (checkError && checkError.code !== "PGRST116") { // PGRST116 means no rows found
-      console.error(
-        "[send-friend-request] Error checking existing request:",
-        checkError,
+    // Verify JWT and get user
+    const { data: { user }, error: authError } = await supabaseClient.auth
+      .getUser();
+
+    if (authError || !user) {
+      console.error("[send-friend-request] Auth error:", authError);
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const sender_id = user.id;
+
+    // Prevent sending request to self
+    if (sender_id === receiver_id) {
+      return new Response(
+        JSON.stringify({ error: "Cannot send friend request to yourself" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
-      throw checkError;
+    }
+
+    // Check if a request already exists (pending, confirmed, or blocked)
+    // TODO: Add handling for blocked status if implemented
+    const { data: existingRequest, error: checkError } = await supabaseClient
+      .from("friend_requests")
+      .select("id, status")
+      .or(
+        `and(requester_id.eq.${sender_id},recipient_id.eq.${receiver_id})`,
+        `and(requester_id.eq.${receiver_id},recipient_id.eq.${sender_id})`,
+      )
+      .maybeSingle(); // Use maybeSingle as there should be at most one request between two users
+
+    if (checkError) {
+      console.error("[send-friend-request] DB check error:", checkError);
+      return new Response(
+        JSON.stringify({ error: "Failed to check existing requests" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     if (existingRequest) {
+      let message = "Friend request already exists.";
+      if (existingRequest.status === "confirmed") {
+        message = "You are already friends.";
+      } else if (existingRequest.status === "pending") {
+        message = "A friend request is already pending.";
+      }
+      // Add logic for 'rejected' or 'blocked' if needed
+      return new Response(JSON.stringify({ error: message }), {
+        status: 409, // Conflict
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Insert the new friend request
+    const { data, error } = await supabaseClient
+      .from("friend_requests")
+      .insert([{
+        requester_id: sender_id,
+        recipient_id: receiver_id,
+        status: "pending",
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("[send-friend-request] DB insert error:", error);
       return new Response(
-        JSON.stringify({
-          error: "A friend request already exists between these users",
-        }),
+        JSON.stringify({ error: "Failed to send friend request" }),
         {
+          status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
         },
       );
     }
 
-    // Create new friend request
-    const { data, error } = await supabase.from("friend_requests").insert({
-      requester_id: user.id,
-      recipient_id,
-      status: "pending",
-    }).select();
-
-    if (error) {
-      console.error("[send-friend-request] Database error:", error);
-      throw error;
-    }
-
-    return new Response(
-      JSON.stringify({
-        data,
-      }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 201,
-      },
-    );
+    return new Response(JSON.stringify(data), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 201,
+    });
   } catch (err) {
     console.error("[send-friend-request] Unexpected error:", err);
+    // Handle potential errors from createSupabaseClient
+    if (
+      err instanceof Error &&
+      err.message.includes("Missing required Supabase environment variables")
+    ) {
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
     return new Response(
-      JSON.stringify({
-        error: err instanceof Error ? err.message : "Unknown error occurred",
-      }),
+      JSON.stringify({ error: "Internal server error" }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

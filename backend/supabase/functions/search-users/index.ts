@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
+import { createSupabaseClient } from "../_shared/supabase.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -43,28 +43,15 @@ Deno.serve(async (req) => {
         },
       );
     }
-    console.log("[search-users] Creating Supabase client");
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
-    if (!supabaseUrl || !supabaseKey) {
-      console.error("[search-users] Missing environment variables");
-      throw new Error("Missing required environment variables");
-    }
-    // Create client with auth context
-    const supabaseClient = createClient(supabaseUrl, supabaseKey, {
-      global: {
-        headers: {
-          Authorization: authHeader,
-        },
-      },
-      auth: {
-        persistSession: false,
-      },
-    });
-    // Verify the JWT token
-    const token = authHeader.replace("Bearer ", "");
+
+    // Create client using the shared function
+    console.log("[search-users] Creating Supabase client via shared function");
+    const supabaseClient = createSupabaseClient(authHeader);
+
+    // Verify the JWT token (using the client created with auth header)
     const { data: { user }, error: authError } = await supabaseClient.auth
-      .getUser(token);
+      .getUser(); // getUser() now uses the client's auth header
+
     if (authError || !user) {
       console.error("[search-users] Authentication failed:", authError);
       return new Response(
@@ -114,6 +101,19 @@ Deno.serve(async (req) => {
     );
   } catch (err) {
     console.error("[search-users] Unexpected error:", err);
+    // Check if the error is due to missing env vars from the shared function
+    if (
+      err instanceof Error &&
+      err.message.includes("Missing required Supabase environment variables")
+    ) {
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
     return new Response(
       JSON.stringify({
         error: err instanceof Error ? err.message : "Unknown error occurred",

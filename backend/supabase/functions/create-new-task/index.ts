@@ -1,7 +1,7 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
+import { createSupabaseClient } from "../_shared/supabase.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -17,122 +17,74 @@ Deno.serve(async (req) => {
 
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) {
-    return new Response(
-      JSON.stringify({
-        error: "No authorization header",
-      }),
-      {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
+    return new Response(JSON.stringify({ error: "No authorization header" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {
-    console.log("[create-task] Creating Supabase client");
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error("[create-task] Missing environment variables");
-      throw new Error("Missing required environment variables");
-    }
-
-    const supabase = createClient(
-      supabaseUrl,
-      supabaseKey,
-      {
-        global: {
-          headers: {
-            Authorization: authHeader,
-          },
-        },
-      },
-    );
-
-    console.log("[create-task] Verifying user token");
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabase.auth.getUser(
-      token,
-    );
-
-    if (userError) {
-      console.error("[create-task] User verification error:", userError);
+    const { title, description, due_date } = await req.json();
+    if (!title || !due_date) {
       return new Response(
-        JSON.stringify({
-          error: "Unauthorized",
-          details: userError.message,
-        }),
+        JSON.stringify({ error: "Title and due date are required" }),
         {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 401,
-        },
-      );
-    }
-
-    if (!userData?.user) {
-      console.log("[create-task] No user found for token");
-      return new Response(
-        JSON.stringify({
-          error: "Unauthorized",
-          details: "No user found",
-        }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 401,
-        },
-      );
-    }
-
-    const { user } = userData;
-    console.log("[create-task] User verified:", user.id);
-
-    const body = await req.json();
-    console.log("[create-task] Request body:", JSON.stringify(body));
-    const { task_name, due_date } = body;
-
-    if (!task_name) {
-      console.log("[create-task] Missing task_name in request");
-      return new Response(
-        JSON.stringify({
-          error: "task_name is required",
-        }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         },
       );
     }
 
-    console.log("[create-task] Creating new task");
-    const { data, error } = await supabase.from("tasks").insert({
-      task_name,
-      due_date,
-      updated_at: new Date().toISOString(),
-      user_id: user.id,
-    }).select();
+    // Create client using shared function
+    const supabaseClient = createSupabaseClient(authHeader);
+
+    // Verify JWT and get user
+    const { data: { user }, error: authError } = await supabaseClient.auth
+      .getUser();
+
+    if (authError || !user) {
+      console.error("[create-new-task] Auth error:", authError);
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Insert the new task
+    const { data, error } = await supabaseClient
+      .from("tasks")
+      .insert([{ user_id: user.id, title, description, due_date }])
+      .select();
 
     if (error) {
-      console.error("[create-task] Database error:", error);
-      throw error;
+      console.error("[create-new-task] DB error:", error);
+      return new Response(JSON.stringify({ error: "Failed to create task" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    console.log("[create-task] Task created successfully:", data?.[0]?.id);
-    return new Response(
-      JSON.stringify({
-        data,
-      }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 201,
-      },
-    );
+    return new Response(JSON.stringify(data), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 201,
+    });
   } catch (err) {
-    console.error("[create-task] Unexpected error:", err);
+    console.error("[create-new-task] Unexpected error:", err);
+    // Handle potential errors from createSupabaseClient
+    if (
+      err instanceof Error &&
+      err.message.includes("Missing required Supabase environment variables")
+    ) {
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
     return new Response(
-      JSON.stringify({
-        error: err instanceof Error ? err.message : "Unknown error occurred",
-      }),
+      JSON.stringify({ error: "Internal server error" }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
