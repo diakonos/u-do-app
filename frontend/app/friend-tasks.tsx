@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, ActivityIndicator, FlatList, RefreshControl, Alert, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, FlatList, RefreshControl, Alert, TouchableOpacity, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -9,20 +9,16 @@ import { useFriends, FriendTask } from '@/lib/context/friends';
 export default function FriendTasksScreen() {
   const { username, userId } = useLocalSearchParams();
   const [todayTasks, setTodayTasks] = useState<FriendTask[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const textColor = useThemeColor({}, 'text');
-  const backgroundColor = useThemeColor({}, 'background');
   const { getFriendTasks } = useFriends();
 
   const fetchFriendTasks = useCallback(async () => {
     if (!userId) return;
 
     try {
-      setIsLoading(true);
-      
+      setIsRefreshing(false);
       const tasks = await getFriendTasks(userId.toString());
-      console.log('Friend tasks:', tasks);
       
       // Filter for tasks due today
       setTodayTasks(tasks);
@@ -30,7 +26,6 @@ export default function FriendTasksScreen() {
       console.error('Error fetching friend tasks:', error);
       Alert.alert('Error', 'Failed to load tasks for this friend');
     } finally {
-      setIsLoading(false);
       setIsRefreshing(false);
     }
   }, [userId, getFriendTasks]);
@@ -51,66 +46,61 @@ export default function FriendTasksScreen() {
     <ThemedView style={styles.container}>
       <Stack.Screen 
         options={{
-          title: username?.toString() || 'Friend\'s Tasks',
+          title: username? `${username}\'s tasks` : 'Friend\'s Tasks',
+          headerBackTitle: 'Friends',
           headerTintColor: '#ffffff',
           headerStyle: {
             backgroundColor: '#6936D8',
           },
         }} 
       />
-
-      {isLoading && !isRefreshing ? (
-        <ThemedView style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6936D8" />
-        </ThemedView>
-      ) : (
-        <FlatList
-          data={todayTasks}
-          renderItem={({ item }) => (
-            <ThemedView style={styles.taskItem}>
-              <TouchableOpacity 
-                style={styles.checkbox}
-                // Read-only - we don't allow toggling friend's tasks
-                activeOpacity={1}
-              >
-                <View style={[
-                  styles.checkboxInner, 
-                  item.is_done && styles.checkboxChecked
-                ]} />
-              </TouchableOpacity>
-              <ThemedView style={styles.taskInfo}>
-                <ThemedText style={[
-                  styles.taskName,
-                  item.is_done && styles.completedTask
-                ]}>
-                  {item.task_name}
-                </ThemedText>
-              </ThemedView>
-            </ThemedView>
-          )}
-          keyExtractor={(item) => item.id.toString()}
-          style={styles.tasksList}
-          contentContainerStyle={[
-            styles.tasksContent,
-            todayTasks.length === 0 && styles.emptyListContent
-          ]}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={onRefresh}
-              colors={['#6936D8']}
-              tintColor={textColor}
-            />
-          }
-          ListEmptyComponent={
-            <ThemedView style={styles.emptyState}>
-              <ThemedText style={styles.emptyStateText}>
-                No tasks due today
+      
+      <FlatList
+        data={todayTasks}
+        renderItem={({ item }) => (
+          <ThemedView style={styles.taskItem}>
+            <TouchableOpacity 
+              style={styles.checkbox}
+              // Read-only - we don't allow toggling friend's tasks
+              activeOpacity={1}
+            >
+              <View style={[
+                styles.checkboxInner, 
+                item.is_done && styles.checkboxChecked
+              ]} />
+            </TouchableOpacity>
+            <ThemedView style={styles.taskInfo}>
+              <ThemedText style={[
+                styles.taskName,
+                item.is_done && styles.completedTask
+              ]}>
+                {item.task_name}
               </ThemedText>
             </ThemedView>
-          }
-        />
-      )}
+          </ThemedView>
+        )}
+        keyExtractor={(item) => item.id.toString()}
+        style={styles.tasksList}
+        contentContainerStyle={[
+          styles.tasksContent,
+          todayTasks.length === 0 && styles.emptyListContent
+        ]}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            colors={['#6936D8']}
+            tintColor={textColor}
+          />
+        }
+        ListEmptyComponent={
+          <ThemedView style={styles.emptyState}>
+            <ThemedText style={styles.emptyStateText}>
+              No tasks due today
+            </ThemedText>
+          </ThemedView>
+        }
+      />
     </ThemedView>
   );
 }
