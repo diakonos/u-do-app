@@ -8,9 +8,12 @@ import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { TaskProvider } from '@/lib/context/task';
+import { useThemeColor } from '@/hooks/useThemeColor';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const tintColor = useThemeColor({}, 'tint');
+  const whiteColor = useThemeColor({}, 'white');
 
   return (
     <TaskProvider>
@@ -18,9 +21,9 @@ export default function TabLayout() {
         screenOptions={{
           tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
           headerShown: true,
-          headerTintColor: '#ffffff',
+          headerTintColor: whiteColor,
           headerStyle: {
-            backgroundColor: '#6936D8',
+            backgroundColor: tintColor,
           },
           tabBarButton: HapticTab,
           tabBarBackground: TabBarBackground,

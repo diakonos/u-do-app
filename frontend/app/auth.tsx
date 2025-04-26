@@ -6,13 +6,19 @@ import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { Colors } from '@/constants/Colors';
+import { useThemeColor } from '@/hooks/useThemeColor';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
   const colorScheme = useColorScheme();
+  
+  const textColor = useThemeColor({}, 'text');
+  const iconColor = useThemeColor({}, 'icon');
+  const tintColor = useThemeColor({}, 'tint');
+  const whiteColor = useThemeColor({}, 'white');
+  const inputBackgroundColor = useThemeColor({}, 'inputBackground');
 
   const handleSignIn = async () => {
     try {
@@ -46,13 +52,13 @@ export default function Auth() {
           style={[
             styles.input,
             { 
-              color: Colors[colorScheme ?? 'light'].text,
-              borderColor: Colors[colorScheme ?? 'light'].icon,
-              backgroundColor: colorScheme === 'dark' ? '#2A2D2E' : '#F5F5F5'
+              color: textColor,
+              borderColor: iconColor,
+              backgroundColor: inputBackgroundColor
             }
           ]}
           placeholder="Enter your email"
-          placeholderTextColor={Colors[colorScheme ?? 'light'].icon}
+          placeholderTextColor={iconColor}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -60,11 +66,15 @@ export default function Auth() {
         />
 
         <TouchableOpacity 
-          style={[styles.button, loading && styles.buttonDisabled]}
+          style={[
+            styles.button, 
+            { backgroundColor: tintColor },
+            loading && styles.buttonDisabled
+          ]}
           onPress={handleSignIn}
           disabled={loading || !email}
         >
-          <ThemedText style={styles.buttonText}>
+          <ThemedText style={[styles.buttonText, { color: whiteColor }]}>
             {loading ? 'Sending...' : 'Continue with Email'}
           </ThemedText>
         </TouchableOpacity>
@@ -97,7 +107,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 50,
     borderWidth: 1,
-    borderColor: '#ccc',
     borderRadius: 8,
     paddingHorizontal: 15,
     marginBottom: 20,
@@ -106,7 +115,6 @@ const styles = StyleSheet.create({
   button: {
     width: '100%',
     height: 50,
-    backgroundColor: '#6936D8',
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -116,7 +124,6 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   buttonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },

@@ -6,13 +6,20 @@ import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { Colors } from '@/constants/Colors';
+import { useThemeColor } from '@/hooks/useThemeColor';
 
 export default function CreateUsername() {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const { setUsername: updateUsername } = useAuth();
   const colorScheme = useColorScheme();
+  
+  // Get theme colors
+  const textColor = useThemeColor({}, 'text');
+  const iconColor = useThemeColor({}, 'icon');
+  const tintColor = useThemeColor({}, 'tint');
+  const whiteColor = useThemeColor({}, 'white');
+  const inputBackgroundColor = useThemeColor({}, 'inputBackground');
 
   const handleSetUsername = async () => {
     if (!username.trim()) {
@@ -49,13 +56,13 @@ export default function CreateUsername() {
             style={[
               styles.input,
               { 
-                color: Colors[colorScheme ?? 'light'].text,
-                borderColor: Colors[colorScheme ?? 'light'].icon,
-                backgroundColor: colorScheme === 'dark' ? '#2A2D2E' : '#F5F5F5'
+                color: textColor,
+                borderColor: iconColor,
+                backgroundColor: inputBackgroundColor
               }
             ]}
             placeholder="Enter username"
-            placeholderTextColor={Colors[colorScheme ?? 'light'].icon}
+            placeholderTextColor={iconColor}
             value={username}
             onChangeText={setUsername}
             autoCapitalize="none"
@@ -63,11 +70,15 @@ export default function CreateUsername() {
           />
 
           <TouchableOpacity 
-            style={[styles.button, loading && styles.buttonDisabled]}
+            style={[
+              styles.button, 
+              { backgroundColor: tintColor },
+              loading && styles.buttonDisabled
+            ]}
             onPress={handleSetUsername}
             disabled={loading || !username.trim()}
           >
-            <ThemedText style={styles.buttonText}>
+            <ThemedText style={[styles.buttonText, { color: whiteColor }]}>
               {loading ? 'Setting username...' : 'Continue'}
             </ThemedText>
           </TouchableOpacity>
@@ -104,7 +115,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 50,
     borderWidth: 1,
-    borderColor: '#ccc',
     borderRadius: 8,
     paddingHorizontal: 15,
     marginBottom: 20,
@@ -113,7 +123,6 @@ const styles = StyleSheet.create({
   button: {
     width: '100%',
     height: 50,
-    backgroundColor: '#6936D8',
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -123,7 +132,6 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   buttonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },

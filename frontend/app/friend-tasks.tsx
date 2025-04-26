@@ -11,6 +11,10 @@ export default function FriendTasksScreen() {
   const [todayTasks, setTodayTasks] = useState<FriendTask[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const textColor = useThemeColor({}, 'text');
+  const tintColor = useThemeColor({}, 'tint');
+  const borderColor = useThemeColor({}, 'border');
+  const tertiaryTextColor = useThemeColor({}, 'tertiaryText');
+  const whiteColor = useThemeColor({}, 'white');
   const { getFriendTasks } = useFriends();
 
   const fetchFriendTasks = useCallback(async () => {
@@ -48,9 +52,9 @@ export default function FriendTasksScreen() {
         options={{
           title: username? `${username}\'s tasks` : 'Friend\'s Tasks',
           headerBackTitle: 'Friends',
-          headerTintColor: '#ffffff',
+          headerTintColor: whiteColor,
           headerStyle: {
-            backgroundColor: '#6936D8',
+            backgroundColor: tintColor,
           },
         }} 
       />
@@ -58,15 +62,24 @@ export default function FriendTasksScreen() {
       <FlatList
         data={todayTasks}
         renderItem={({ item }) => (
-          <ThemedView style={styles.taskItem}>
+          <ThemedView style={{
+            ...styles.taskItem,
+            borderColor: borderColor
+          }}>
             <TouchableOpacity 
-              style={styles.checkbox}
+              style={{
+                ...styles.checkbox,
+                borderColor: borderColor,
+              }}
               // Read-only - we don't allow toggling friend's tasks
               activeOpacity={1}
             >
               <View style={[
                 styles.checkboxInner, 
-                item.is_done && styles.checkboxChecked
+                item.is_done && {
+                  ...styles.checkboxChecked,
+                  backgroundColor: tintColor
+                }
               ]} />
             </TouchableOpacity>
             <ThemedView style={styles.taskInfo}>
@@ -89,13 +102,16 @@ export default function FriendTasksScreen() {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={onRefresh}
-            colors={['#6936D8']}
+            colors={[tintColor]}
             tintColor={textColor}
           />
         }
         ListEmptyComponent={
           <ThemedView style={styles.emptyState}>
-            <ThemedText style={styles.emptyStateText}>
+            <ThemedText style={{
+              ...styles.emptyStateText,
+              color: tertiaryTextColor
+            }}>
               No tasks due today
             </ThemedText>
           </ThemedView>
@@ -130,7 +146,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#eee',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -155,7 +170,6 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 16,
-    color: '#666',
     textAlign: 'center',
   },
   checkbox: {
@@ -163,7 +177,6 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#ccc',
     marginRight: 12,
     justifyContent: 'center',
     alignItems: 'center',
@@ -175,6 +188,6 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   checkboxChecked: {
-    backgroundColor: '#6936D8',
+    // Color will be applied inline
   },
 });

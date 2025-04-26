@@ -8,6 +8,10 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 
 export default function RequestsTab() {
   const textColor = useThemeColor({}, 'text');
+  const tintColor = useThemeColor({}, 'tint');
+  const borderColor = useThemeColor({}, 'border');
+  const tertiaryTextColor = useThemeColor({}, 'tertiaryText');
+  const dangerColor = useThemeColor({}, 'danger');
   const { pendingRequests, fetchPendingRequests, acceptFriendRequest, rejectFriendRequest, isLoading, isPendingRequestsRefreshing } = useFriends();
 
   // Fetch pending requests when screen is focused
@@ -42,26 +46,58 @@ export default function RequestsTab() {
   if (isLoading) {
     return (
       <ThemedView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6936D8" />
+        <ActivityIndicator size="large" color={tintColor} />
       </ThemedView>
     );
   }
+
+  const requestItemStyle = {
+    ...styles.requestItem,
+    borderColor: borderColor,
+  };
+
+  const emailStyle = {
+    ...styles.email,
+    color: tertiaryTextColor,
+  };
+
+  const actionButtonStyle = {
+    ...styles.actionButton,
+    backgroundColor: tintColor,
+  };
+
+  const rejectButtonStyle = {
+    ...styles.actionButton,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: dangerColor,
+  };
+
+  const rejectTextStyle = {
+    ...styles.actionText,
+    color: dangerColor,
+  };
+
+  const emptyStateTextStyle = {
+    ...styles.emptyStateText,
+    color: tertiaryTextColor,
+  };
 
   return (
     <FlatList
       data={pendingRequests}
       renderItem={({ item }) => (
-        <ThemedView style={styles.requestItem}>
+        <ThemedView style={requestItemStyle}>
           <ThemedView style={styles.requestInfo}>
             <ThemedText style={styles.username}>{item.requester?.username || 'Unknown User'}</ThemedText>
-            <ThemedText style={styles.email}>{item.requester?.email || 'Unknown email'}</ThemedText>
+            <ThemedText style={emailStyle}>{item.requester?.email || 'Unknown email'}</ThemedText>
           </ThemedView>
           <ThemedView style={styles.actionsContainer}>
-            <ThemedView style={styles.actionButton}>
+            <ThemedView style={actionButtonStyle}>
               <ThemedText style={styles.actionText} onPress={() => handleAccept(item.id)}>Accept</ThemedText>
             </ThemedView>
-            <ThemedView style={[styles.actionButton, styles.rejectButton]}>
-              <ThemedText style={[styles.actionText, styles.rejectText]} onPress={() => handleReject(item.id)}>Reject</ThemedText>
+            <ThemedView style={rejectButtonStyle}>
+              <ThemedText style={rejectTextStyle} onPress={() => handleReject(item.id)}>Reject</ThemedText>
             </ThemedView>
           </ThemedView>
         </ThemedView>
@@ -74,7 +110,7 @@ export default function RequestsTab() {
       ]}
       ListEmptyComponent={
         <ThemedView style={styles.emptyState}>
-          <ThemedText style={styles.emptyStateText}>
+          <ThemedText style={emptyStateTextStyle}>
             You don't have any pending friend requests
           </ThemedText>
         </ThemedView>
@@ -83,7 +119,7 @@ export default function RequestsTab() {
         <RefreshControl
           refreshing={isPendingRequestsRefreshing}
           onRefresh={onRefresh}
-          colors={['#6936D8']}
+          colors={[tintColor]}
           tintColor={textColor}
         />
       }
@@ -114,7 +150,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#eee',
     marginBottom: 12,
   },
   requestInfo: {
@@ -127,7 +162,6 @@ const styles = StyleSheet.create({
   },
   email: {
     fontSize: 14,
-    color: '#666',
   },
   actionsContainer: {
     flexDirection: 'row',
@@ -135,22 +169,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   actionButton: {
-    backgroundColor: '#6936D8',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
-  rejectButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#FF3B30',
-  },
   actionText: {
     color: 'white',
     fontWeight: '500',
-  },
-  rejectText: {
-    color: '#FF3B30',
   },
   emptyState: {
     flex: 1,
@@ -159,7 +184,6 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 16,
-    color: '#666',
     textAlign: 'center',
   },
 });

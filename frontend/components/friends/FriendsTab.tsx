@@ -9,8 +9,11 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function FriendsTab() {
   const textColor = useThemeColor({}, 'text');
+  const tintColor = useThemeColor({}, 'tint');
+  const borderColor = useThemeColor({}, 'border');
+  const secondaryTextColor = useThemeColor({}, 'secondaryText');
+  const tertiaryTextColor = useThemeColor({}, 'tertiaryText');
   const colorScheme = useColorScheme();
-  const borderColor = colorScheme === 'dark' ? '#3A3A3C' : '#eee'; // Lighter gray for dark mode
   const { friends, isLoading, fetchFriends, isRefreshing } = useFriends();
   const router = useRouter();
 
@@ -39,7 +42,7 @@ export default function FriendsTab() {
   if (isLoading && !isRefreshing) {
     return (
       <ThemedView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6936D8" />
+        <ActivityIndicator size="large" color={tintColor} />
       </ThemedView>
     );
   }
@@ -47,6 +50,16 @@ export default function FriendsTab() {
   const friendItemStyle = {
     ...styles.friendItem,
     borderColor: borderColor,
+  };
+
+  const friendSinceStyle = {
+    ...styles.friendSince,
+    color: secondaryTextColor,
+  };
+
+  const emptyStateTextStyle = {
+    ...styles.emptyStateText,
+    color: tertiaryTextColor,
   };
 
   return (
@@ -57,7 +70,7 @@ export default function FriendsTab() {
           <ThemedView style={friendItemStyle}>
             <ThemedView style={styles.friendInfo}>
               <ThemedText style={styles.username}>{item.username}</ThemedText>
-              <ThemedText style={styles.friendSince}>
+              <ThemedText style={friendSinceStyle}>
                 Friends since {new Date(item.created_at).toLocaleDateString()}
               </ThemedText>
             </ThemedView>
@@ -74,13 +87,13 @@ export default function FriendsTab() {
         <RefreshControl
           refreshing={isRefreshing}
           onRefresh={onRefresh}
-          colors={['#6936D8']}
+          colors={[tintColor]}
           tintColor={textColor}
         />
       }
       ListEmptyComponent={
         <ThemedView style={styles.emptyState}>
-          <ThemedText style={styles.emptyStateText}>
+          <ThemedText style={emptyStateTextStyle}>
             You don't have any friends yet
           </ThemedText>
         </ThemedView>
@@ -124,7 +137,6 @@ const styles = StyleSheet.create({
   },
   friendSince: {
     fontSize: 12,
-    color: '#999',
     marginTop: 2,
   },
   emptyState: {
@@ -135,7 +147,6 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 16,
-    color: '#666',
     textAlign: 'center',
   },
 });
