@@ -190,24 +190,27 @@ export default function TodoList() {
                 <Text style={[styles.modalButton, styles.modalDoneButton]}>Done</Text>
               </TouchableOpacity>
             </View>
-            <DateTimePicker
-              testID="datePicker"
-              value={tempDueDate || defaultDate}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              minimumDate={getMinDate()}
-              onChange={(event, date) => {
-                if (event.type === 'set' && date) {
-                  if (Platform.OS === 'android') {
-                    updateDueDate(item.id, date);
-                    setShowDatePicker(null);
-                  } else {
-                    setTempDueDate(date);
+            <View style={styles.datePickerWrapper}>
+              <DateTimePicker
+                testID="datePicker"
+                value={tempDueDate || defaultDate}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                minimumDate={getMinDate()}
+                onChange={(event, date) => {
+                  if (event.type === 'set' && date) {
+                    if (Platform.OS === 'android') {
+                      updateDueDate(item.id, date);
+                      setShowDatePicker(null);
+                    } else {
+                      setTempDueDate(date);
+                    }
                   }
-                }
-              }}
-              style={styles.datePicker}
-            />
+                }}
+                style={styles.datePicker}
+                themeVariant="light"
+              />
+            </View>
           </Animated.View>
         </TouchableOpacity>
       </Modal>
@@ -491,6 +494,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
     paddingBottom: 20,
+    width: '100%', // Ensure the modal content fills the screen width
   },
   modalHeader: {
     flexDirection: 'row',
@@ -498,6 +502,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
+    width: '100%', // Ensure header spans the full width
   },
   modalButton: {
     fontSize: 16,
@@ -509,6 +514,7 @@ const styles = StyleSheet.create({
   datePicker: {
     height: 216,
     backgroundColor: '#fff',
+    width: '100%', // Make date picker fill the screen width
   },
   deleteButton: {
     backgroundColor: 'red',
@@ -526,5 +532,10 @@ const styles = StyleSheet.create({
   loadingContainer: {
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  datePickerWrapper: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
