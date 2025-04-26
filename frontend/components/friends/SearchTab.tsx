@@ -1,216 +1,168 @@
 import { useState } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, FlatList } from 'react-native';
+import { StyleSheet, TextInput, Alert, ActivityIndicator, FlatList } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { supabase } from '@/lib/supabase';
-
-interface SearchResult {
-  id: string;
-  user_id: string;
-  email: string;
-  username: string;
-}
+import { useFriends, UserSearchResult } from '@/lib/context/friends';
+import { useThemeColor } from '@/hooks/useThemeColor';
 
 export default function SearchTab() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [lastSearchedQuery, setLastSearchedQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
-  const [pendingRequests, setPendingRequests] = useState<Record<string, boolean>>({});
-  const [requestStatuses, setRequestStatuses] = useState<Record<string, 'sent' | 'error' | null>>({});
+  const [username, setUsername] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
+  const { sendFriendRequest, searchUsers } = useFriends();
+  
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const placeholderColor = useThemeColor({}, 'placeholderText');
+  const borderColor = useThemeColor({}, 'border');
 
-  const searchUsers = async () => {
-    if (!searchQuery.trim()) return;
+  const handleSearchUser = async () => {
+    if (!username.trim()) {
+      Alert.alert('Error', 'Please enter a username');
+      return;
+    }
 
+    setIsSearching(true);
     try {
-      setSearchResults([]); // Reset results before new search
-      setIsLoading(true);
-      setHasSearched(true);
-      setLastSearchedQuery(searchQuery);
-      const { data, error } = await supabase.functions.invoke('search-users', {
-        body: { query: searchQuery }
-      });
-
-      if (error) {
-        console.error('Supabase Edge Function Error:', {
-          status: error.status,
-          statusText: error.statusText,
-          message: error.message,
-          name: error.name,
-          details: error.details,
-          context: error?.context,
-        });
-        throw error;
+      const results = await searchUsers(username.trim());
+      setSearchResults(results);
+      if (results.length === 0) {
+        Alert.alert('No Results', 'No users found with that username');
       }
-      setSearchResults(data.users || []);
-    } catch (error) {
-      console.error('Search error:', error);
-      setSearchResults([]);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to search for users');
+      console.error(error);
     } finally {
-      setIsLoading(false);
+      setIsSearching(false);
     }
   };
 
-  const sendFriendRequest = async (recipientId: string) => {
-    console.log('Sending friend request to:', recipientId);
-    // Don't allow sending another request if one is already pending
-    if (pendingRequests[recipientId]) return;
-
+  const handleSendFriendRequest = async (userId: string) => {
+    setIsSearching(true);
     try {
-      // Set this user's request to pending
-      setPendingRequests(prev => ({ ...prev, [recipientId]: true }));
-      
-      // Clear any previous error status
-      setRequestStatuses(prev => ({ ...prev, [recipientId]: null }));
-      
-      const { data, error } = await supabase.functions.invoke('send-friend-request', {
-        body: { recipient_id: recipientId }
-      });
-
-      if (error) {
-        console.error('Friend request error:', {
-          status: error.status,
-          message: error.message,
-          details: error.details,
-        });
-        throw error;
-      }
-
-      // Mark request as successfully sent
-      setRequestStatuses(prev => ({ ...prev, [recipientId]: 'sent' }));
-      
-    } catch (error) {
-      console.error('Failed to send friend request:', error);
-      setRequestStatuses(prev => ({ ...prev, [recipientId]: 'error' }));
+      await sendFriendRequest(userId);
+      Alert.alert('Success', 'Friend request sent successfully!');
+      // Remove the user from search results to prevent sending multiple requests
+      setSearchResults(prev => prev.filter(user => user.user_id !== userId));
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to send friend request');
+      console.error(error);
     } finally {
-      // Clear pending state
-      setPendingRequests(prev => ({ ...prev, [recipientId]: false }));
+      setIsSearching(false);
     }
-  };
-
-  const renderUserItem = ({ item }: { item: SearchResult }) => (
-    <ThemedView style={styles.userItem}>
-      <ThemedText style={styles.username}>{item.username}</ThemedText>
-      <ThemedText style={styles.email}>{item.email}</ThemedText>
-      
-      {requestStatuses[item.user_id] === 'sent' ? (
-        <ThemedView style={styles.requestSent}>
-          <ThemedText style={styles.requestSentText}>Request Sent</ThemedText>
-        </ThemedView>
-      ) : (
-        <TouchableOpacity 
-          style={[styles.addButton, pendingRequests[item.user_id] && styles.addButtonDisabled]}
-          onPress={() => sendFriendRequest(item.user_id)}
-          disabled={pendingRequests[item.user_id] || requestStatuses[item.user_id] === 'sent'}
-        >
-          {pendingRequests[item.user_id] ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <ThemedText style={styles.addButtonText}>
-              {requestStatuses[item.user_id] === 'error' ? 'Retry' : 'Add Friend'}
-            </ThemedText>
-          )}
-        </TouchableOpacity>
-      )}
-    </ThemedView>
-  );
-
-  const renderEmptySearchState = () => {
-    if (!hasSearched || isLoading) return null; // Don't show if not searched yet or still loading
-    
-    return (
-      <ThemedView style={styles.emptyState}>
-        <ThemedText style={styles.emptyStateText}>
-          No users found matching "{lastSearchedQuery}"
-        </ThemedText>
-      </ThemedView>
-    );
   };
 
   return (
-    <>
-      <ThemedView style={styles.searchContainer}>
+    <ThemedView style={styles.container}>
+      <ThemedText style={styles.title}>Find a friend</ThemedText>
+      <ThemedText style={styles.subtitle}>
+        Search for users by username
+      </ThemedText>
+
+      <ThemedView style={styles.inputContainer}>
         <TextInput
-          style={styles.searchInput}
-          placeholder="Search by email or username"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          onSubmitEditing={searchUsers}
-          returnKeyType="search"
+          style={[styles.input, { backgroundColor, color: textColor, borderColor }]}
+          placeholder="Enter username"
+          placeholderTextColor={placeholderColor}
+          value={username}
+          onChangeText={setUsername}
           autoCapitalize="none"
           autoCorrect={false}
         />
-        <TouchableOpacity 
-          style={styles.searchButton} 
-          onPress={searchUsers}
-          disabled={isLoading || !searchQuery.trim()}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <ThemedText style={styles.searchButtonText}>Search</ThemedText>
-          )}
-        </TouchableOpacity>
       </ThemedView>
 
-      <FlatList
-        data={searchResults}
-        renderItem={renderUserItem}
-        keyExtractor={(item) => item.id}
-        style={styles.resultsList}
-        contentContainerStyle={[
-          styles.resultsContent,
-          searchResults.length === 0 && styles.emptyListContent
+      <ThemedView 
+        style={[
+          styles.button, 
+          { opacity: isSearching || !username.trim() ? 0.7 : 1 }
         ]}
-        ListEmptyComponent={renderEmptySearchState}
-      />
-    </>
+        onTouchStart={!isSearching ? handleSearchUser : undefined}
+      >
+        {isSearching ? (
+          <ActivityIndicator size="small" color="#FFFFFF" />
+        ) : (
+          <ThemedText style={styles.buttonText}>Search</ThemedText>
+        )}
+      </ThemedView>
+
+      {searchResults.length > 0 && (
+        <FlatList
+          data={searchResults}
+          keyExtractor={(item) => item.id}
+          style={styles.resultsList}
+          renderItem={({ item }) => (
+            <ThemedView style={styles.resultItem}>
+              <ThemedView style={styles.userInfo}>
+                <ThemedText style={styles.username}>{item.username}</ThemedText>
+                <ThemedText style={styles.email}>{item.email}</ThemedText>
+              </ThemedView>
+              <ThemedView 
+                style={styles.addButton}
+                onTouchStart={() => handleSendFriendRequest(item.user_id)}
+              >
+                <ThemedText style={styles.addButtonText}>Add</ThemedText>
+              </ThemedView>
+            </ThemedView>
+          )}
+        />
+      )}
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  searchContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    gap: 8,
-  },
-  searchInput: {
+  container: {
     flex: 1,
-    height: 44,
+    padding: 16,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 24,
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  input: {
+    height: 48,
     borderWidth: 1,
-    borderColor: '#ccc',
     borderRadius: 8,
-    paddingHorizontal: 12,
+    padding: 12,
     fontSize: 16,
   },
-  searchButton: {
+  button: {
     backgroundColor: '#6936D8',
-    paddingHorizontal: 16,
+    height: 48,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 24,
   },
-  searchButtonText: {
-    color: '#fff',
+  buttonText: {
+    color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },
   resultsList: {
     flex: 1,
   },
-  resultsContent: {
-    gap: 12,
-    paddingTop: 8,
-  },
-  emptyListContent: {
-    flex: 1,
-  },
-  userItem: {
+  resultItem: {
+    flexDirection: 'row',
     padding: 12,
-    borderRadius: 8,
     borderWidth: 1,
     borderColor: '#eee',
+    borderRadius: 8,
+    marginBottom: 12,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  userInfo: {
+    flex: 1,
   },
   username: {
     fontSize: 16,
@@ -220,45 +172,15 @@ const styles = StyleSheet.create({
   email: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 8,
   },
   addButton: {
     backgroundColor: '#6936D8',
+    paddingHorizontal: 16,
     paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
+    borderRadius: 8,
   },
   addButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  addButtonDisabled: {
-    backgroundColor: '#9c80d8',
-    opacity: 0.7,
-  },
-  requestSent: {
-    backgroundColor: '#4db67f',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-  },
-  requestSentText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  emptyState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 32,
-  },
-  emptyStateText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
+    color: 'white',
+    fontWeight: '500',
   },
 });
