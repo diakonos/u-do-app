@@ -156,23 +156,49 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Update the request status
-    const newStatus = action === "accept" ? "confirmed" : "rejected";
-    const { data: updatedRequest, error: updateError } = await supabase
-      .from("friend_requests")
-      .update({ status: newStatus })
-      .eq("id", request_id)
-      .select();
+    let responseData;
+    let responseMessage;
 
-    if (updateError) {
-      console.error("[respond-to-friend-request] Database error:", updateError);
-      throw updateError;
+    if (action === "accept") {
+      // Update the request status and updated_at timestamp
+      const { data: updatedRequest, error: updateError } = await supabase
+        .from("friend_requests")
+        .update({ status: "confirmed", updated_at: new Date().toISOString() })
+        .eq("id", request_id)
+        .select()
+        .single(); // Use single() as we expect one record
+
+      if (updateError) {
+        console.error(
+          "[respond-to-friend-request] Database error on accept:",
+          updateError,
+        );
+        throw updateError;
+      }
+      responseData = updatedRequest;
+      responseMessage = "Friend request accepted successfully";
+    } else { // action === "reject"
+      // Delete the friend request record
+      const { error: deleteError } = await supabase
+        .from("friend_requests")
+        .delete()
+        .eq("id", request_id);
+
+      if (deleteError) {
+        console.error(
+          "[respond-to-friend-request] Database error on reject:",
+          deleteError,
+        );
+        throw deleteError;
+      }
+      responseData = null; // No data to return on delete
+      responseMessage = "Friend request rejected successfully";
     }
 
     return new Response(
       JSON.stringify({
-        data: updatedRequest,
-        message: `Friend request ${action}ed successfully`,
+        data: responseData,
+        message: responseMessage,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
