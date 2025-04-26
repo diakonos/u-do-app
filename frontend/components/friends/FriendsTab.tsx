@@ -1,14 +1,15 @@
 import { useCallback } from 'react';
-import { StyleSheet, ActivityIndicator, FlatList, RefreshControl } from 'react-native';
+import { StyleSheet, ActivityIndicator, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useThemeColor } from '@/hooks/useThemeColor';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useFriends } from '@/lib/context/friends';
 
 export default function FriendsTab() {
   const textColor = useThemeColor({}, 'text');
   const { friends, isLoading, fetchFriends, isRefreshing } = useFriends();
+  const router = useRouter();
 
   // Fetch data when screen is focused
   useFocusEffect(
@@ -22,6 +23,16 @@ export default function FriendsTab() {
     fetchFriends(true); // Force refresh
   }, [fetchFriends]);
 
+  const handleFriendPress = (friend: any) => {
+    router.push({
+      pathname: '/friend-tasks',
+      params: {
+        userId: friend.user_id,
+        username: friend.username
+      }
+    });
+  };
+
   if (isLoading && !isRefreshing) {
     return (
       <ThemedView style={styles.loadingContainer}>
@@ -34,15 +45,16 @@ export default function FriendsTab() {
     <FlatList
       data={friends}
       renderItem={({ item }) => (
-        <ThemedView style={styles.friendItem}>
-          <ThemedView style={styles.friendInfo}>
-            <ThemedText style={styles.username}>{item.username}</ThemedText>
-            <ThemedText style={styles.email}>{item.email}</ThemedText>
-            <ThemedText style={styles.friendSince}>
-              Friends since {new Date(item.created_at).toLocaleDateString()}
-            </ThemedText>
+        <TouchableOpacity onPress={() => handleFriendPress(item)}>
+          <ThemedView style={styles.friendItem}>
+            <ThemedView style={styles.friendInfo}>
+              <ThemedText style={styles.username}>{item.username}</ThemedText>
+              <ThemedText style={styles.friendSince}>
+                Friends since {new Date(item.created_at).toLocaleDateString()}
+              </ThemedText>
+            </ThemedView>
           </ThemedView>
-        </ThemedView>
+        </TouchableOpacity>
       )}
       keyExtractor={(item) => item.id}
       style={styles.friendsList}
@@ -102,11 +114,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 4,
-  },
-  email: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
   },
   friendSince: {
     fontSize: 12,

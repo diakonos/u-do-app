@@ -292,4 +292,18 @@ export class FriendsService {
       unsubRecipient();
     };
   }
+
+  /**
+   * Fetch tasks for a friend using the get-friends-tasks edge function
+   */
+  static async getFriendTasks(friendId: string): Promise<any[]> {
+    return ApiService.authenticatedQuery(async () => {
+      const { data, error } = await supabase.functions.invoke('get-friends-tasks', {
+        body: { friend_id: friendId }
+      });
+      
+      if (error) throw error;
+      return data || [];
+    });
+  }
 }

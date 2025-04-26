@@ -18,6 +18,15 @@ export interface UserSearchResult {
   username: string;
 }
 
+export interface FriendTask {
+  id: number;
+  task_name: string;
+  due_date: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
 interface FriendRequest {
   id: string;
   requester_id: string;
@@ -49,6 +58,7 @@ type FriendsContextType = {
   fetchPendingRequests: (forceRefresh?: boolean) => Promise<void>;
   isPendingRequestsRefreshing: boolean;
   searchUsers: (query: string) => Promise<UserSearchResult[]>;
+  getFriendTasks: (friendId: string) => Promise<FriendTask[]>;
 };
 
 const FriendsContext = createContext<FriendsContextType | undefined>(undefined);
@@ -169,6 +179,16 @@ export function FriendsProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Get a friend's tasks
+  const getFriendTasks = useCallback(async (friendId: string): Promise<FriendTask[]> => {
+    try {
+      return await FriendsService.getFriendTasks(friendId);
+    } catch (error) {
+      console.error('Failed to fetch friend tasks:', error);
+      throw error;
+    }
+  }, []);
+
   // Set up real-time subscriptions
   useEffect(() => {
     let unsubscribe: () => void;
@@ -207,7 +227,8 @@ export function FriendsProvider({ children }: { children: React.ReactNode }) {
       pendingRequests,
       fetchPendingRequests,
       isPendingRequestsRefreshing,
-      searchUsers
+      searchUsers,
+      getFriendTasks
     }}>
       {children}
     </FriendsContext.Provider>
