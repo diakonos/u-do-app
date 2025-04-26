@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import DatePicker, { useDefaultStyles } from 'react-native-ui-datepicker';
 import Animated, { FadeIn, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { Collapsible } from '@/components/Collapsible';
 import { useTask } from '@/lib/context/task';
@@ -261,25 +262,103 @@ export default function TodoList() {
               </TouchableOpacity>
             </View>
             <View style={styles.datePickerWrapper}>
-              <DateTimePicker
-                testID="datePicker"
-                value={tempDueDate || defaultDate}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                minimumDate={getMinDate()}
-                onChange={(event, date) => {
-                  if (event.type === 'set' && date) {
-                    if (Platform.OS === 'android') {
-                      updateDueDate(item.id, date);
-                      setShowDatePicker(null);
-                    } else {
-                      setTempDueDate(date);
+              {Platform.OS === 'web' ? (
+                <DatePicker
+                  style={{
+                    height: Platform.OS === 'web' ? 320 : 216, // Increased height for web to show all rows
+                    width: '100%',
+                    backgroundColor: colorScheme === 'dark' ? Colors.dark.background : '#fff'
+                  }}
+                  date={tempDueDate ? tempDueDate : defaultDate}
+                  mode="single"
+                  onChange={(params: any) => {
+                    setTempDueDate(params.date);
+                  }}
+                  styles={{
+                    // Dark mode styles for the datepicker with more specific targeting
+                    ...(colorScheme === 'dark' ? {
+                      day: { 
+                        color: Colors.dark.white, 
+                        borderColor: Colors.dark.border
+                      },
+                      day_label: {
+                        color: Colors.dark.white
+                      },
+                      today: { 
+                        borderColor: Colors.dark.tint,
+                        color: Colors.dark.white
+                      },
+                      today_label: {
+                        color: Colors.dark.white
+                      },
+                      selected: { 
+                        backgroundColor: Colors.dark.tint,
+                        borderColor: Colors.dark.tint 
+                      },
+                      selected_label: { 
+                        color: Colors.dark.white 
+                      },
+                      header: { 
+                        color: Colors.dark.white, 
+                        backgroundColor: Colors.dark.background
+                      },
+                      month_label: { 
+                        color: Colors.dark.white
+                      },
+                      year: { 
+                        color: Colors.dark.white
+                      },
+                      month: { 
+                        backgroundColor: Colors.dark.background,
+                        borderColor: Colors.dark.border
+                      },
+                      year_label: {
+                        color: Colors.dark.white
+                      },
+                      month_selector_label: {
+                        color: Colors.dark.white
+                      },
+                      year_selector_label: {
+                        color: Colors.dark.white
+                      },
+                      weekdays: {
+                        backgroundColor: Colors.dark.background
+                      },
+                      weekday_label: { 
+                        color: Colors.dark.white
+                      },
+                    } : {
+                      // Light mode defaults
+                      calendar: { backgroundColor: Colors.light.background },
+                      today: { borderColor: Colors.light.tint },
+                      selected: { backgroundColor: Colors.light.tint, borderColor: Colors.light.tint },
+                    })
+                  }}
+                />
+              ) : (
+                <DateTimePicker
+                  testID="datePicker"
+                  value={tempDueDate || defaultDate}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  minimumDate={getMinDate()}
+                  onChange={(event, date) => {
+                    if (event.type === 'set' && date) {
+                      if (Platform.OS === 'android') {
+                        updateDueDate(item.id, date);
+                        setShowDatePicker(null);
+                      } else {
+                        setTempDueDate(date);
+                      }
                     }
-                  }
-                }}
-                style={styles.datePicker}
-                themeVariant={colorScheme}
-              />
+                  }}
+                  style={[
+                    styles.datePicker, 
+                    colorScheme === 'dark' ? { backgroundColor: Colors.dark.background } : {}
+                  ]}
+                  themeVariant={colorScheme!}
+                />
+              )}
             </View>
           </Animated.View>
         </TouchableOpacity>
@@ -648,7 +727,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
-    paddingBottom: 20,
+    paddingBottom: Platform.OS === 'web' ? 40 : 20, // Increased padding for web
     width: '100%', // Ensure the modal content fills the screen width
   },
   modalHeader: {
@@ -692,5 +771,6 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingBottom: Platform.OS === 'web' ? 20 : 0, // Add bottom padding on web
   },
 });

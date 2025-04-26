@@ -1,5 +1,5 @@
 import { PropsWithChildren, useState } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, TextStyle } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -10,9 +10,10 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 interface CollapsibleProps {
   title: string;
   defaultOpen?: boolean;
+  titleStyle?: TextStyle;
 }
 
-export function Collapsible({ children, title, defaultOpen = true }: PropsWithChildren<CollapsibleProps>) {
+export function Collapsible({ children, title, defaultOpen = true, titleStyle = {} }: PropsWithChildren<CollapsibleProps>) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const theme = useColorScheme() ?? 'light';
 
@@ -22,7 +23,7 @@ export function Collapsible({ children, title, defaultOpen = true }: PropsWithCh
         style={styles.heading}
         onPress={() => setIsOpen((value) => !value)}
         activeOpacity={0.8}>
-        <ThemedText type="subtitle" style={styles.headingText}>{title}</ThemedText>
+        <ThemedText type="subtitle" style={[styles.headingText, titleStyle]}>{title}</ThemedText>
         <IconSymbol
           name="chevron.right"
           size={18}
