@@ -1,4 +1,3 @@
-// Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
@@ -29,12 +28,12 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log("[create-task] Creating Supabase client");
+    console.log("[send-friend-request] Creating Supabase client");
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
 
     if (!supabaseUrl || !supabaseKey) {
-      console.error("[create-task] Missing environment variables");
+      console.error("[send-friend-request] Missing environment variables");
       throw new Error("Missing required environment variables");
     }
 
@@ -50,14 +49,17 @@ Deno.serve(async (req) => {
       },
     );
 
-    console.log("[create-task] Verifying user token");
+    console.log("[send-friend-request] Verifying user token");
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userError } = await supabase.auth.getUser(
       token,
     );
 
     if (userError) {
-      console.error("[create-task] User verification error:", userError);
+      console.error(
+        "[send-friend-request] User verification error:",
+        userError,
+      );
       return new Response(
         JSON.stringify({
           error: "Unauthorized",
@@ -71,7 +73,7 @@ Deno.serve(async (req) => {
     }
 
     if (!userData?.user) {
-      console.log("[create-task] No user found for token");
+      console.log("[send-friend-request] No user found for token");
       return new Response(
         JSON.stringify({
           error: "Unauthorized",
@@ -85,17 +87,13 @@ Deno.serve(async (req) => {
     }
 
     const { user } = userData;
-    console.log("[create-task] User verified:", user.id);
-
     const body = await req.json();
-    console.log("[create-task] Request body:", JSON.stringify(body));
-    const { task_name, due_date } = body;
+    const { recipient_id } = body;
 
-    if (!task_name) {
-      console.log("[create-task] Missing task_name in request");
+    if (!recipient_id) {
       return new Response(
         JSON.stringify({
-          error: "task_name is required",
+          error: "recipient_id is required",
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -104,20 +102,46 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log("[create-task] Creating new task");
-    const { data, error } = await supabase.from("tasks").insert({
-      task_name,
-      due_date,
-      updated_at: new Date().toISOString(),
-      user_id: user.id,
+    // Check if a friend request already exists
+    const { data: existingRequest, error: checkError } = await supabase
+      .from("friend_requests")
+      .select()
+      .or(`requester_id.eq.${user.id},recipient_id.eq.${user.id}`)
+      .or(`requester_id.eq.${recipient_id},recipient_id.eq.${recipient_id}`)
+      .single();
+
+    if (checkError && checkError.code !== "PGRST116") { // PGRST116 means no rows found
+      console.error(
+        "[send-friend-request] Error checking existing request:",
+        checkError,
+      );
+      throw checkError;
+    }
+
+    if (existingRequest) {
+      return new Response(
+        JSON.stringify({
+          error: "A friend request already exists between these users",
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        },
+      );
+    }
+
+    // Create new friend request
+    const { data, error } = await supabase.from("friend_requests").insert({
+      requester_id: user.id,
+      recipient_id,
+      status: "pending",
     }).select();
 
     if (error) {
-      console.error("[create-task] Database error:", error);
+      console.error("[send-friend-request] Database error:", error);
       throw error;
     }
 
-    console.log("[create-task] Task created successfully:", data?.[0]?.id);
     return new Response(
       JSON.stringify({
         data,
@@ -128,7 +152,7 @@ Deno.serve(async (req) => {
       },
     );
   } catch (err) {
-    console.error("[create-task] Unexpected error:", err);
+    console.error("[send-friend-request] Unexpected error:", err);
     return new Response(
       JSON.stringify({
         error: err instanceof Error ? err.message : "Unknown error occurred",
