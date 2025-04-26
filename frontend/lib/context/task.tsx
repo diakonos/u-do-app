@@ -48,11 +48,12 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
   const fetchTasks = useCallback(async (): Promise<Task[]> => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error('User not authenticated'); // Add authentication check
+    if (!session) throw new Error('User not authenticated');
 
     const { data: tasks, error } = await supabase
       .from('tasks')
       .select('*')
+      .eq('user_id', session.user.id) // Filter by the current user's ID
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -64,7 +65,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
   const updateTask = async (taskId: number, updates: Partial<Task>): Promise<Task> => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error('User not authenticated'); // Add authentication check
+    if (!session) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
       .from('tasks')
@@ -82,7 +83,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
   const deleteTask = async (taskId: number): Promise<void> => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error('User not authenticated'); // Add authentication check
+    if (!session) throw new Error('User not authenticated');
 
     const { error } = await supabase
       .from('tasks')
