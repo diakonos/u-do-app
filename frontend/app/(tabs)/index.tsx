@@ -35,7 +35,6 @@ export default function TodoList() {
   const [taskName, setTaskName] = useState('');
   const [showDatePicker, setShowDatePicker] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'dueDate' | 'creationDate'>('dueDate');
-  const [showCompleted, setShowCompleted] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -303,9 +302,7 @@ export default function TodoList() {
     const incompleteTasks = processedTasks.filter(task => !task.displayed_is_done);
     
     // Filter based on showCompleted preference
-    const tasksToShow = showCompleted 
-      ? [...incompleteTasks, ...completedTasks]
-      : incompleteTasks;
+    const tasksToShow = [...incompleteTasks, ...completedTasks];
 
     // For incomplete tasks, categorize them
     const overdueTasks = tasksToShow.filter(task => 
@@ -346,10 +343,6 @@ export default function TodoList() {
     setSortBy(current => current === 'dueDate' ? 'creationDate' : 'dueDate');
   };
 
-  const toggleShowCompleted = () => {
-    setShowCompleted(current => !current);
-  };
-
   const renderRightActions = (taskId: number) => (
     <TouchableOpacity 
       onPress={() => handleDeleteTask(taskId)}
@@ -380,18 +373,13 @@ export default function TodoList() {
       <View style={styles.buttonContainer}>
         <Button title="Add Task" onPress={addTask} color="#6936D8" />
       </View>
-      <View style={styles.sortContainer}>
+      {/* <View style={styles.sortContainer}>
         <Button 
           title={`Sort: ${sortBy === 'dueDate' ? 'Due Date' : 'Creation Date'}`}
           onPress={toggleSortBy}
           color="#6936D8"
         />
-        <Button 
-          title={showCompleted ? 'Hide Done' : 'Show Done'}
-          onPress={toggleShowCompleted}
-          color="#6936D8"
-        />
-      </View>
+      </View> */}
     </View>
   );
 
