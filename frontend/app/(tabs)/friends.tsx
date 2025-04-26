@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 
 interface SearchResult {
   id: string;
+  user_id: string;
   email: string;
   username: string;
 }
@@ -17,6 +18,8 @@ export default function FriendsScreen() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [pendingRequests, setPendingRequests] = useState<Record<string, boolean>>({});
+  const [requestStatuses, setRequestStatuses] = useState<Record<string, 'sent' | 'error' | null>>({});
 
   const searchUsers = async () => {
     if (!searchQuery.trim()) return;
@@ -50,13 +53,67 @@ export default function FriendsScreen() {
     }
   };
 
+  const sendFriendRequest = async (recipientId: string) => {
+    console.log('Sending friend request to:', recipientId);
+    // Don't allow sending another request if one is already pending
+    if (pendingRequests[recipientId]) return;
+
+    try {
+      // Set this user's request to pending
+      setPendingRequests(prev => ({ ...prev, [recipientId]: true }));
+      
+      // Clear any previous error status
+      setRequestStatuses(prev => ({ ...prev, [recipientId]: null }));
+      
+      const { data, error } = await supabase.functions.invoke('send-friend-request', {
+        body: { recipient_id: recipientId }
+      });
+
+      if (error) {
+        console.error('Friend request error:', {
+          status: error.status,
+          message: error.message,
+          details: error.details,
+        });
+        throw error;
+      }
+
+      // Mark request as successfully sent
+      setRequestStatuses(prev => ({ ...prev, [recipientId]: 'sent' }));
+      
+    } catch (error) {
+      console.error('Failed to send friend request:', error);
+      setRequestStatuses(prev => ({ ...prev, [recipientId]: 'error' }));
+    } finally {
+      // Clear pending state
+      setPendingRequests(prev => ({ ...prev, [recipientId]: false }));
+    }
+  };
+
   const renderUserItem = ({ item }: { item: SearchResult }) => (
     <ThemedView style={styles.userItem}>
       <ThemedText style={styles.username}>{item.username}</ThemedText>
       <ThemedText style={styles.email}>{item.email}</ThemedText>
-      <TouchableOpacity style={styles.addButton}>
-        <ThemedText style={styles.addButtonText}>Add Friend</ThemedText>
-      </TouchableOpacity>
+      
+      {requestStatuses[item.user_id] === 'sent' ? (
+        <ThemedView style={styles.requestSent}>
+          <ThemedText style={styles.requestSentText}>Request Sent</ThemedText>
+        </ThemedView>
+      ) : (
+        <TouchableOpacity 
+          style={[styles.addButton, pendingRequests[item.user_id] && styles.addButtonDisabled]}
+          onPress={() => sendFriendRequest(item.user_id)}
+          disabled={pendingRequests[item.user_id] || requestStatuses[item.user_id] === 'sent'}
+        >
+          {pendingRequests[item.user_id] ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <ThemedText style={styles.addButtonText}>
+              {requestStatuses[item.user_id] === 'error' ? 'Retry' : 'Add Friend'}
+            </ThemedText>
+          )}
+        </TouchableOpacity>
+      )}
     </ThemedView>
   );
 
@@ -188,6 +245,22 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   addButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  addButtonDisabled: {
+    backgroundColor: '#9c80d8', // lighter purple for disabled state
+    opacity: 0.7,
+  },
+  requestSent: {
+    backgroundColor: '#4db67f', // green color for success
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  requestSentText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
