@@ -57,10 +57,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return tasks.map(task => ({
-      ...task,
-      is_done: false // Initialize is_done state
-    }));
+    return tasks;
   }, []);
 
   const updateTask = async (taskId: number, updates: Partial<Task>): Promise<Task> => {

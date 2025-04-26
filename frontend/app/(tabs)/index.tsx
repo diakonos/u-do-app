@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   TextInput, 
@@ -40,8 +40,12 @@ export default function TodoList() {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tempDueDate, setTempDueDate] = useState<Date | null>(null);
+  const [tasksInTransition, setTasksInTransition] = useState<Record<number, boolean>>({});
+  // Keep track of the displayed completion state (for visual purposes only)
+  const [displayedTaskStates, setDisplayedTaskStates] = useState<Record<number, boolean>>({});
   const { createTask, fetchTasks, updateTask, deleteTask } = useTask();
-
+  const timeoutsRef = useRef<Record<number, NodeJS.Timeout>>({});
+  
   useEffect(() => {
     loadTasks();
   }, []);
@@ -82,10 +86,57 @@ export default function TodoList() {
 
   const toggleTaskCompletion = async (taskId: number, isDone: boolean) => {
     try {
-      await updateTask(taskId, { is_done: isDone });
+      // Clear any existing timeout for this task
+      if (timeoutsRef.current[taskId]) {
+        clearTimeout(timeoutsRef.current[taskId]);
+      }
+      
+      // Set task as in transition state
+      setTasksInTransition(prev => ({
+        ...prev,
+        [taskId]: true
+      }));
+      
+      // Store the current displayed state (pre-transition)
+      const task = tasks.find(t => t.id === taskId);
+      if (task) {
+        setDisplayedTaskStates(prev => ({
+          ...prev,
+          [taskId]: task.is_done
+        }));
+      }
+      
+      // Only update the real task state, not the displayed state yet
       setTasks(tasks.map(task => 
-        task.id === taskId ? { ...task, is_done: !task.is_done } : task
+        task.id === taskId ? { ...task, is_done: isDone } : task
       ));
+      
+      // Add a 3-second delay before finalizing the change
+      timeoutsRef.current[taskId] = setTimeout(async () => {
+        try {
+          await updateTask(taskId, { is_done: isDone });
+          
+          // Remove task from transition state and displayed state tracking
+          setTasksInTransition(prev => {
+            const updated = { ...prev };
+            delete updated[taskId];
+            return updated;
+          });
+          
+          setDisplayedTaskStates(prev => {
+            const updated = { ...prev };
+            delete updated[taskId];
+            return updated;
+          });
+        } catch (error) {
+          // Revert the task state if the API call fails
+          setTasks(tasks.map(task => 
+            task.id === taskId ? { ...task, is_done: !isDone } : task
+          ));
+          Alert.alert('Error', 'Failed to update task');
+          console.error('Failed to update task:', error);
+        }
+      }, 3000);
     } catch (error) {
       Alert.alert('Error', 'Failed to update task');
       console.error('Failed to update task:', error);
@@ -231,13 +282,44 @@ export default function TodoList() {
   };
 
   const getGroupedTasks = () => {
-    const filteredTasks = showCompleted 
-      ? tasks 
-      : tasks.filter(task => !task.is_done);
+    // Process tasks with their displayed state during transitions
+    const processedTasks = tasks.map(task => {
+      // If task is in transition, use the previous displayed state instead of current state
+      if (tasksInTransition[task.id]) {
+        return {
+          ...task,
+          displayed_is_done: displayedTaskStates[task.id]
+        };
+      }
+      // Otherwise use the actual is_done state
+      return {
+        ...task,
+        displayed_is_done: task.is_done
+      };
+    });
 
-    const overdueTasks = filteredTasks.filter(task => categorizeTask(task) === 'overdue');
-    const todayTasks = filteredTasks.filter(task => categorizeTask(task) === 'today');
-    const laterTasks = filteredTasks.filter(task => categorizeTask(task) === 'later');
+    // First, separate completed and incomplete tasks based on displayed state
+    const completedTasks = processedTasks.filter(task => task.displayed_is_done);
+    const incompleteTasks = processedTasks.filter(task => !task.displayed_is_done);
+    
+    // Filter based on showCompleted preference
+    const tasksToShow = showCompleted 
+      ? [...incompleteTasks, ...completedTasks]
+      : incompleteTasks;
+
+    // For incomplete tasks, categorize them
+    const overdueTasks = tasksToShow.filter(task => 
+      !task.displayed_is_done && categorizeTask(task) === 'overdue'
+    );
+    const todayTasks = tasksToShow.filter(task => 
+      !task.displayed_is_done && categorizeTask(task) === 'today'
+    );
+    const laterTasks = tasksToShow.filter(task => 
+      !task.displayed_is_done && categorizeTask(task) === 'later'
+    );
+    
+    // Tasks that are shown as done go to the Done section
+    const doneTasks = tasksToShow.filter(task => task.displayed_is_done);
 
     const sortTaskGroup = (taskGroup: Task[]) => {
       return [...taskGroup].sort((a, b) => {
@@ -255,7 +337,8 @@ export default function TodoList() {
     return [
       { title: 'Overdue', data: sortTaskGroup(overdueTasks) },
       { title: 'Today', data: sortTaskGroup(todayTasks) },
-      { title: 'Later', data: sortTaskGroup(laterTasks) }
+      { title: 'Later', data: sortTaskGroup(laterTasks) },
+      { title: 'Done', data: sortTaskGroup(doneTasks) }
     ];
   };
 
@@ -322,7 +405,7 @@ export default function TodoList() {
         sections={getGroupedTasks()}
         keyExtractor={(item) => item.id.toString()}
         renderSectionHeader={({ section: { title, data } }) => (
-          <Collapsible title={`${title} (${data.length})`}>
+          <Collapsible title={`${title} (${data.length})`} defaultOpen={title !== 'Done'}>
             {data.map(item => (
               <Swipeable 
                 key={item.id}
@@ -332,7 +415,7 @@ export default function TodoList() {
                 <TouchableOpacity style={styles.taskContainer}>
                   <View style={styles.taskHeader}>
                     <TouchableOpacity 
-                      style={styles.checkbox}
+                      style={[styles.checkbox, tasksInTransition[item.id] && styles.checkboxTransitioning]}
                       onPress={() => toggleTaskCompletion(item.id, !item.is_done)}
                     >
                       <View style={[styles.checkboxInner, item.is_done && styles.checkboxChecked]} />
@@ -346,7 +429,7 @@ export default function TodoList() {
                           <Text style={[
                             styles.dueDate,
                             isToday(item.due_date) && styles.todayDate,
-                            isOverdue(item.due_date) && styles.overdueDate
+                            isOverdue(item.due_date) && !item.is_done && styles.overdueDate
                           ]}>
                             Due: {formatDate(item.due_date)}
                           </Text>
@@ -464,6 +547,9 @@ const styles = StyleSheet.create({
   },
   checkboxChecked: {
     backgroundColor: '#666',
+  },
+  checkboxTransitioning: {
+    borderColor: '#6936D8',
   },
   taskContent: {
     flex: 1,
