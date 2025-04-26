@@ -48,6 +48,8 @@ export default function TodoList() {
   const [displayedTaskStates, setDisplayedTaskStates] = useState<Record<number, boolean>>({});
   const { createTask, fetchTasks, updateTask, deleteTask } = useTask();
   const timeoutsRef = useRef<Record<number, NodeJS.Timeout>>({});
+  // Add a ref for the task name input to maintain focus
+  const taskNameInputRef = useRef<TextInput>(null);
   
   useEffect(() => {
     loadTasks();
@@ -463,6 +465,7 @@ export default function TodoList() {
   const renderListHeader = () => (
     <View style={styles.listHeader}>
       <TextInput
+        ref={taskNameInputRef}
         style={[
           styles.input, 
           { 
@@ -474,8 +477,15 @@ export default function TodoList() {
         placeholder="Enter task name"
         placeholderTextColor={Colors[colorScheme ?? 'light'].icon}
         value={taskName}
-        onChangeText={setTaskName}
+        onChangeText={(text) => {
+          setTaskName(text);
+          // Ensure input stays focused after state change
+          setTimeout(() => {
+            taskNameInputRef.current?.focus();
+          }, 0);
+        }}
         onSubmitEditing={addTask}
+        key="task-input" // Add a stable key
       />
       <View style={styles.buttonContainer}>
         <TouchableOpacity 
