@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, TextInput, Alert, View } from 'react-native';
+import { StyleSheet, TextInput, Alert, View, ScrollView } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useAuth } from '@/lib/context/auth';
 import { ThemedView } from '@/components/ThemedView';
@@ -29,39 +29,47 @@ export default function CreateUsername() {
   };
 
   return (
-    <ThemedView style={styles.container}>
-      <Stack.Screen options={{ headerShown: false }} />
-      
-      <View style={styles.contentContainer}>
-        <ThemedText style={styles.title}>Create Username</ThemedText>
-        <ThemedText style={styles.subtitle}>
-          Please create a username for your account
-        </ThemedText>
-
-        <TextInput
-          style={styles.input}
-          placeholder="Enter username"
-          value={username}
-          onChangeText={setUsername}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-
-        <TouchableOpacity 
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleSetUsername}
-          disabled={loading || !username.trim()}
-        >
-          <ThemedText style={styles.buttonText}>
-            {loading ? 'Setting username...' : 'Continue'}
+    <ScrollView
+      contentContainerStyle={styles.scrollViewContent}
+      showsVerticalScrollIndicator={false}
+    >
+      <ThemedView style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        
+        <View style={styles.contentContainer}>
+          <ThemedText style={styles.title}>Create Username</ThemedText>
+          <ThemedText style={styles.subtitle}>
+            Please create a username for your account
           </ThemedText>
-        </TouchableOpacity>
-      </View>
-    </ThemedView>
+
+          <TextInput
+            style={styles.input}
+            placeholder="Enter username"
+            value={username}
+            onChangeText={setUsername}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+
+          <TouchableOpacity 
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleSetUsername}
+            disabled={loading || !username.trim()}
+          >
+            <ThemedText style={styles.buttonText}>
+              {loading ? 'Setting username...' : 'Continue'}
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+      </ThemedView>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollViewContent: {
+    flexGrow: 1,
+  },
   container: {
     flex: 1,
     padding: 20,

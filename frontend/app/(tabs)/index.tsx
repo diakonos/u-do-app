@@ -133,6 +133,14 @@ export default function TodoList() {
       taskDate.getFullYear() === today.getFullYear();
   };
 
+  const isOverdue = (date: string) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const taskDate = new Date(date);
+    taskDate.setHours(0, 0, 0, 0);
+    return taskDate < today;
+  };
+
   const getMinDate = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -273,8 +281,9 @@ export default function TodoList() {
     );
   }
 
-  return (
-    <SafeAreaView style={styles.container}>
+  // Create a ListHeaderComponent to make the input UI scrollable with the list
+  const renderListHeader = () => (
+    <View style={styles.listHeader}>
       <TextInput
         style={styles.input}
         placeholder="Enter task name"
@@ -283,19 +292,27 @@ export default function TodoList() {
         onSubmitEditing={addTask}
       />
       <View style={styles.buttonContainer}>
-        <Button title="Add Task" onPress={addTask} />
+        <Button title="Add Task" onPress={addTask} color="#6936D8" />
       </View>
       <View style={styles.sortContainer}>
         <Button 
           title={`Sort: ${sortBy === 'dueDate' ? 'Due Date' : 'Creation Date'}`}
           onPress={toggleSortBy}
+          color="#6936D8"
         />
         <Button 
           title={showCompleted ? 'Hide Done' : 'Show Done'}
           onPress={toggleShowCompleted}
+          color="#6936D8"
         />
       </View>
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={styles.container}>
       <SectionList
+        ListHeaderComponent={renderListHeader}
         refreshControl={
           <RefreshControl refreshing={refreshing || (isLoading && tasks.length > 0)} onRefresh={onRefresh} />
         }
@@ -325,7 +342,8 @@ export default function TodoList() {
                         {item.due_date ? (
                           <Text style={[
                             styles.dueDate,
-                            isToday(item.due_date) && styles.todayDate
+                            isToday(item.due_date) && styles.todayDate,
+                            isOverdue(item.due_date) && styles.overdueDate
                           ]}>
                             Due: {formatDate(item.due_date)}
                           </Text>
@@ -350,6 +368,7 @@ export default function TodoList() {
           </Collapsible>
         )}
         renderItem={() => null}
+        stickySectionHeadersEnabled={false}
       />
     </SafeAreaView>
   );
@@ -360,6 +379,10 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     backgroundColor: '#fff',
+  },
+  listHeader: {
+    paddingTop: 16,
+    marginTop: 8,
   },
   input: {
     borderWidth: 1,
@@ -403,6 +426,9 @@ const styles = StyleSheet.create({
   },
   todayDate: {
     color: '#007AFF',
+  },
+  overdueDate: {
+    color: 'red',
   },
   noDueDate: {
     fontSize: 12,

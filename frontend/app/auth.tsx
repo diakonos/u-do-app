@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, TextInput, Alert } from 'react-native';
+import { StyleSheet, TextInput, Alert, ScrollView } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useAuth } from '@/lib/context/auth';
 import { ThemedView } from '@/components/ThemedView';
@@ -27,37 +27,45 @@ export default function Auth() {
   };
 
   return (
-    <ThemedView style={styles.container}>
-      <Stack.Screen options={{ title: 'Welcome to U Do' }} />
-      
-      <ThemedText style={styles.title}>Sign in</ThemedText>
-      <ThemedText style={styles.subtitle}>
-        We'll send an OTP to your email to verify
-      </ThemedText>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-
-      <TouchableOpacity 
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleSignIn}
-        disabled={loading || !email}
-      >
-        <ThemedText style={styles.buttonText}>
-          {loading ? 'Sending...' : 'Continue with Email'}
+    <ScrollView 
+      contentContainerStyle={styles.scrollViewContent}
+      showsVerticalScrollIndicator={false}
+    >
+      <ThemedView style={styles.container}>
+        <Stack.Screen options={{ title: 'Welcome to U Do' }} />
+        
+        <ThemedText style={styles.title}>Sign in</ThemedText>
+        <ThemedText style={styles.subtitle}>
+          We'll send an OTP to your email to verify
         </ThemedText>
-      </TouchableOpacity>
-    </ThemedView>
+
+        <TextInput
+          style={styles.input}
+          placeholder="Enter your email"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+
+        <TouchableOpacity 
+          style={[styles.button, loading && styles.buttonDisabled]}
+          onPress={handleSignIn}
+          disabled={loading || !email}
+        >
+          <ThemedText style={styles.buttonText}>
+            {loading ? 'Sending...' : 'Continue with Email'}
+          </ThemedText>
+        </TouchableOpacity>
+      </ThemedView>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollViewContent: {
+    flexGrow: 1,
+  },
   container: {
     flex: 1,
     padding: 20,

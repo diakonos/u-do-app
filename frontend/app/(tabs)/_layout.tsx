@@ -17,12 +17,15 @@ export default function TabLayout() {
       <Tabs
         screenOptions={{
           tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-          headerShown: false,
+          headerShown: true,
+          headerTintColor: '#ffffff',
+          headerStyle: {
+            backgroundColor: '#6936D8',
+          },
           tabBarButton: HapticTab,
           tabBarBackground: TabBarBackground,
           tabBarStyle: Platform.select({
             ios: {
-              // Use a transparent background on iOS to show the blur effect
               position: 'absolute',
             },
             default: {},
@@ -32,6 +35,7 @@ export default function TabLayout() {
           name="index"
           options={{
             title: 'My List',
+            headerTitle: 'My List',
             tabBarIcon: ({ color }) => <IconSymbol size={28} name="list.bullet" color={color} />,
           }}
         />
@@ -39,6 +43,7 @@ export default function TabLayout() {
           name="friends"
           options={{
             title: 'Friends',
+            headerTitle: 'Friends',
             tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.2.fill" color={color} />,
           }}
         />
@@ -46,6 +51,7 @@ export default function TabLayout() {
           name="settings"
           options={{
             title: 'Settings',
+            headerTitle: 'Settings',
             tabBarIcon: ({ color }) => <IconSymbol size={28} name="gear" color={color} />,
           }}
         />

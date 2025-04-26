@@ -3,6 +3,8 @@ import { StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, FlatList, S
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { supabase } from '@/lib/supabase';
+import SegmentedControl from '@react-native-segmented-control/segmented-control';
+import { useThemeColor } from '@/hooks/useThemeColor';
 
 interface SearchResult {
   id: string;
@@ -569,34 +571,18 @@ export default function FriendsScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ThemedView style={styles.container}>
-        <ThemedText type="title" style={styles.title}>Friends</ThemedText>
-        
-        <ThemedView style={styles.tabsContainer}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'friends' && styles.activeTab]}
-            onPress={() => setActiveTab('friends')}
-          >
-            <ThemedText style={[styles.tabText, activeTab === 'friends' && styles.activeTabText]}>
-              My Friends
-            </ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'search' && styles.activeTab]}
-            onPress={() => setActiveTab('search')}
-          >
-            <ThemedText style={[styles.tabText, activeTab === 'search' && styles.activeTabText]}>
-              Search
-            </ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'requests' && styles.activeTab]}
-            onPress={() => setActiveTab('requests')}
-          >
-            <ThemedText style={[styles.tabText, activeTab === 'requests' && styles.activeTabText]}>
-              Requests
-            </ThemedText>
-          </TouchableOpacity>
-        </ThemedView>
+        <SegmentedControl
+          values={['My Friends', 'Search', 'Requests']}
+          selectedIndex={activeTab === 'friends' ? 0 : activeTab === 'search' ? 1 : 2}
+          onChange={(event) => {
+            const selectedTab = event.nativeEvent.selectedSegmentIndex;
+            setActiveTab(selectedTab === 0 ? 'friends' : selectedTab === 1 ? 'search' : 'requests');
+          }}
+          tintColor={useThemeColor({}, 'tint')}
+          activeFontStyle={{ color: '#FFFFFF' }}
+          fontStyle={{ color: '#000000' }}
+          style={styles.segmentedControl}
+        />
 
         {activeTab === 'friends' 
           ? renderFriendsTab()
@@ -620,29 +606,8 @@ const styles = StyleSheet.create({
   title: {
     marginBottom: 16,
   },
-  tabsContainer: {
-    flexDirection: 'row',
+  segmentedControl: {
     marginBottom: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    overflow: 'hidden',
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  activeTab: {
-    backgroundColor: '#6936D8',
-  },
-  tabText: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  activeTabText: {
-    color: '#fff',
   },
   searchContainer: {
     flexDirection: 'row',

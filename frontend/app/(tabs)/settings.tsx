@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
-import { StyleSheet, SafeAreaView } from 'react-native';
+import { StyleSheet, SafeAreaView, ScrollView } from 'react-native';
 import { User } from '@supabase/supabase-js';
 
-import { Collapsible } from '@/components/Collapsible';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { supabase } from '@/lib/supabase';
@@ -16,19 +15,22 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ThemedView style={styles.container}>
-        <ThemedText type="title" style={styles.title}>Settings</ThemedText>
-        
-        <Collapsible title="Profile">
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <ThemedView style={styles.container}>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>Profile</ThemedText>
           <ProfileInfo />
-        </Collapsible>
-        
-        <ThemedText 
-          style={styles.logoutButton} 
-          onPress={handleLogout}>
-          Log Out
-        </ThemedText>
-      </ThemedView>
+          
+          <ThemedText 
+            style={styles.logoutButton} 
+            onPress={handleLogout}>
+            Log Out
+          </ThemedText>
+        </ThemedView>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -64,17 +66,25 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    flexGrow: 1,
+  },
   container: {
     flex: 1,
     padding: 16,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 24,
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    marginBottom: 8,
   },
   profileContainer: {
     gap: 8,
+    marginBottom: 16,
   },
   logoutButton: {
     marginTop: 24,

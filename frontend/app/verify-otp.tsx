@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, TextInput, Alert, View } from 'react-native';
+import { StyleSheet, TextInput, Alert, View, ScrollView } from 'react-native';
 import { Stack, useLocalSearchParams, router } from 'expo-router';
 import { useAuth } from '@/lib/context/auth';
 import { ThemedView } from '@/components/ThemedView';
@@ -48,51 +48,59 @@ export default function VerifyOTP() {
   };
 
   return (
-    <ThemedView style={styles.container}>
-      <Stack.Screen options={{ headerShown: false }} />
-      
-      <View style={styles.contentContainer}>
-        <ThemedText style={styles.title}>Enter verification code</ThemedText>
-        <ThemedText style={styles.subtitle}>
-          Enter the code we sent to {email}
-        </ThemedText>
+    <ScrollView
+      contentContainerStyle={styles.scrollViewContent}
+      showsVerticalScrollIndicator={false}
+    >
+      <ThemedView style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        
+        <View style={styles.contentContainer}>
+          <ThemedText style={styles.title}>Enter verification code</ThemedText>
+          <ThemedText style={styles.subtitle}>
+            Enter the code we sent to {email}
+          </ThemedText>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Enter verification code"
-          value={otp}
-          onChangeText={setOtp}
-          keyboardType="number-pad"
-          maxLength={6}
-        />
+          <TextInput
+            style={styles.input}
+            placeholder="Enter verification code"
+            value={otp}
+            onChangeText={setOtp}
+            keyboardType="number-pad"
+            maxLength={6}
+          />
+
+          <TouchableOpacity 
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleVerify}
+            disabled={loading || !otp}
+          >
+            <ThemedText style={styles.buttonText}>
+              {loading ? 'Verifying...' : 'Verify'}
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity 
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleVerify}
-          disabled={loading || !otp}
+          style={[styles.resendButton, (cooldown > 0 || resending) && styles.buttonDisabled]}
+          onPress={handleResend}
+          disabled={cooldown > 0 || resending}
         >
-          <ThemedText style={styles.buttonText}>
-            {loading ? 'Verifying...' : 'Verify'}
+          <ThemedText style={styles.resendText}>
+            {resending ? 'Sending...' : 
+             cooldown > 0 ? `Resend OTP in ${cooldown}s` : 
+             "Resend the OTP"}
           </ThemedText>
         </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity 
-        style={[styles.resendButton, (cooldown > 0 || resending) && styles.buttonDisabled]}
-        onPress={handleResend}
-        disabled={cooldown > 0 || resending}
-      >
-        <ThemedText style={styles.resendText}>
-          {resending ? 'Sending...' : 
-           cooldown > 0 ? `Resend OTP in ${cooldown}s` : 
-           "Resend the OTP"}
-        </ThemedText>
-      </TouchableOpacity>
-    </ThemedView>
+      </ThemedView>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollViewContent: {
+    flexGrow: 1,
+  },
   container: {
     flex: 1,
     padding: 20,
