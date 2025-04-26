@@ -24,10 +24,19 @@ interface FriendRequest {
   };
 }
 
-type Tab = 'search' | 'requests';
+interface Friend {
+  id: string;
+  user_id: string;
+  email: string;
+  username: string;
+  request_id: string;
+  created_at: string;
+}
+
+type Tab = 'friends' | 'search' | 'requests';
 
 export default function FriendsScreen() {
-  const [activeTab, setActiveTab] = useState<Tab>('search');
+  const [activeTab, setActiveTab] = useState<Tab>('friends');
   const [searchQuery, setSearchQuery] = useState('');
   const [lastSearchedQuery, setLastSearchedQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -38,10 +47,14 @@ export default function FriendsScreen() {
   const [incomingRequests, setIncomingRequests] = useState<FriendRequest[]>([]);
   const [outgoingRequests, setOutgoingRequests] = useState<FriendRequest[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [isLoadingFriends, setIsLoadingFriends] = useState(false);
 
-  // Fetch friend requests when on requests tab
+  // Fetch friends when on friends tab
   useEffect(() => {
-    if (activeTab === 'requests') {
+    if (activeTab === 'friends') {
+      fetchFriends();
+    } else if (activeTab === 'requests') {
       fetchFriendRequests();
     }
   }, [activeTab]);
@@ -124,6 +137,72 @@ export default function FriendsScreen() {
       console.error('Failed to fetch friend requests:', error);
     } finally {
       setIsLoadingRequests(false);
+    }
+  };
+
+  const fetchFriends = async () => {
+    try {
+      setIsLoadingFriends(true);
+
+      // First get the current user ID
+      const { data: userData } = await supabase.auth.getUser();
+      const currentUserId = userData.user?.id;
+      
+      if (!currentUserId) {
+        console.error('No authenticated user found');
+        return;
+      }
+
+      // Fetch both incoming and outgoing accepted friend requests
+      const { data: acceptedRequests, error: requestsError } = await supabase
+        .from('friend_requests')
+        .select(`
+          id, 
+          created_at, 
+          requester_id, 
+          recipient_id, 
+          status,
+          requester:user_profiles!requester_id(
+            user_id,
+            email,
+            username
+          ),
+          recipient:user_profiles!recipient_id(
+            user_id,
+            email,
+            username
+          )
+        `)
+        .eq('status', 'confirmed')
+        .or(`requester_id.eq.${currentUserId},recipient_id.eq.${currentUserId}`);
+
+      if (requestsError) {
+        console.error('Error fetching friends:', requestsError);
+        throw requestsError;
+      }
+
+      // Transform the data to get the friend details
+      const friendsList = (acceptedRequests || []).map(request => {
+        // If current user is the requester, the friend is the recipient
+        // Otherwise, the friend is the requester
+        const isFriendRequester = request.requester_id !== currentUserId;
+        const friendProfile = isFriendRequester ? request.requester : request.recipient;
+        
+        return {
+          id: friendProfile?.user_id || '',
+          user_id: friendProfile?.user_id || '',
+          email: friendProfile?.email || 'Unknown email',
+          username: friendProfile?.username || 'Unknown User',
+          request_id: request.id,
+          created_at: request.created_at
+        };
+      });
+
+      setFriends(friendsList);
+    } catch (error) {
+      console.error('Failed to fetch friends:', error);
+    } finally {
+      setIsLoadingFriends(false);
     }
   };
 
@@ -449,12 +528,58 @@ export default function FriendsScreen() {
     </>
   );
 
+  const renderFriendsTab = () => (
+    <>
+      {isLoadingFriends ? (
+        <ThemedView style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#6936D8" />
+        </ThemedView>
+      ) : (
+        <FlatList
+          data={friends}
+          renderItem={({ item }) => (
+            <ThemedView style={styles.friendItem}>
+              <ThemedView style={styles.friendInfo}>
+                <ThemedText style={styles.username}>{item.username}</ThemedText>
+                <ThemedText style={styles.email}>{item.email}</ThemedText>
+                <ThemedText style={styles.friendSince}>
+                  Friends since {new Date(item.created_at).toLocaleDateString()}
+                </ThemedText>
+              </ThemedView>
+            </ThemedView>
+          )}
+          keyExtractor={(item) => item.id}
+          style={styles.friendsList}
+          contentContainerStyle={[
+            styles.friendsContent,
+            friends.length === 0 && styles.emptyListContent
+          ]}
+          ListEmptyComponent={
+            <ThemedView style={styles.emptyState}>
+              <ThemedText style={styles.emptyStateText}>
+                You don't have any friends yet
+              </ThemedText>
+            </ThemedView>
+          }
+        />
+      )}
+    </>
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ThemedView style={styles.container}>
         <ThemedText type="title" style={styles.title}>Friends</ThemedText>
         
         <ThemedView style={styles.tabsContainer}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'friends' && styles.activeTab]}
+            onPress={() => setActiveTab('friends')}
+          >
+            <ThemedText style={[styles.tabText, activeTab === 'friends' && styles.activeTabText]}>
+              My Friends
+            </ThemedText>
+          </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'search' && styles.activeTab]}
             onPress={() => setActiveTab('search')}
@@ -468,12 +593,17 @@ export default function FriendsScreen() {
             onPress={() => setActiveTab('requests')}
           >
             <ThemedText style={[styles.tabText, activeTab === 'requests' && styles.activeTabText]}>
-              Friend Requests
+              Requests
             </ThemedText>
           </TouchableOpacity>
         </ThemedView>
 
-        {activeTab === 'search' ? renderSearchTab() : renderRequestsTab()}
+        {activeTab === 'friends' 
+          ? renderFriendsTab()
+          : activeTab === 'search' 
+            ? renderSearchTab() 
+            : renderRequestsTab()
+        }
       </ThemedView>
     </SafeAreaView>
   );
@@ -683,5 +813,30 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  // Styles for the friends tab
+  friendsList: {
+    flex: 1,
+  },
+  friendsContent: {
+    gap: 12,
+    paddingTop: 8,
+  },
+  friendItem: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#eee',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  friendInfo: {
+    flex: 1,
+  },
+  friendSince: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 2,
   },
 });
