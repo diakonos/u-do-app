@@ -7,6 +7,7 @@ export default function HTMLRoot({ children }: PropsWithChildren) {
         <title>U Do</title>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <link rel="manifest" href="/manifest.json" />
       </head>
       <body>
         {children}
