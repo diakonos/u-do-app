@@ -27,24 +27,14 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error('No active session');
 
-    const response = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/create-new-task`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        task_name: taskName,
-        due_date: dueDate,
-      }),
-    });
+    const { data, error } = await supabase
+      .from("tasks")
+      .insert([{ user_id: session.user.id, task_name: taskName, due_date: dueDate, is_done: false }])
+      .select();
 
-    if (!response.ok) {
-      const error = await response.json();
+    if (error) {
       throw new Error(error.message || 'Failed to create task');
     }
-
-    const data = await response.json();
 
     if (!data || data.length === 0) {
       throw new Error('Failed to create task');
