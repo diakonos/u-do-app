@@ -8,7 +8,7 @@ import { useFriends, FriendTask } from '@/lib/context/friends';
 import { HTMLTitle } from '@/components/HTMLTitle';
 
 export default function FriendTasksScreen() {
-  const { username, userId } = useLocalSearchParams();
+  const { username } = useLocalSearchParams();
   const [todayTasks, setTodayTasks] = useState<FriendTask[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const textColor = useThemeColor({}, 'text');
@@ -19,11 +19,11 @@ export default function FriendTasksScreen() {
   const { getFriendTasks } = useFriends();
 
   const fetchFriendTasks = useCallback(async () => {
-    if (!userId) return;
+    if (!username) return;
 
     try {
       setIsRefreshing(false);
-      const tasks = await getFriendTasks(userId.toString());
+      const tasks = await getFriendTasks(username.toString());
       
       // Filter for tasks due today
       setTodayTasks(tasks);
@@ -33,14 +33,14 @@ export default function FriendTasksScreen() {
     } finally {
       setIsRefreshing(false);
     }
-  }, [userId, getFriendTasks]);
+  }, [username, getFriendTasks]);
 
   // Fetch tasks when screen loads
   useEffect(() => {
-    if (userId) {
+    if (username) {
       fetchFriendTasks();
     }
-  }, [userId, fetchFriendTasks]);
+  }, [username, fetchFriendTasks]);
 
   const onRefresh = useCallback(() => {
     setIsRefreshing(true);

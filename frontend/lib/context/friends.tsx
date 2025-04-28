@@ -181,9 +181,9 @@ export function FriendsProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Get a friend's tasks
-  const getFriendTasks = useCallback(async (friendId: string): Promise<FriendTask[]> => {
+  const getFriendTasks = useCallback(async (username: string): Promise<FriendTask[]> => {
     try {
-      return await FriendsService.getFriendTasks(friendId);
+      return await FriendsService.getFriendTasks(username);
     } catch (error) {
       console.error('Failed to fetch friend tasks:', error);
       throw error;

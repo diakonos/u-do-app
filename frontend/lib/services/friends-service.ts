@@ -296,10 +296,10 @@ export class FriendsService {
   /**
    * Fetch tasks for a friend using the get-friends-tasks edge function
    */
-  static async getFriendTasks(friendId: string): Promise<any[]> {
+  static async getFriendTasks(username: string): Promise<any[]> {
     return ApiService.authenticatedQuery(async () => {
       const { data, error } = await supabase.functions.invoke('get-friends-tasks', {
-        body: { friend_id: friendId }
+        body: { username }
       });
       
       if (error) throw error;

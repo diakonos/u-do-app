@@ -4,7 +4,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useFriends } from '@/lib/context/friends';
+import { Friend, useFriends } from '@/lib/context/friends';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function FriendsTab() {
@@ -29,11 +29,10 @@ export default function FriendsTab() {
     fetchFriends(true); // Force refresh
   }, [fetchFriends]);
 
-  const handleFriendPress = (friend: any) => {
+  const handleFriendPress = (friend: Friend) => {
     router.push({
-      pathname: '/friend-tasks',
+      pathname: "/(home)/(friends)/[username]",
       params: {
-        userId: friend.user_id,
         username: friend.username
       }
     });

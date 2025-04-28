@@ -36,7 +36,7 @@ function InitialLayout() {
         router.replace('/create-username');
       } else if (hasUsername && (inAuthGroup || isVerifyingOTP || isCreatingUsername)) {
         // User is logged in, has username, redirect away from auth/setup screens
-        router.replace('/(tabs)');
+        router.replace('/(home)');
       } else if (!hasUsername && isCreatingUsername) {
         // User is logged in, needs username, and is already on the correct screen
         // Do nothing, let them stay on create-username
@@ -63,7 +63,7 @@ function InitialLayout() {
         <Stack.Screen name="auth" options={{ headerShown: false }} />
         <Stack.Screen name="verify-otp" options={{ headerShown: false }} />
         <Stack.Screen name="create-username" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(home)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" options={{ presentation: 'modal' }} />
       </Stack>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
