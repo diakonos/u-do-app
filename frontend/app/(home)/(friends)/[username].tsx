@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, FlatList, RefreshControl, Alert, TouchableOpacity, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { StyleSheet, FlatList, Alert, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -11,7 +11,6 @@ export default function FriendTasksScreen() {
   const { username } = useLocalSearchParams();
   const [todayTasks, setTodayTasks] = useState<FriendTask[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const textColor = useThemeColor({}, 'text');
   const tintColor = useThemeColor({}, 'tint');
   const borderColor = useThemeColor({}, 'border');
   const tertiaryTextColor = useThemeColor({}, 'tertiaryText');
@@ -22,7 +21,7 @@ export default function FriendTasksScreen() {
     if (!username) return;
 
     try {
-      setIsRefreshing(false);
+      setIsRefreshing(true);
       const tasks = await getFriendTasks(username.toString());
       
       // Filter for tasks due today
@@ -43,7 +42,7 @@ export default function FriendTasksScreen() {
   }, [username, fetchFriendTasks]);
 
   const onRefresh = useCallback(() => {
-    setIsRefreshing(true);
+    // setIsRefreshing(true);
     fetchFriendTasks();
   }, [fetchFriendTasks]);
 
@@ -100,21 +99,15 @@ export default function FriendTasksScreen() {
           styles.tasksContent,
           todayTasks.length === 0 && styles.emptyListContent
         ]}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={onRefresh}
-            colors={[tintColor]}
-            tintColor={textColor}
-          />
-        }
+        refreshing={isRefreshing}
+        onRefresh={onRefresh}
         ListEmptyComponent={
           <ThemedView style={styles.emptyState}>
             <ThemedText style={{
               ...styles.emptyStateText,
               color: tertiaryTextColor
             }}>
-              No tasks due today
+              {isRefreshing ? <ActivityIndicator size="large" /> : "No tasks due today"}
             </ThemedText>
           </ThemedView>
         }
