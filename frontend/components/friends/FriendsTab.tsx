@@ -30,7 +30,7 @@ export default function FriendsTab() {
 
   const handleFriendPress = (friend: Friend) => {
     router.push({
-      pathname: "/(home)/(friends)/[username]",
+      pathname: "/(home)/friends/[username]",
       params: {
         username: friend.username
       }
