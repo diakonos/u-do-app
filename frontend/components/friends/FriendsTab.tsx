@@ -12,7 +12,6 @@ export default function FriendsTab() {
   const tintColor = useThemeColor({}, 'tint');
   const borderColor = useThemeColor({}, 'border');
   const secondaryTextColor = useThemeColor({}, 'secondaryText');
-  const tertiaryTextColor = useThemeColor({}, 'tertiaryText');
   const colorScheme = useColorScheme();
   const { friends, isLoading, fetchFriends, isRefreshing } = useFriends();
   const router = useRouter();
@@ -58,7 +57,7 @@ export default function FriendsTab() {
 
   const emptyStateTextStyle = {
     ...styles.emptyStateText,
-    color: tertiaryTextColor,
+    color: secondaryTextColor,
   };
 
   return (

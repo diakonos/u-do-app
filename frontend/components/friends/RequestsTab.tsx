@@ -10,7 +10,7 @@ export default function RequestsTab() {
   const textColor = useThemeColor({}, 'text');
   const tintColor = useThemeColor({}, 'tint');
   const borderColor = useThemeColor({}, 'border');
-  const tertiaryTextColor = useThemeColor({}, 'tertiaryText');
+  const secondaryTextColor = useThemeColor({}, 'secondaryText');
   const dangerColor = useThemeColor({}, 'danger');
   const { pendingRequests, fetchPendingRequests, acceptFriendRequest, rejectFriendRequest, isLoading, isPendingRequestsRefreshing } = useFriends();
 
@@ -58,7 +58,7 @@ export default function RequestsTab() {
 
   const emailStyle = {
     ...styles.email,
-    color: tertiaryTextColor,
+    color: secondaryTextColor,
   };
 
   const actionButtonStyle = {
@@ -80,7 +80,7 @@ export default function RequestsTab() {
 
   const emptyStateTextStyle = {
     ...styles.emptyStateText,
-    color: tertiaryTextColor,
+    color: secondaryTextColor,
   };
 
   return (

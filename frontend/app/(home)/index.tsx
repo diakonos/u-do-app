@@ -19,6 +19,7 @@ import DatePicker from 'react-native-ui-datepicker';
 import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { Collapsible } from '@/components/Collapsible';
 import { TaskInputHeader } from '@/components/tasks/TaskInputHeader';
+import { TaskItem } from '@/components/tasks/TaskItem';
 import { useTask } from '@/lib/context/task';
 import { Colors } from '@/constants/Colors';
 import { HTMLTitle } from '@/components/HTMLTitle';
@@ -93,11 +94,6 @@ export default function TodoList() {
         }));
       }
       
-      // Only update the real task state, not the displayed state yet
-      // setTasks(tasks.map(task => 
-      //   task.id === taskId ? { ...task, is_done: isDone } : task
-      // ));
-      
       // Add a 3-second delay before finalizing the change
       timeoutsRef.current[taskId] = setTimeout(async () => {
         try {
@@ -116,10 +112,6 @@ export default function TodoList() {
             return updated;
           });
         } catch (error) {
-          // Revert the task state if the API call fails
-          // setTasks(tasks.map(task => 
-          //   task.id === taskId ? { ...task, is_done: !isDone } : task
-          // ));
           Alert.alert('Error', 'Failed to update task');
           console.error('Failed to update task:', error);
         }
@@ -133,7 +125,6 @@ export default function TodoList() {
   const handleDeleteTask = async (taskId: number) => {
     try {
       await deleteTask(taskId);
-      // setTasks(tasks.filter(task => task.id !== taskId));
       setShowDatePicker(null);
     } catch (error) {
       Alert.alert('Error', 'Failed to delete task');
@@ -146,9 +137,6 @@ export default function TodoList() {
       await updateTask(taskId, { 
         due_date: date.toISOString() 
       });
-      // setTasks(tasks.map(task => 
-      //   task.id === taskId ? { ...task, due_date: updatedTask.due_date } : task
-      // ));
       if (Platform.OS === 'android') {
         setShowDatePicker(null);
       }
@@ -470,73 +458,16 @@ export default function TodoList() {
                 renderRightActions={() => renderRightActions(item.id)} 
                 containerStyle={{}}
               >
-                <TouchableOpacity style={[
-                  styles.taskContainer,
-                  { 
-                    backgroundColor: Colors[colorScheme ?? 'light'].background,
-                    borderBottomColor: Colors[colorScheme ?? 'light'].icon + '40'
-                  }
-                ]}>
-                  <View style={styles.taskHeader}>
-                    <TouchableOpacity 
-                      style={[
-                        styles.checkbox, 
-                        { borderColor: Colors[colorScheme ?? 'light'].icon },
-                        tasksInTransition[item.id] && { borderColor: Colors[colorScheme ?? 'light'].tint }
-                      ]}
-                      onPress={() => toggleTaskCompletion(item.id, !item.is_done)}
-                    >
-                      <View style={[
-                        styles.checkboxInner, 
-                        item.is_done && { backgroundColor: Colors[colorScheme ?? 'light'].icon }
-                      ]} />
-                    </TouchableOpacity>
-                    <View style={styles.taskContent}>
-                      <Text style={[
-                        styles.taskText, 
-                        { color: Colors[colorScheme ?? 'light'].text },
-                        item.is_done && { 
-                          textDecorationLine: 'line-through',
-                          color: Colors[colorScheme ?? 'light'].icon 
-                        }
-                      ]}>
-                        {item.task_name}
-                      </Text>
-                      <View style={styles.dueDateContainer}>
-                        {item.due_date ? (
-                          <Text style={[
-                            styles.dueDate,
-                            { color: Colors[colorScheme ?? 'light'].icon },
-                            isToday(item.due_date) && { color: Colors[colorScheme ?? 'light'].tint },
-                            isOverdue(item.due_date) && !item.is_done && styles.overdueDate
-                          ]}>
-                            Due: {formatDate(item.due_date)}
-                          </Text>
-                        ) : (
-                          <Text style={[
-                            styles.noDueDate,
-                            { color: Colors[colorScheme ?? 'light'].icon }
-                          ]}>No due date</Text>
-                        )}
-                        <TouchableOpacity 
-                          style={[
-                            styles.dateButton,
-                            { backgroundColor: Colors[colorScheme ?? 'light'].background === '#fff' ? '#f0f0f0' : '#2A2D2E' }
-                          ]}
-                          onPress={() => setShowDatePicker(item.id.toString())}
-                        >
-                          <Text style={[
-                            styles.dateButtonText,
-                            { color: Colors[colorScheme ?? 'light'].icon }
-                          ]}>
-                            {item.due_date ? 'Change Date' : 'Add Due Date'}
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  </View>
-                  {renderDatePicker(item)}
-                </TouchableOpacity>
+                <TaskItem
+                  id={item.id}
+                  taskName={item.task_name}
+                  isDone={item.is_done}
+                  dueDate={item.due_date}
+                  isInTransition={tasksInTransition[item.id]}
+                  onToggleComplete={toggleTaskCompletion}
+                  onPressDate={(id) => setShowDatePicker(id.toString())}
+                />
+                {renderDatePicker(item)}
               </Swipeable>
             ))}
           </Collapsible>
@@ -554,120 +485,22 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: '#fff',
   },
-  listHeader: {
-    paddingTop: 16,
-    marginTop: 8,
-  },
-  input: {
-    borderWidth: 1,
-    padding: 8,
-    marginBottom: 8,
-    marginHorizontal: 16,
-    borderRadius: 4,
-  },
-  buttonContainer: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-  },
-  addButton: {
-    backgroundColor: '#6936D8',
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  sortContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginHorizontal: 16,
-    marginBottom: 8,
-  },
-  taskContainer: {
-    backgroundColor: '#fff',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  taskHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  taskText: {
-    fontSize: 16,
-  },
-  completedTask: {
-    textDecorationLine: 'line-through',
-    color: 'gray',
-  },
-  dueDate: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
-  },
-  todayDate: {
-    color: '#007AFF',
-  },
-  overdueDate: {
-    color: 'red',
-  },
-  noDueDate: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 4,
-  },
-  datePickerContainer: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    height: 216,
-    paddingLeft: 34,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderWidth: 2,
-    borderColor: '#666',
-    borderRadius: 12,
-    marginRight: 10,
+  loadingContainer: {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  checkboxInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: 'transparent',
-  },
-  checkboxChecked: {
-    backgroundColor: '#666',
-  },
-  checkboxTransitioning: {
-    borderColor: '#6936D8',
-  },
-  taskContent: {
-    flex: 1,
-  },
-  dueDateContainer: {
-    flexDirection: 'row',
+  deleteButton: {
+    backgroundColor: 'red',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 4,
+    width: 80,
+    height: '100%',
   },
-  dateButton: {
-    marginLeft: 8,
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  dateButtonText: {
-    fontSize: 12,
-    color: '#666',
+  deleteButtonText: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   modalOverlay: {
     flex: 1,
@@ -700,23 +533,6 @@ const styles = StyleSheet.create({
     height: 216,
     backgroundColor: '#fff',
     width: '100%', // Make date picker fill the screen width
-  },
-  deleteButton: {
-    backgroundColor: 'red',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 80,
-    height: '100%',
-  },
-  deleteButtonText: {
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  loadingContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   datePickerWrapper: {
     width: '100%',

@@ -6,20 +6,15 @@ import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedInput } from '@/components/ThemedInput';
 import { TouchableOpacity } from 'react-native-gesture-handler';
-import { useColorScheme } from '@/hooks/useColorScheme';
 import { useThemeColor } from '@/hooks/useThemeColor';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
-  const colorScheme = useColorScheme();
   
-  const textColor = useThemeColor({}, 'text');
-  const iconColor = useThemeColor({}, 'icon');
   const tintColor = useThemeColor({}, 'tint');
   const whiteColor = useThemeColor({}, 'white');
-  const inputBackgroundColor = useThemeColor({}, 'inputBackground');
 
   const handleSignIn = async () => {
     try {
@@ -98,6 +93,7 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: 20,
+    width: "100%",
   },
   button: {
     width: '100%',

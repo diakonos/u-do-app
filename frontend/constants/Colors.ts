@@ -16,10 +16,10 @@ export const Colors = {
     secondaryText: '#999',
     tabIconDefault: '#687076',
     tabIconSelected: tintColorLight,
-    tertiaryText: '#666',
     text: '#11181C',
     tint: tintColorLight,
     white: '#ffffff',
+    todayBlue: '#007AFF',
   },
   dark: {
     background: '#151718',
@@ -30,9 +30,9 @@ export const Colors = {
     secondaryText: '#999',
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
-    tertiaryText: '#9BA1A6',
     text: '#ECEDEE',
     tint: tintColorDark,
     white: '#ffffff',
+    todayBlue: '#0A84FF',
   },
 };

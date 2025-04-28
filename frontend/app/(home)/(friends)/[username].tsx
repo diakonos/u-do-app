@@ -1,20 +1,20 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, FlatList, Alert, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { StyleSheet, FlatList, Alert, ActivityIndicator, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { useFriends, FriendTask } from '@/lib/context/friends';
 import { HTMLTitle } from '@/components/HTMLTitle';
+import { TaskItem } from '@/components/tasks/TaskItem';
 
 export default function FriendTasksScreen() {
   const { username } = useLocalSearchParams();
   const [todayTasks, setTodayTasks] = useState<FriendTask[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const tintColor = useThemeColor({}, 'tint');
-  const borderColor = useThemeColor({}, 'border');
-  const tertiaryTextColor = useThemeColor({}, 'tertiaryText');
   const whiteColor = useThemeColor({}, 'white');
+  const secondaryTextColor = useThemeColor({}, 'secondaryText');
   const { getFriendTasks } = useFriends();
 
   const fetchFriendTasks = useCallback(async () => {
@@ -42,7 +42,6 @@ export default function FriendTasksScreen() {
   }, [username, fetchFriendTasks]);
 
   const onRefresh = useCallback(() => {
-    // setIsRefreshing(true);
     fetchFriendTasks();
   }, [fetchFriendTasks]);
 
@@ -63,35 +62,13 @@ export default function FriendTasksScreen() {
       <FlatList
         data={todayTasks}
         renderItem={({ item }) => (
-          <ThemedView style={{
-            ...styles.taskItem,
-            borderColor: borderColor
-          }}>
-            <TouchableOpacity 
-              style={{
-                ...styles.checkbox,
-                borderColor: borderColor,
-              }}
-              // Read-only - we don't allow toggling friend's tasks
-              activeOpacity={1}
-            >
-              <View style={[
-                styles.checkboxInner, 
-                item.is_done && {
-                  ...styles.checkboxChecked,
-                  backgroundColor: tintColor
-                }
-              ]} />
-            </TouchableOpacity>
-            <ThemedView style={styles.taskInfo}>
-              <ThemedText style={[
-                styles.taskName,
-                item.is_done && styles.completedTask
-              ]}>
-                {item.task_name}
-              </ThemedText>
-            </ThemedView>
-          </ThemedView>
+          <TaskItem
+            id={item.id}
+            taskName={item.task_name}
+            isDone={item.is_done}
+            dueDate={item.due_date}
+            readOnly={true}
+          />
         )}
         keyExtractor={(item) => item.id.toString()}
         style={styles.tasksList}
@@ -105,7 +82,7 @@ export default function FriendTasksScreen() {
           <ThemedView style={styles.emptyState}>
             <ThemedText style={{
               ...styles.emptyStateText,
-              color: tertiaryTextColor
+              color: secondaryTextColor
             }}>
               {isRefreshing ? <ActivityIndicator size="large" /> : "No tasks due today"}
             </ThemedText>
@@ -137,26 +114,6 @@ const styles = StyleSheet.create({
   emptyListContent: {
     flex: 1,
   },
-  taskItem: {
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  taskInfo: {
-    flex: 1,
-  },
-  taskName: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  completedTask: {
-    textDecorationLine: 'line-through',
-    opacity: 0.6,
-  },
   emptyState: {
     flex: 1,
     alignItems: 'center',
@@ -166,23 +123,5 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontSize: 16,
     textAlign: 'center',
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 4,
-    borderWidth: 1,
-    marginRight: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-  },
-  checkboxInner: {
-    width: 14,
-    height: 14,
-    borderRadius: 2,
-  },
-  checkboxChecked: {
-    // Color will be applied inline
   },
 });
