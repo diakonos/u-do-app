@@ -5,6 +5,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { useFriends, FriendTask } from '@/lib/context/friends';
+import { HTMLTitle } from '@/components/HTMLTitle';
 
 export default function FriendTasksScreen() {
   const { username, userId } = useLocalSearchParams();
@@ -48,6 +49,7 @@ export default function FriendTasksScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      <HTMLTitle>{`${username}'s tasks`}</HTMLTitle>
       <Stack.Screen 
         options={{
           title: username? `${username}\'s tasks` : 'Friend\'s Tasks',

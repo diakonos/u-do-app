@@ -6,6 +6,7 @@ import { User } from '@supabase/supabase-js';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { supabase } from '@/lib/supabase';
+import { HTMLTitle } from '@/components/HTMLTitle';
 
 export default function SettingsScreen() {
   const handleLogout = async () => {
@@ -56,6 +57,7 @@ function ProfileInfo() {
 
   return (
     <ThemedView style={styles.profileContainer}>
+      <HTMLTitle>Settings</HTMLTitle>
       <ThemedText>Email: {user?.email}</ThemedText>
       <ThemedText>Username: {user?.user_metadata?.username || 'Not set'}</ThemedText>
     </ThemedView>

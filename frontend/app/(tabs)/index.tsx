@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
-  TextInput, 
-  Button, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
@@ -17,12 +15,13 @@ import {
 } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import DatePicker, { useDefaultStyles } from 'react-native-ui-datepicker';
-import Animated, { FadeIn, SlideInDown, SlideOutDown } from 'react-native-reanimated';
+import DatePicker from 'react-native-ui-datepicker';
+import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { Collapsible } from '@/components/Collapsible';
 import { TaskInputHeader } from '@/components/tasks/TaskInputHeader';
 import { useTask } from '@/lib/context/task';
 import { Colors } from '@/constants/Colors';
+import { HTMLTitle } from '@/components/HTMLTitle';
 
 interface Task {
   id: number;
@@ -366,7 +365,6 @@ export default function TodoList() {
 
   const getGroupedTasks = () => {
     // Process tasks with their displayed state during transitions
-    console.log("processing tasks:", tasks);
     const processedTasks = tasks.map(task => {
       // If task is in transition, use the previous displayed state instead of current state
       if (tasksInTransition[task.id]) {
@@ -450,6 +448,7 @@ export default function TodoList() {
       styles.container, 
       { backgroundColor: Colors[colorScheme ?? 'light'].background }
     ]}>
+      <HTMLTitle>My Task List</HTMLTitle>
       <SectionList
         ListHeaderComponent={
           <TaskInputHeader />

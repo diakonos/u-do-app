@@ -7,6 +7,7 @@ import FriendsTab from '@/components/friends/FriendsTab';
 import RequestsTab from '@/components/friends/RequestsTab';
 import SearchTab from '@/components/friends/SearchTab';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { HTMLTitle } from '@/components/HTMLTitle';
 
 type Tab = 'friends' | 'search' | 'requests';
 
@@ -33,6 +34,7 @@ export default function FriendsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <HTMLTitle>Friends</HTMLTitle>
       <ThemedView style={styles.container}>
         <SegmentedControl
           values={['My Friends', 'Search', 'Requests']}
