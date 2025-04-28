@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { StyleSheet, TextInput, Alert, ScrollView } from 'react-native';
+import { StyleSheet, Alert, ScrollView } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useAuth } from '@/lib/context/auth';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
+import { ThemedInput } from '@/components/ThemedInput';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useThemeColor } from '@/hooks/useThemeColor';
@@ -48,17 +49,9 @@ export default function Auth() {
           We'll send an OTP to your email to verify
         </ThemedText>
 
-        <TextInput
-          style={[
-            styles.input,
-            { 
-              color: textColor,
-              borderColor: iconColor,
-              backgroundColor: inputBackgroundColor
-            }
-          ]}
+        <ThemedInput
+          style={styles.input}
           placeholder="Enter your email"
-          placeholderTextColor={iconColor}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -104,13 +97,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   input: {
-    width: '100%',
-    height: 50,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 15,
     marginBottom: 20,
-    fontSize: 16,
   },
   button: {
     width: '100%',

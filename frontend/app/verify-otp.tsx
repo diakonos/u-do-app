@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, TextInput, Alert, View, ScrollView } from 'react-native';
+import { StyleSheet, Alert, View, ScrollView } from 'react-native';
 import { Stack, useLocalSearchParams, router } from 'expo-router';
 import { useAuth } from '@/lib/context/auth';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
+import { ThemedInput } from '@/components/ThemedInput';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useThemeColor } from '@/hooks/useThemeColor';
@@ -71,17 +72,9 @@ export default function VerifyOTP() {
             Enter the code we sent to {email}
           </ThemedText>
 
-          <TextInput
-            style={[
-              styles.input,
-              { 
-                color: textColor,
-                borderColor: iconColor,
-                backgroundColor: inputBackgroundColor
-              }
-            ]}
+          <ThemedInput
+            style={styles.input}
             placeholder="Enter verification code"
-            placeholderTextColor={iconColor}
             value={otp}
             onChangeText={setOtp}
             keyboardType="number-pad"
@@ -144,12 +137,7 @@ const styles = StyleSheet.create({
   },
   input: {
     width: '100%',
-    height: 50,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 15,
     marginBottom: 20,
-    fontSize: 16,
   },
   button: {
     width: '100%',

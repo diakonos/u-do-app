@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { StyleSheet, TextInput, Alert, ActivityIndicator, FlatList } from 'react-native';
+import { StyleSheet, Alert, ActivityIndicator, FlatList } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { ThemedInput } from '@/components/ThemedInput';
 import { useFriends, UserSearchResult } from '@/lib/context/friends';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { Colors } from '@/constants/Colors';
@@ -16,7 +17,7 @@ export default function SearchTab() {
   const colorScheme = useColorScheme();
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
-  const placeholderColor = useThemeColor({}, 'placeholderText');
+  const iconColor = useThemeColor({}, 'icon');
 
   const handleSearchUser = async () => {
     if (!username.trim()) {
@@ -62,21 +63,15 @@ export default function SearchTab() {
       </ThemedText>
 
       <ThemedView style={styles.inputContainer}>
-        <TextInput
-          style={[
-            styles.input, 
-            { 
-              backgroundColor, 
-              color: textColor, 
-              borderColor: Colors[colorScheme ?? 'light'].icon 
-            }
-          ]}
+        <ThemedInput
+          style={styles.input}
           placeholder="Enter username"
-          placeholderTextColor={Colors[colorScheme ?? 'light'].icon}
           value={username}
           onChangeText={setUsername}
           autoCapitalize="none"
           autoCorrect={false}
+          lightBorderColor={Colors.light.icon}
+          darkBorderColor={Colors.dark.icon}
         />
       </ThemedView>
 
@@ -139,10 +134,7 @@ const styles = StyleSheet.create({
   },
   input: {
     height: 48,
-    borderWidth: 1,
-    borderRadius: 8,
     padding: 12,
-    fontSize: 16,
   },
   button: {
     backgroundColor: '#6936D8',

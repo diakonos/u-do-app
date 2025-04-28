@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { 
   View, 
-  TextInput, 
+  TextInput,
   TouchableOpacity, 
   Text, 
   StyleSheet,
@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Colors } from '@/constants/Colors';
 import { useTask } from '@/lib/context/task';
+import { ThemedInput } from '@/components/ThemedInput';
 
 interface TaskInputHeaderProps {
 }
@@ -42,24 +43,18 @@ export const TaskInputHeader: React.FC<TaskInputHeaderProps> = ({
 
   return (
     <View style={styles.listHeader}>
-      <TextInput
+      <ThemedInput
         ref={input}
-        style={[
-          styles.input, 
-          { 
-            borderColor: Colors[colorScheme ?? 'light'].icon,
-            color: Colors[colorScheme ?? 'light'].text,
-            backgroundColor: Colors[colorScheme ?? 'light'].background
-          }
-        ]}
+        style={styles.input}
         placeholder="Enter task name"
-        placeholderTextColor={Colors[colorScheme ?? 'light'].icon}
         defaultValue={taskName}
         onChangeText={(text) => {
           setTaskName(text);
         }}
         onSubmitEditing={addTask}
         key="task-input"
+        lightBorderColor={Colors.light.icon}
+        darkBorderColor={Colors.dark.icon}
       />
       <View style={styles.buttonContainer}>
         <TouchableOpacity 
@@ -79,11 +74,10 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   input: {
-    borderWidth: 1,
     padding: 8,
     marginBottom: 8,
     marginHorizontal: 16,
-    borderRadius: 4,
+    height: 40,
   },
   buttonContainer: {
     marginHorizontal: 16,
