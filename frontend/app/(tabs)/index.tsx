@@ -20,6 +20,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import DatePicker, { useDefaultStyles } from 'react-native-ui-datepicker';
 import Animated, { FadeIn, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { Collapsible } from '@/components/Collapsible';
+import { TaskInputHeader } from '@/components/tasks/TaskInputHeader';
 import { useTask } from '@/lib/context/task';
 import { Colors } from '@/constants/Colors';
 
@@ -35,21 +36,17 @@ interface Task {
 
 export default function TodoList() {
   const colorScheme = useColorScheme();
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [taskName, setTaskName] = useState('');
+  
   const [showDatePicker, setShowDatePicker] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'dueDate' | 'creationDate'>('dueDate');
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tempDueDate, setTempDueDate] = useState<Date | null>(null);
   const [tasksInTransition, setTasksInTransition] = useState<Record<number, boolean>>({});
   // Keep track of the displayed completion state (for visual purposes only)
   const [displayedTaskStates, setDisplayedTaskStates] = useState<Record<number, boolean>>({});
-  const { createTask, fetchTasks, updateTask, deleteTask } = useTask();
+  const { tasks, fetchTasks, updateTask, deleteTask } = useTask();
   const timeoutsRef = useRef<Record<number, NodeJS.Timeout>>({});
-  // Add a ref for the task name input to maintain focus
-  const taskNameInputRef = useRef<TextInput>(null);
   
   useEffect(() => {
     loadTasks();
@@ -58,8 +55,7 @@ export default function TodoList() {
   const loadTasks = async () => {
     try {
       setIsLoading(true);
-      const fetchedTasks = await fetchTasks();
-      setTasks(fetchedTasks);
+      await fetchTasks();
     } catch (error) {
       Alert.alert('Error', 'Failed to load tasks');
       console.error('Failed to load tasks:', error);
@@ -74,20 +70,7 @@ export default function TodoList() {
     setRefreshing(false);
   }, []);
 
-  const addTask = async () => {
-    if (taskName.trim()) {
-      try {
-        const dueDate = selectedDate?.toISOString() ?? new Date().toISOString();
-        const newTask = await createTask(taskName, dueDate);
-        setTasks(prevTasks => [newTask, ...prevTasks]);
-        setTaskName('');
-        setSelectedDate(null);
-      } catch (error) {
-        Alert.alert('Error', 'Failed to create task. Please try again.');
-        console.error('Failed to create task:', error);
-      }
-    }
-  };
+  
 
   const toggleTaskCompletion = async (taskId: number, isDone: boolean) => {
     try {
@@ -112,9 +95,9 @@ export default function TodoList() {
       }
       
       // Only update the real task state, not the displayed state yet
-      setTasks(tasks.map(task => 
-        task.id === taskId ? { ...task, is_done: isDone } : task
-      ));
+      // setTasks(tasks.map(task => 
+      //   task.id === taskId ? { ...task, is_done: isDone } : task
+      // ));
       
       // Add a 3-second delay before finalizing the change
       timeoutsRef.current[taskId] = setTimeout(async () => {
@@ -135,9 +118,9 @@ export default function TodoList() {
           });
         } catch (error) {
           // Revert the task state if the API call fails
-          setTasks(tasks.map(task => 
-            task.id === taskId ? { ...task, is_done: !isDone } : task
-          ));
+          // setTasks(tasks.map(task => 
+          //   task.id === taskId ? { ...task, is_done: !isDone } : task
+          // ));
           Alert.alert('Error', 'Failed to update task');
           console.error('Failed to update task:', error);
         }
@@ -151,7 +134,7 @@ export default function TodoList() {
   const handleDeleteTask = async (taskId: number) => {
     try {
       await deleteTask(taskId);
-      setTasks(tasks.filter(task => task.id !== taskId));
+      // setTasks(tasks.filter(task => task.id !== taskId));
       setShowDatePicker(null);
     } catch (error) {
       Alert.alert('Error', 'Failed to delete task');
@@ -161,12 +144,12 @@ export default function TodoList() {
 
   const updateDueDate = async (taskId: number, date: Date) => {
     try {
-      const updatedTask = await updateTask(taskId, { 
+      await updateTask(taskId, { 
         due_date: date.toISOString() 
       });
-      setTasks(tasks.map(task => 
-        task.id === taskId ? { ...task, due_date: updatedTask.due_date } : task
-      ));
+      // setTasks(tasks.map(task => 
+      //   task.id === taskId ? { ...task, due_date: updatedTask.due_date } : task
+      // ));
       if (Platform.OS === 'android') {
         setShowDatePicker(null);
       }
@@ -383,6 +366,7 @@ export default function TodoList() {
 
   const getGroupedTasks = () => {
     // Process tasks with their displayed state during transitions
+    console.log("processing tasks:", tasks);
     const processedTasks = tasks.map(task => {
       // If task is in transition, use the previous displayed state instead of current state
       if (tasksInTransition[task.id]) {
@@ -461,57 +445,15 @@ export default function TodoList() {
     );
   }
 
-  // Create a ListHeaderComponent to make the input UI scrollable with the list
-  const renderListHeader = () => (
-    <View style={styles.listHeader}>
-      <TextInput
-        ref={taskNameInputRef}
-        style={[
-          styles.input, 
-          { 
-            borderColor: Colors[colorScheme ?? 'light'].icon,
-            color: Colors[colorScheme ?? 'light'].text,
-            backgroundColor: Colors[colorScheme ?? 'light'].background
-          }
-        ]}
-        placeholder="Enter task name"
-        placeholderTextColor={Colors[colorScheme ?? 'light'].icon}
-        value={taskName}
-        onChangeText={(text) => {
-          setTaskName(text);
-          // Ensure input stays focused after state change
-          setTimeout(() => {
-            taskNameInputRef.current?.focus();
-          }, 0);
-        }}
-        onSubmitEditing={addTask}
-        key="task-input" // Add a stable key
-      />
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity 
-          style={styles.addButton} 
-          onPress={addTask}
-        >
-          <Text style={styles.addButtonText}>Add Task</Text>
-        </TouchableOpacity>
-      </View>
-      {/* <View style={styles.sortContainer}>
-        <Button 
-          title={`Sort: ${sortBy === 'dueDate' ? 'Due Date' : 'Creation Date'}`}
-          onPress={toggleSortBy}
-          color={Colors[colorScheme ?? 'light'].tint}
-        />
-      </View> */}
-    </View>
-  );
-
   return (
     <SafeAreaView style={[
       styles.container, 
       { backgroundColor: Colors[colorScheme ?? 'light'].background }
     ]}>
       <SectionList
-        ListHeaderComponent={renderListHeader}
+        ListHeaderComponent={
+          <TaskInputHeader />
+        }
         refreshControl={
           <RefreshControl refreshing={refreshing || (isLoading && tasks.length > 0)} onRefresh={onRefresh} />
         }

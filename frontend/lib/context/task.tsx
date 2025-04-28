@@ -1,4 +1,4 @@
-import { createContext, useContext, useCallback } from 'react';
+import { createContext, useContext, useCallback, useState } from 'react';
 import { supabase } from '../supabase';
 
 type Task = {
@@ -12,6 +12,7 @@ type Task = {
 };
 
 type TaskContextType = {
+  tasks: Task[];
   createTask: (taskName: string, dueDate: string) => Promise<Task>;
   fetchTasks: () => Promise<Task[]>;
   updateTask: (taskId: number, updates: Partial<Task>) => Promise<Task>;
@@ -21,6 +22,7 @@ type TaskContextType = {
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
 export function TaskProvider({ children }: { children: React.ReactNode }) {
+  const [tasksCache, setTasksCache] = useState<Task[]>([]);
   const createTask = async (taskName: string, dueDate: string): Promise<Task> => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error('No active session');
@@ -42,8 +44,14 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       throw new Error(error.message || 'Failed to create task');
     }
 
-    const { data } = await response.json();
-    return { ...data[0], is_done: false };
+    const data = await response.json();
+
+    if (!data || data.length === 0) {
+      throw new Error('Failed to create task');
+    }
+    
+    setTasksCache((prevTasks) => [data[0], ...prevTasks]);
+    return data[0];
   };
 
   const fetchTasks = useCallback(async (): Promise<Task[]> => {
@@ -57,6 +65,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
+    setTasksCache(tasks);
     return tasks;
   }, []);
 
@@ -75,6 +84,8 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       .single();
 
     if (error) throw error;
+    setTasksCache((prevTasks) => prevTasks.map((task) => (task.id === taskId ? { ...task, ...updates } : task)));
+
     return data;
   };
 
@@ -88,10 +99,12 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       .eq('id', taskId);
 
     if (error) throw error;
+
+    setTasksCache((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
   };
 
   return (
-    <TaskContext.Provider value={{ createTask, fetchTasks, updateTask, deleteTask }}>
+    <TaskContext.Provider value={{ tasks: tasksCache, createTask, fetchTasks, updateTask, deleteTask }}>
       {children}
     </TaskContext.Provider>
   );
