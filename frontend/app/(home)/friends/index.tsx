@@ -22,7 +22,6 @@ export default function FriendsScreen() {
   const searchTabRef = useRef(<SearchTab />);
   const requestsTabRef = useRef(<RequestsTab />);
 
-  // Purple tint is #6936D8 in light mode, white in dark mode
   // For active text, we need to ensure good contrast with the tint background color
   const activeTextColor = "#FFFFFF"
   

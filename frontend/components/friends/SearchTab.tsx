@@ -14,7 +14,7 @@ export default function SearchTab() {
   const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
   const { sendFriendRequest, searchUsers } = useFriends();
   
-  const colorScheme = useColorScheme();
+  const colorScheme = useColorScheme() ?? "light";
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const iconColor = useThemeColor({}, 'icon');
@@ -78,7 +78,7 @@ export default function SearchTab() {
       <ThemedView 
         style={[
           styles.button, 
-          { opacity: isSearching || !username.trim() ? 0.7 : 1 }
+          { opacity: isSearching || !username.trim() ? 0.7 : 1, backgroundColor: Colors[colorScheme].tint }
         ]}
         onTouchStart={!isSearching ? handleSearchUser : undefined}
       >
@@ -101,7 +101,7 @@ export default function SearchTab() {
                 <ThemedText style={styles.email}>{item.email}</ThemedText>
               </ThemedView>
               <ThemedView 
-                style={styles.addButton}
+                style={[styles.addButton, { backgroundColor: Colors[colorScheme].tint }]}
                 onTouchStart={() => handleSendFriendRequest(item.user_id)}
               >
                 <ThemedText style={styles.addButtonText}>Add</ThemedText>
@@ -137,7 +137,6 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   button: {
-    backgroundColor: '#6936D8',
     height: 48,
     borderRadius: 8,
     justifyContent: 'center',
@@ -175,7 +174,6 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   addButton: {
-    backgroundColor: '#6936D8',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,

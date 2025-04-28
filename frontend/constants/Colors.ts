@@ -3,8 +3,8 @@
  * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
  */
 
-const tintColorLight = '#6936D8';
-const tintColorDark = '#6936D8';
+const tintColorLight = '#463076';
+const tintColorDark = '#2B1D49';
 
 export const Colors = {
   light: {
