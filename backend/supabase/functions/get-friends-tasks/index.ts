@@ -43,13 +43,13 @@ Deno.serve(async (req) => {
     console.log(`Authenticated user ID: ${requestingUserId}`);
 
     const body = await req.json();
-    const friend_id = body?.friend_id;
-    console.log(`Received friend_id: ${friend_id}`);
+    const username = body?.username; // Changed from friend_id to username
+    console.log(`Received username: ${username}`);
 
-    if (!friend_id) {
-      console.log("friend_id missing in request body");
+    if (!username) {
+      console.log("username missing in request body");
       return new Response(
-        JSON.stringify({ error: "Missing friend_id in request body" }),
+        JSON.stringify({ error: "Missing username in request body" }), // Updated error message
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -57,14 +57,54 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Fetch the friend's user ID based on the username
+    console.log(`Fetching user ID for username: ${username}...`);
+    const { data: profileData, error: profileError } = await supabase
+      .from("user_profiles")
+      .select("user_id")
+      .eq("username", username)
+      .single();
+
+    if (profileError || !profileData) {
+      console.error(
+        "Error fetching profile or profile not found:",
+        profileError?.message || "Profile not found",
+      );
+      const status = profileError?.code === "PGRST116" ? 404 : 500; // PGRST116: Row not found
+      const message = status === 404
+        ? "User not found"
+        : "Internal server error fetching user profile";
+      return new Response(JSON.stringify({ error: message }), {
+        status: status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const friendUserId = profileData.user_id; // Renamed variable
+    console.log(`Found user ID for ${username}: ${friendUserId}`);
+
+    // Prevent users from fetching their own tasks via this endpoint
+    if (requestingUserId === friendUserId) {
+      console.log(
+        "User attempted to fetch their own tasks via friend endpoint.",
+      );
+      return new Response(
+        JSON.stringify({ error: "Cannot fetch own tasks using this endpoint" }),
+        {
+          status: 403, // Forbidden
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
     console.log(
-      `Checking friendship between ${requestingUserId} and ${friend_id}...`,
+      `Checking friendship between ${requestingUserId} and ${friendUserId}...`, // Updated log
     );
-    // Define filters uniquely
+    // Define filters uniquely using the fetched friendUserId
     const friendFilter1 =
-      `and(requester_id.eq.${requestingUserId},recipient_id.eq.${friend_id},status.eq.confirmed)`;
+      `and(requester_id.eq.${requestingUserId},recipient_id.eq.${friendUserId},status.eq.confirmed)`; // Use friendUserId
     const friendFilter2 =
-      `and(requester_id.eq.${friend_id},recipient_id.eq.${requestingUserId},status.eq.confirmed)`;
+      `and(requester_id.eq.${friendUserId},recipient_id.eq.${requestingUserId},status.eq.confirmed)`; // Use friendUserId
     const friendOrFilter = `${friendFilter1},${friendFilter2}`;
 
     const { data: friendshipData, error: friendshipCheckError } = await supabase
@@ -86,7 +126,7 @@ Deno.serve(async (req) => {
 
     if (!friendshipData) {
       console.log(
-        `Friendship between ${requestingUserId} and ${friend_id} not found or not confirmed.`,
+        `Friendship between ${requestingUserId} and ${friendUserId} not found or not confirmed.`, // Updated log
       );
       return new Response(
         JSON.stringify({ error: "Not friends or friendship not confirmed" }),
@@ -97,16 +137,18 @@ Deno.serve(async (req) => {
       );
     }
     console.log(
-      `Friendship confirmed between ${requestingUserId} and ${friend_id}.`,
+      `Friendship confirmed between ${requestingUserId} and ${friendUserId}.`, // Updated log
     );
 
-    const todayDate = new Date().toISOString().split("T")[0]; // Renamed variable
-    console.log(`Fetching tasks for user ${friend_id} due on ${todayDate}...`);
+    const todayDate = new Date().toISOString().split("T")[0];
+    console.log(
+      `Fetching tasks for user ${friendUserId} (username: ${username}) due on ${todayDate}...`,
+    ); // Updated log
 
-    const { data: tasksData, error: tasksFetchError } = await supabase // Renamed variables
+    const { data: tasksData, error: tasksFetchError } = await supabase
       .from("tasks")
       .select("*")
-      .eq("user_id", friend_id)
+      .eq("user_id", friendUserId) // Use friendUserId
       .eq("due_date", todayDate);
 
     if (tasksFetchError) {
@@ -121,7 +163,9 @@ Deno.serve(async (req) => {
     }
 
     console.log(
-      `Found ${tasksData?.length ?? 0} tasks for user ${friend_id} due today.`,
+      `Found ${
+        tasksData?.length ?? 0
+      } tasks for user ${friendUserId} (username: ${username}) due today.`, // Updated log
     );
     return new Response(
       JSON.stringify(tasksData),
