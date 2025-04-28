@@ -52,10 +52,6 @@ export default function FriendTasksScreen() {
         options={{
           title: username? `${username}\'s tasks` : 'Friend\'s Tasks',
           headerBackTitle: 'Friends',
-          headerTintColor: whiteColor,
-          headerStyle: {
-            backgroundColor: tintColor,
-          },
         }} 
       />
       

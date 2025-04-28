@@ -12,7 +12,7 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const tintColor = useThemeColor({}, 'tint');
+  const tintColor = useThemeColor({}, 'brand');
   const whiteColor = useThemeColor({}, 'white');
 
   return (

@@ -58,7 +58,7 @@ export const TaskInputHeader: React.FC<TaskInputHeaderProps> = ({
       />
       <View style={styles.buttonContainer}>
         <TouchableOpacity 
-          style={[styles.addButton, { backgroundColor: Colors[colorScheme!].tint}]} 
+          style={[styles.addButton, { backgroundColor: Colors[colorScheme!].brand}]} 
           onPress={addTask}
         >
           {isLoading ? <ActivityIndicator color={Colors[colorScheme!].white} /> : <Text style={styles.addButtonText}>Add Task</Text>}

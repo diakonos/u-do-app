@@ -14,8 +14,7 @@ type Tab = 'friends' | 'search' | 'requests';
 export default function FriendsScreen() {
   const [activeTab, setActiveTab] = useState<Tab>('friends');
   const colorScheme = useColorScheme();
-  const tintColor = useThemeColor({}, 'tint');
-  const textColor = useThemeColor({}, 'text');
+  const tintColor = useThemeColor({}, 'brand');
   
   // Using these refs to maintain component instances between tab switches
   const friendsTabRef = useRef(<FriendsTab />);

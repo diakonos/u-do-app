@@ -3,7 +3,7 @@ import { Stack } from "expo-router";
 
 export default function FriendsLayout() {
   const whiteColor = useThemeColor({}, 'white');
-  const tintColor = useThemeColor({}, 'tint');
+  const tintColor = useThemeColor({}, 'brand');
   return (
     <Stack screenOptions={{
       navigationBarColor: tintColor,

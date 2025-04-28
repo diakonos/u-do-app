@@ -15,9 +15,6 @@ export default function SearchTab() {
   const { sendFriendRequest, searchUsers } = useFriends();
   
   const colorScheme = useColorScheme() ?? "light";
-  const backgroundColor = useThemeColor({}, 'background');
-  const textColor = useThemeColor({}, 'text');
-  const iconColor = useThemeColor({}, 'icon');
 
   const handleSearchUser = async () => {
     if (!username.trim()) {
@@ -78,7 +75,7 @@ export default function SearchTab() {
       <ThemedView 
         style={[
           styles.button, 
-          { opacity: isSearching || !username.trim() ? 0.7 : 1, backgroundColor: Colors[colorScheme].tint }
+          { opacity: isSearching || !username.trim() ? 0.7 : 1, backgroundColor: Colors[colorScheme].brand }
         ]}
         onTouchStart={!isSearching ? handleSearchUser : undefined}
       >
