@@ -4,4 +4,9 @@
 
 expo-env.d.ts
 # @end expo-cli
+
 .vercel
+
+# Native build folders
+/android
+/ios
