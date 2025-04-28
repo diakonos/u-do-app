@@ -24,10 +24,10 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { title, description, due_date } = await req.json();
-    if (!title || !due_date) {
+    const { task_name, due_date } = await req.json();
+    if (!task_name || !due_date) {
       return new Response(
-        JSON.stringify({ error: "Title and due date are required" }),
+        JSON.stringify({ error: "Task name and due date are required" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     // Insert the new task
     const { data, error } = await supabaseClient
       .from("tasks")
-      .insert([{ user_id: user.id, title, description, due_date }])
+      .insert([{ user_id: user.id, task_name, due_date }])
       .select();
 
     if (error) {
