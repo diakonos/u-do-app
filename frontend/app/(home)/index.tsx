@@ -135,7 +135,7 @@ export default function TodoList() {
   const updateDueDate = async (taskId: number, date: Date) => {
     try {
       await updateTask(taskId, { 
-        due_date: date.toISOString() 
+        due_date: date.toString() 
       });
       if (Platform.OS === 'android') {
         setShowDatePicker(null);
@@ -244,6 +244,7 @@ export default function TodoList() {
                   date={tempDueDate ? tempDueDate : defaultDate}
                   mode="single"
                   onChange={(params: any) => {
+                    console.log("Selected date:", params.date);
                     setTempDueDate(params.date);
                   }}
                   styles={{
@@ -316,6 +317,7 @@ export default function TodoList() {
                   minimumDate={getMinDate()}
                   onChange={(event, date) => {
                     if (event.type === 'set' && date) {
+                      console.log("Selected date:", date);
                       if (Platform.OS === 'android') {
                         updateDueDate(item.id, date);
                         setShowDatePicker(null);
@@ -353,61 +355,80 @@ export default function TodoList() {
 
   const getGroupedTasks = () => {
     // Process tasks with their displayed state during transitions
-    const processedTasks = tasks.map(task => {
-      // If task is in transition, use the previous displayed state instead of current state
-      if (tasksInTransition[task.id]) {
-        return {
-          ...task,
-          displayed_is_done: displayedTaskStates[task.id]
-        };
-      }
-      // Otherwise use the actual is_done state
-      return {
-        ...task,
-        displayed_is_done: task.is_done
-      };
-    });
+    const processedTasks = tasks.map(task => ({
+      ...task,
+      displayed_is_done: tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done
+    }));
 
-    // First, separate completed and incomplete tasks based on displayed state
-    const completedTasks = processedTasks.filter(task => task.displayed_is_done);
-    const incompleteTasks = processedTasks.filter(task => !task.displayed_is_done);
-    
-    // Filter based on showCompleted preference
-    const tasksToShow = [...incompleteTasks, ...completedTasks];
+    // Helper to check if a date is today
+    const isTaskDueToday = (task: Task) => {
+      if (!task.due_date) return false;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const taskDate = new Date(task.due_date);
+      taskDate.setHours(0, 0, 0, 0);
+      return taskDate.getTime() === today.getTime();
+    };
 
-    // For incomplete tasks, categorize them
-    const overdueTasks = tasksToShow.filter(task => 
-      !task.displayed_is_done && categorizeTask(task) === 'overdue'
-    );
-    const todayTasks = tasksToShow.filter(task => 
-      !task.displayed_is_done && categorizeTask(task) === 'today'
-    );
-    const laterTasks = tasksToShow.filter(task => 
-      !task.displayed_is_done && categorizeTask(task) === 'later'
-    );
-    
-    // Tasks that are shown as done go to the Done section
-    const doneTasks = tasksToShow.filter(task => task.displayed_is_done);
+    // --- Today's Tasks ---
+    const allTodayTasks = processedTasks.filter(isTaskDueToday);
+    const todayIncompleteTasks = allTodayTasks.filter(task => !task.displayed_is_done);
+    const todayCompleteTasks = allTodayTasks.filter(task => task.displayed_is_done);
 
-    const sortTaskGroup = (taskGroup: Task[]) => {
+    // Sort Today's Incomplete Tasks (using existing logic based on sortBy state)
+    const sortIncomplete = (taskGroup: Task[]) => {
       return [...taskGroup].sort((a, b) => {
         if (sortBy === 'dueDate') {
+          // Existing due date sort logic
           if (!a.due_date && !b.due_date) return 0;
           if (!a.due_date) return 1;
           if (!b.due_date) return -1;
           return new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime();
         } else {
+          // Existing creation date sort logic
           return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
         }
       });
     };
+    const sortedTodayIncomplete = sortIncomplete(todayIncompleteTasks);
 
+    // Sort Today's Complete Tasks by updated_at descending
+    const sortedTodayComplete = [...todayCompleteTasks].sort((a, b) =>
+      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    );
+
+    // Combine incomplete and complete for the 'Today' section
+    const finalTodayTasks = [...sortedTodayIncomplete, ...sortedTodayComplete];
+
+    // --- Other Tasks (Not due today) ---
+    const otherTasks = processedTasks.filter(task => !isTaskDueToday(task));
+
+    // Overdue (Incomplete, Not Today)
+    const overdueTasks = otherTasks.filter(task =>
+      !task.displayed_is_done && categorizeTask(task) === 'overdue'
+    );
+    const sortedOverdue = sortIncomplete(overdueTasks);
+
+    // Later (Incomplete, Not Today)
+    const laterTasks = otherTasks.filter(task =>
+      !task.displayed_is_done && categorizeTask(task) === 'later'
+    );
+    const sortedLater = sortIncomplete(laterTasks);
+
+    // Done (Complete, Not Today)
+    const doneTasks = otherTasks.filter(task => task.displayed_is_done);
+    const sortedDone = [...doneTasks].sort((a, b) =>
+      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    );
+
+    // --- Construct Sections ---
+    // Filter out sections with no data to avoid rendering empty headers
     return [
-      { title: 'Overdue', data: sortTaskGroup(overdueTasks) },
-      { title: 'Today', data: sortTaskGroup(todayTasks) },
-      { title: 'Later', data: sortTaskGroup(laterTasks) },
-      { title: 'Done', data: sortTaskGroup(doneTasks) }
-    ];
+      { title: 'Overdue', data: sortedOverdue },
+      { title: 'Today', data: finalTodayTasks },
+      { title: 'Later', data: sortedLater },
+      { title: 'Done', data: sortedDone }
+    ].filter(section => section.data.length > 0);
   };
 
   const toggleSortBy = () => {
