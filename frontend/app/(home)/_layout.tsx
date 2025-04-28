@@ -9,18 +9,19 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { TaskProvider } from '@/lib/context/task';
 import { useThemeColor } from '@/hooks/useThemeColor';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const tintColor = useThemeColor({}, 'brand');
   const whiteColor = useThemeColor({}, 'white');
+  const safeArea = useSafeAreaInsets();
 
   return (
     <TaskProvider>
       <Tabs
         screenOptions={{
           tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-          // headerShown: false,
           headerTintColor: whiteColor,
           headerStyle: {
             backgroundColor: tintColor,
@@ -32,6 +33,10 @@ export default function TabLayout() {
               position: 'absolute',
             },
             default: {},
+            web: {
+              paddingBottom: safeArea.bottom,
+              height: 49 + safeArea.bottom,
+            }
           }),
         }}>
         <Tabs.Screen
