@@ -35,6 +35,12 @@ export default function TabLayout() {
               height: 49 + safeArea.bottom,
             }
           }),
+          tabBarLabelStyle: Platform.select({
+            default: {},
+            web: {
+              overflow: "visible",
+            }
+          })
         }}>
         <Tabs.Screen
           name="index"
