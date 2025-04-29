@@ -11,7 +11,7 @@
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
-    "build:web": "expo export -p web && npx workbox-cli generateSW workbox-config.js"
+    "build:web": "expo export -p web -s && npx workbox-cli generateSW workbox-config.js"
   },
   "jest": {
     "preset": "jest-expo"
