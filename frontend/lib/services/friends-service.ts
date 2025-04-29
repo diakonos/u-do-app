@@ -294,16 +294,33 @@ export class FriendsService {
   }
 
   /**
-   * Fetch tasks for a friend using the get-friends-tasks edge function
+   * Fetch tasks for a friend directly from the database
+   * Gets only tasks due today for the specified friend
    */
   static async getFriendTasks(username: string): Promise<any[]> {
     return ApiService.authenticatedQuery(async () => {
-      const { data, error } = await supabase.functions.invoke('get-friends-tasks', {
-        body: { username }
-      });
+      // Get today's date in YYYY-MM-DD format
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
       
-      if (error) throw error;
-      return data || [];
+      // Single query that joins user_profiles with tasks
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select(`
+          user_id,
+          tasks:tasks(*)
+        `)
+        .eq('username', username)
+        .eq('tasks.due_date', todayStr)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching friend tasks:', error);
+        throw new Error('Failed to fetch tasks');
+      }
+      
+      // Return the tasks array from the nested structure
+      return data?.tasks || [];
     });
   }
 }

@@ -1,11 +1,19 @@
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { StyleSheet, ActivityIndicator, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { Friend, useFriends } from '@/lib/context/friends';
+import { Friend, useFriends, FriendTask } from '@/lib/context/friends';
 import { useColorScheme } from '@/hooks/useColorScheme';
+
+// Store task counts for each friend
+interface FriendTaskCounts {
+  [username: string]: {
+    completedTasks: number;
+    totalTasks: number;
+  }
+}
 
 export default function FriendsTab() {
   const textColor = useThemeColor({}, 'text');
@@ -13,8 +21,12 @@ export default function FriendsTab() {
   const borderColor = useThemeColor({}, 'border');
   const secondaryTextColor = useThemeColor({}, 'secondaryText');
   const colorScheme = useColorScheme();
-  const { friends, isLoading, fetchFriends, isRefreshing } = useFriends();
+  const { friends, isLoading, fetchFriends, isRefreshing, getFriendTasks } = useFriends();
   const router = useRouter();
+  
+  // State to store the task counts for each friend
+  const [taskCounts, setTaskCounts] = useState<FriendTaskCounts>({});
+  const [isLoadingCounts, setIsLoadingCounts] = useState(false);
 
   // Fetch data when screen is focused
   useFocusEffect(
@@ -24,8 +36,42 @@ export default function FriendsTab() {
     }, [fetchFriends])
   );
 
+  // Fetch task counts for all friends
+  useEffect(() => {
+    const fetchTaskCounts = async () => {
+      if (friends.length === 0) return;
+      
+      setIsLoadingCounts(true);
+      const counts: FriendTaskCounts = {};
+      
+      try {
+        // Fetch tasks for each friend in parallel
+        await Promise.all(friends.map(async (friend) => {
+          const tasks = await getFriendTasks(friend.username);
+          const completedTasks = tasks.filter(task => task.is_done).length;
+          const totalTasks = tasks.length;
+          
+          counts[friend.username] = {
+            completedTasks,
+            totalTasks
+          };
+        }));
+        
+        setTaskCounts(counts);
+      } catch (error) {
+        console.error('Error fetching task counts:', error);
+      } finally {
+        setIsLoadingCounts(false);
+      }
+    };
+    
+    fetchTaskCounts();
+  }, [friends, getFriendTasks]);
+
   const onRefresh = useCallback(() => {
     fetchFriends(true); // Force refresh
+    // Reset task counts - they will be refetched due to friends dependency in the effect
+    setTaskCounts({});
   }, [fetchFriends]);
 
   const handleFriendPress = (friend: Friend) => {
@@ -60,6 +106,11 @@ export default function FriendsTab() {
     color: secondaryTextColor,
   };
 
+  const taskCountStyle = {
+    ...styles.taskCount,
+    color: secondaryTextColor,
+  };
+
   return (
     <FlatList
       data={friends}
@@ -68,6 +119,17 @@ export default function FriendsTab() {
           <ThemedView style={friendItemStyle}>
             <ThemedView style={styles.friendInfo}>
               <ThemedText style={styles.username}>{item.username}</ThemedText>
+            </ThemedView>
+            <ThemedView style={styles.taskCountContainer}>
+              {isLoadingCounts ? (
+                <ActivityIndicator size="small" color={tintColor} />
+              ) : taskCounts[item.username] ? (
+                <ThemedText style={taskCountStyle}>
+                  {taskCounts[item.username].completedTasks} / {taskCounts[item.username].totalTasks}
+                </ThemedText>
+              ) : (
+                <ThemedText style={taskCountStyle}>0 / 0</ThemedText>
+              )}
             </ThemedView>
           </ThemedView>
         </TouchableOpacity>
@@ -143,5 +205,14 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontSize: 16,
     textAlign: 'center',
+  },
+  taskCountContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 50,
+  },
+  taskCount: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
