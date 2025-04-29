@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { router, Stack } from 'expo-router';
-import { StyleSheet, SafeAreaView, ScrollView, Text } from 'react-native';
+import { StyleSheet, ScrollView, Text } from 'react-native';
 import { User } from '@supabase/supabase-js';
 import { Colors } from '@/constants/Colors';
 
@@ -16,7 +16,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <ThemedView style={styles.safeArea}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollViewContent}
@@ -33,7 +33,7 @@ export default function SettingsScreen() {
           </ThemedText>
         </ThemedView>
       </ScrollView>
-    </SafeAreaView>
+    </ThemedView>
   );
 }
 
