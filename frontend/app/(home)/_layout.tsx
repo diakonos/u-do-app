@@ -44,14 +44,14 @@ export default function TabLayout() {
         }}
       >
         <Tabs.Screen
-          name="today"
+          name="index"
           options={{
             title: 'Today',
             tabBarIcon: ({ color }) => <IconSymbol size={28} name="calendar" color={color} />,
           }}
         />
         <Tabs.Screen
-          name="index"
+          name="tasks"
           options={{
             title: 'Tasks',
             tabBarIcon: ({ color }) => <IconSymbol size={28} name="list.bullet" color={color} />,

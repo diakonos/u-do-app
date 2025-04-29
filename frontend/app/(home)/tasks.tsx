@@ -1,33 +1,31 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
+  View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Platform,
   Modal,
   SafeAreaView,
-  FlatList,
+  SectionList,
   Alert,
   ActivityIndicator,
+  useColorScheme,
   RefreshControl,
-  View,
 } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import DatePicker, { DateType } from 'react-native-ui-datepicker';
 import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
+import { Collapsible } from '@/components/Collapsible';
+import { TaskInputHeader } from '@/components/tasks/TaskInputHeader';
 import { TaskItem } from '@/components/tasks/TaskItem';
 import { useTask } from '@/lib/context/task';
-import { useDashboard } from '@/lib/context/dashboard';
-import { useFriends } from '@/lib/context/friends';
 import { Colors } from '@/constants/Colors';
 import { HTMLTitle } from '@/components/HTMLTitle';
 import { useAuth } from '@/lib/context/auth';
 import { Stack } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
+import { Ionicons } from '@expo/vector-icons'; // Import an icon library
 
 interface Task {
   id: number;
@@ -39,31 +37,15 @@ interface Task {
   updated_at: string;
 }
 
-interface DashboardConfig {
-  id: number;
-  block_type: string;
-  value: string;
-  position: number;
-  user_id: string;
-}
-
-export default function TodayTasksList() {
+export default function TodoList() {
   const colorScheme = useColorScheme();
-  const { loadDashboardConfig } = useDashboard();
-  const { getFriendTasks } = useFriends();
-  const [pinnedFriendsTasks, setPinnedFriendsTasks] = useState<
-    Array<{ username: string; tasks: Task[] }>
-  >([]);
-  // Track collapsed state for each friend's task section
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
-  // Track expanded task list state for each friend
-  const [expandedTaskLists, setExpandedTaskLists] = useState<Record<string, boolean>>({});
 
   const [showDatePicker, setShowDatePicker] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tempDueDate, setTempDueDate] = useState<Date | null>(null);
   const [tasksInTransition, setTasksInTransition] = useState<Record<number, boolean>>({});
+  // Keep track of the displayed completion state (for visual purposes only)
   const [displayedTaskStates, setDisplayedTaskStates] = useState<Record<number, boolean>>({});
   const { tasks, fetchTasks, updateTask, deleteTask } = useTask();
   const timeoutsRef = useRef<Record<number, NodeJS.Timeout>>({});
@@ -71,58 +53,27 @@ export default function TodayTasksList() {
 
   // Define loadTasks as a useCallback to fix the dependencies issue
   const loadTasks = useCallback(async () => {
-    const loadPinnedFriendsTasks = async (configs: DashboardConfig[]) => {
-      try {
-        const friendConfigs = configs.filter(
-          (config: DashboardConfig) => config.block_type === 'friend_tasks',
-        );
-        if (friendConfigs.length === 0) return;
-
-        const friendsTasksPromises = friendConfigs.map(async (config: DashboardConfig) => {
-          const username = config.value;
-          try {
-            const tasks = await getFriendTasks(username);
-            return { username, tasks };
-          } catch (error) {
-            console.error(`Error fetching tasks for friend ${username}:`, error);
-            return { username, tasks: [] };
-          }
-        });
-
-        const results = await Promise.all(friendsTasksPromises);
-        setPinnedFriendsTasks(results);
-      } catch (error) {
-        console.error("Error loading pinned friends' tasks:", error);
-      }
-    };
-
     if (isLoadingAuth || !session) return; // Prevent loading tasks if auth is still loading
     try {
       setIsLoading(true);
       await fetchTasks();
-
-      // Load dashboard configuration
-      const configs = await loadDashboardConfig();
-
-      // Load pinned friends' tasks
-      await loadPinnedFriendsTasks(configs as unknown as DashboardConfig[]);
     } catch (error) {
-      Alert.alert('Error', 'Failed to load data');
-      console.error('Failed to load data:', error);
+      Alert.alert('Error', 'Failed to load tasks');
+      console.error('Failed to load tasks:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [isLoadingAuth, session, getFriendTasks, fetchTasks, loadDashboardConfig]);
+  }, [isLoadingAuth, session, fetchTasks, setIsLoading]);
 
   useEffect(() => {
     loadTasks();
-  }, [loadTasks]);
+  }, [loadTasks]); // Now loadTasks is properly memoized
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
     await loadTasks();
     setRefreshing(false);
-  }, [loadTasks]);
+  }, [loadTasks]); // Added loadTasks dependency
 
   const toggleTaskCompletion = async (taskId: number, isDone: boolean) => {
     try {
@@ -372,6 +323,7 @@ export default function TodayTasksList() {
                   minimumDate={getMinDate()}
                   onChange={(event, date) => {
                     if (event.type === 'set' && date) {
+                      console.log('Selected date:', date);
                       if (Platform.OS === 'android') {
                         updateDueDate(item.id, date);
                         setShowDatePicker(null);
@@ -394,139 +346,93 @@ export default function TodayTasksList() {
     );
   };
 
-  // Filter for tasks due today
-  const isTaskDueToday = (task: Task) => {
-    if (!task.due_date) return false;
+  const categorizeTask = (task: Task): 'overdue' | 'today' | 'later' => {
+    if (!task.due_date) return 'later';
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const taskDate = new Date(task.due_date);
     taskDate.setHours(0, 0, 0, 0);
-    return taskDate.getTime() === today.getTime();
+
+    if (taskDate < today) return 'overdue';
+    if (taskDate.getTime() === today.getTime()) return 'today';
+    return 'later';
   };
 
-  // Get tasks due today and sort them appropriately
-  const getTodayTasks = () => {
-    // Get all tasks due today
-    const todayTasks = tasks.filter(isTaskDueToday);
+  const getGroupedTasks = () => {
+    // Process tasks with their displayed state during transitions
+    const processedTasks = tasks.map(task => ({
+      ...task,
+      displayed_is_done: tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done,
+    }));
 
-    // Sort tasks: incomplete first, then by creation date
-    return todayTasks.sort((a, b) => {
-      // First, group by completion status (incomplete first)
-      const aIsDone = tasksInTransition[a.id] ? displayedTaskStates[a.id] : a.is_done;
-      const bIsDone = tasksInTransition[b.id] ? displayedTaskStates[b.id] : b.is_done;
+    // Helper to check if a date is today
+    const isTaskDueToday = (task: Task) => {
+      if (!task.due_date) return false;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const taskDate = new Date(task.due_date);
+      taskDate.setHours(0, 0, 0, 0);
+      return taskDate.getTime() === today.getTime();
+    };
 
-      if (aIsDone !== bIsDone) {
-        return aIsDone ? 1 : -1;
-      }
+    // --- Today's Tasks ---
+    const allTodayTasks = processedTasks.filter(isTaskDueToday);
+    const todayIncompleteTasks = allTodayTasks.filter(task => !task.displayed_is_done);
+    const todayCompleteTasks = allTodayTasks.filter(task => task.displayed_is_done);
 
-      // For incomplete tasks, sort by creation date
-      if (!aIsDone) {
-        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-      }
+    // Sort Today's Incomplete Tasks by creation date
+    const sortIncomplete = (taskGroup: Task[]) => {
+      return [...taskGroup].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      );
+    };
+    const sortedTodayIncomplete = sortIncomplete(todayIncompleteTasks);
 
-      // For completed tasks, sort by updated_at
-      return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
-    });
+    // Sort Today's Complete Tasks by updated_at (oldest to newest)
+    const sortedTodayComplete = [...todayCompleteTasks].sort(
+      (a, b) => new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime(),
+    );
+
+    // Combine incomplete and complete for the 'Today' section
+    const finalTodayTasks = [...sortedTodayIncomplete, ...sortedTodayComplete];
+
+    // --- Other Tasks (Not due today) ---
+    const otherTasks = processedTasks.filter(task => !isTaskDueToday(task));
+
+    // Overdue (Incomplete, Not Today)
+    const overdueTasks = otherTasks.filter(
+      task => !task.displayed_is_done && categorizeTask(task) === 'overdue',
+    );
+    const sortedOverdue = sortIncomplete(overdueTasks);
+
+    // Later (Incomplete, Not Today)
+    const laterTasks = otherTasks.filter(
+      task => !task.displayed_is_done && categorizeTask(task) === 'later',
+    );
+    const sortedLater = sortIncomplete(laterTasks);
+
+    // Done (Complete, Not Today)
+    const doneTasks = otherTasks.filter(task => task.displayed_is_done);
+    const sortedDone = [...doneTasks].sort(
+      (a, b) => new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime(),
+    );
+
+    // --- Construct Sections ---
+    // Filter out sections with no data to avoid rendering empty headers
+    return [
+      { title: 'Overdue', data: sortedOverdue },
+      { title: 'Today', data: finalTodayTasks },
+      { title: 'Later', data: sortedLater },
+      { title: 'Done', data: sortedDone },
+    ].filter(section => section.data.length > 0);
   };
 
-  // Render the delete action when swiping a task to the right
   const renderRightActions = (taskId: number) => (
     <TouchableOpacity onPress={() => handleDeleteTask(taskId)} style={styles.deleteButton}>
       <Text style={styles.deleteButtonText}>Delete</Text>
     </TouchableOpacity>
   );
-
-  // Toggle the collapsed state for a specific friend's section
-  const toggleSectionCollapse = (username: string) => {
-    setCollapsedSections(prev => ({
-      ...prev,
-      [username]: !prev[username],
-    }));
-  };
-
-  // Toggle the expanded state for a friend's task list
-  const toggleTaskListExpansion = (username: string) => {
-    setExpandedTaskLists(prev => ({
-      ...prev,
-      [username]: !prev[username],
-    }));
-  };
-
-  // Add proper type for friendData parameter
-  const renderFriendTasksSection = (friendData: { username: string; tasks: Task[] }) => {
-    if (!friendData.tasks || friendData.tasks.length === 0) return null;
-
-    // Filter for tasks that are due today (both complete and incomplete)
-    const filteredTasks = friendData.tasks.filter(isTaskDueToday);
-    if (filteredTasks.length === 0) return null;
-
-    // Count completed tasks
-    const completedTasksCount = filteredTasks.filter(task => task.is_done).length;
-
-    // Sort tasks: incomplete first, then completed
-    const sortedTasks = [...filteredTasks].sort((a, b) => {
-      if (a.is_done !== b.is_done) {
-        return a.is_done ? 1 : -1; // Incomplete tasks first
-      }
-      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime(); // Then by creation date
-    });
-
-    // Get the collapsed state for this section
-    const isCollapsed = collapsedSections[friendData.username] || false;
-    // Get the expanded state for this task list
-    const isExpanded = expandedTaskLists[friendData.username] || false;
-
-    // Determine how many tasks to show based on expanded state
-    const tasksToShow = isExpanded ? sortedTasks : sortedTasks.slice(0, 3);
-    const hasMoreTasks = sortedTasks.length > 3;
-
-    return (
-      <View key={`friend-${friendData.username}`} style={styles.friendTasksSection}>
-        <TouchableOpacity
-          style={styles.friendHeader}
-          onPress={() => toggleSectionCollapse(friendData.username)}
-        >
-          <ThemedText style={styles.friendHeaderText}>
-            {friendData.username}&apos;s Tasks
-          </ThemedText>
-          <ThemedText style={styles.taskCount}>
-            {completedTasksCount} / {filteredTasks.length}
-          </ThemedText>
-          <Ionicons
-            name={isCollapsed ? 'chevron-down' : 'chevron-up'}
-            size={16}
-            color={Colors[colorScheme ?? 'light'].text}
-          />
-        </TouchableOpacity>
-
-        {!isCollapsed && (
-          <>
-            {tasksToShow.map(task => (
-              <TaskItem
-                key={task.id}
-                id={task.id}
-                taskName={task.task_name}
-                isDone={task.is_done}
-                dueDate={task.due_date}
-                readOnly={true}
-              />
-            ))}
-
-            {hasMoreTasks && (
-              <TouchableOpacity
-                style={styles.seeMoreButton}
-                onPress={() => toggleTaskListExpansion(friendData.username)}
-              >
-                <ThemedText style={styles.seeMoreText}>
-                  {isExpanded ? 'Show less' : `See ${sortedTasks.length - 3} more tasks`}
-                </ThemedText>
-              </TouchableOpacity>
-            )}
-          </>
-        )}
-      </View>
-    );
-  };
 
   if (isLoading && tasks.length === 0) {
     return (
@@ -536,81 +442,76 @@ export default function TodayTasksList() {
     );
   }
 
-  const todayTasks = getTodayTasks();
-
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}
     >
       {/* eslint-disable-next-line react-native/no-raw-text */}
-      <HTMLTitle>Today</HTMLTitle>
+      <HTMLTitle>Tasks</HTMLTitle>
       <Stack.Screen
         options={{
-          headerTitle: 'Today',
+          title: 'Tasks',
           headerRight: () =>
             Platform.OS === 'web' ? (
               <TouchableOpacity
                 onPress={onRefresh}
                 style={styles.refreshButton}
-                disabled={refreshing}
+                disabled={refreshing} // Disable button while refreshing
               >
                 {refreshing ? (
                   <ActivityIndicator size="small" color="#ffffff" />
                 ) : (
-                  <Ionicons name="refresh" size={24} color="#ffffff" />
+                  <Ionicons
+                    name="refresh"
+                    size={24}
+                    color="#ffffff" // Set color to white
+                  />
                 )}
               </TouchableOpacity>
             ) : null,
         }}
       />
-
-      <FlatList
-        data={todayTasks}
-        renderItem={({ item }) => (
-          <Swipeable
-            key={item.id}
-            renderRightActions={() => renderRightActions(item.id)}
-            containerStyle={{}}
-          >
-            <TaskItem
-              id={item.id}
-              taskName={item.task_name}
-              isDone={item.is_done}
-              dueDate={item.due_date}
-              isInTransition={tasksInTransition[item.id]}
-              onToggleComplete={toggleTaskCompletion}
-              onPressDate={id => setShowDatePicker(id.toString())}
-            />
-            {renderDatePicker(item)}
-          </Swipeable>
-        )}
-        keyExtractor={item => item.id.toString()}
-        style={styles.tasksList}
-        contentContainerStyle={[
-          styles.tasksContent,
-          todayTasks.length === 0 && pinnedFriendsTasks.length === 0 && styles.emptyListContent,
-        ]}
+      <SectionList
+        ListHeaderComponent={<TaskInputHeader />}
+        // Use RefreshControl for native pull-to-refresh
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={Colors[colorScheme ?? 'light'].text}
-          />
+          Platform.OS !== 'web' ? (
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          ) : undefined // No RefreshControl on web
         }
-        ListEmptyComponent={
-          pinnedFriendsTasks.length === 0 ? (
-            <ThemedView style={styles.emptyState}>
-              <ThemedText style={styles.emptyStateText}>
-                <Text>No tasks due today</Text>
-              </ThemedText>
-            </ThemedView>
-          ) : null
-        }
-        ListFooterComponent={
-          <View style={styles.friendTasksContainer}>
-            {pinnedFriendsTasks.map(renderFriendTasksSection)}
-          </View>
-        }
+        // Remove refreshing/onRefresh props from SectionList if using RefreshControl
+        // refreshing={refreshing || (isLoading && tasks.length > 0)}
+        // onRefresh={onRefresh}
+        sections={getGroupedTasks()}
+        keyExtractor={item => item.id.toString()}
+        renderSectionHeader={({ section: { title, data } }) => (
+          <Collapsible
+            title={`${title} (${data.length})`}
+            defaultOpen={title !== 'Done'}
+            titleStyle={{ color: Colors[colorScheme ?? 'light'].text }}
+          >
+            {data.map(item => (
+              <Swipeable
+                key={item.id}
+                renderRightActions={() => renderRightActions(item.id)}
+                containerStyle={{}}
+              >
+                <TaskItem
+                  id={item.id}
+                  taskName={item.task_name}
+                  isDone={item.is_done}
+                  dueDate={item.due_date}
+                  isInTransition={tasksInTransition[item.id]}
+                  onToggleComplete={toggleTaskCompletion}
+                  onPressDate={id => setShowDatePicker(id.toString())}
+                />
+                {renderDatePicker(item)}
+              </Swipeable>
+            ))}
+          </Collapsible>
+        )}
+        renderItem={() => null}
+        stickySectionHeadersEnabled={false}
       />
     </SafeAreaView>
   );
@@ -618,118 +519,66 @@ export default function TodayTasksList() {
 
 const styles = StyleSheet.create({
   container: {
+    // We'll set the background color dynamically based on theme in the component
     flex: 1,
     padding: 16,
   },
   datePicker: {
+    // We'll set background color dynamically in the component
     height: 216,
-    width: '100%',
+    width: '100%', // Make date picker fill the screen width
   },
   datePickerWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingBottom: Platform.OS === 'web' ? 20 : 0,
-    width: '100%',
+    width: '100%', // Add bottom padding on web
   },
   deleteButton: {
     alignItems: 'center',
-    backgroundColor: Colors.light.danger,
+    backgroundColor: Colors.light.danger, // Use theme color instead of hardcoded 'red'
     height: '100%',
     justifyContent: 'center',
     width: 80,
   },
   deleteButtonText: {
-    color: Colors.light.white,
+    color: Colors.light.white, // Use theme color instead of hardcoded '#fff'
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
-  },
-  emptyListContent: {
-    flex: 1,
-  },
-  emptyState: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-    paddingVertical: 32,
-  },
-  emptyStateText: {
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  friendHeader: {
-    alignItems: 'center',
-    borderBottomColor: Colors.light.border,
-    borderBottomWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  friendHeaderText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  friendTasksContainer: {
-    marginTop: 24,
-  },
-  friendTasksSection: {
-    marginBottom: 24,
   },
   loadingContainer: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalButton: {
+    // We'll set color dynamically in the component
     fontSize: 16,
   },
   modalContent: {
+    // We'll set background color dynamically in the component
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
-    paddingBottom: Platform.OS === 'web' ? 40 : 20,
-    width: '100%',
+    paddingBottom: Platform.OS === 'web' ? 40 : 20, // Increased padding for web
+    width: '100%', // Ensure the modal content fills the screen width
   },
   modalDoneButton: {
     fontWeight: '600',
   },
   modalHeader: {
+    // We'll set border color dynamically in the component
     borderBottomWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 16,
-    width: '100%',
+    width: '100%', // Ensure header spans the full width
   },
   modalOverlay: {
-    backgroundColor: Colors.common.overlayBackground,
+    backgroundColor: Colors.common.overlayBackground, // Use theme color instead of rgba literal
     flex: 1,
     justifyContent: 'flex-end',
   },
-  refreshButton: {
-    marginRight: 15,
-  },
-  seeMoreButton: {
-    alignItems: 'center',
-    marginTop: 8,
-    paddingVertical: 8,
-  },
-  seeMoreText: {
-    fontSize: 14,
-    opacity: 0.7,
-  },
-  taskCount: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 'auto',
-    marginRight: 8,
-    opacity: 0.7,
-  },
-  tasksContent: {
-    gap: 12, // Adding gap between tasks
-  },
-  tasksList: {
-    flex: 1,
-  },
+  refreshButton: { marginRight: 15 },
   webDatePicker: {
     height: 320,
     width: '100%',
