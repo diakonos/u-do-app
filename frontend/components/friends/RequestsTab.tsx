@@ -148,8 +148,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   actionText: {
-    fontWeight: '500',
     color: Colors.light.white,
+    fontWeight: '500',
   },
   actionsContainer: {
     flexDirection: 'row',

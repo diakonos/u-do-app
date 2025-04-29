@@ -1,11 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import {
-  StyleSheet,
-  SafeAreaView,
-  ActivityIndicator,
-  TouchableOpacity,
-  Platform,
-} from 'react-native';
+import { StyleSheet, ActivityIndicator, TouchableOpacity, Platform } from 'react-native';
 import { ThemedView } from '@/components/ThemedView';
 import SegmentedControl from '@react-native-segmented-control/segmented-control';
 import { useThemeColor } from '@/hooks/useThemeColor';
@@ -82,7 +76,7 @@ export default function FriendsScreen() {
   }, [activeTab, isRefreshing, navigation, handleRefresh, whiteColor]);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <ThemedView style={styles.safeArea}>
       <Stack.Screen options={{ title: 'Friends' }} />
       {/* eslint-disable-next-line react-native/no-raw-text */}
       <HTMLTitle>Friends</HTMLTitle>
@@ -106,14 +100,14 @@ export default function FriendsScreen() {
         {activeTab === 'search' && searchTabRef.current}
         {activeTab === 'requests' && requestsTabRef.current}
       </ThemedView>
-    </SafeAreaView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    padding: 20,
   },
   refreshButton: { marginRight: 15 },
   safeArea: {

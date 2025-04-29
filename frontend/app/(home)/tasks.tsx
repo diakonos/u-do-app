@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Platform,
   Modal,
-  SafeAreaView,
   SectionList,
   Alert,
   ActivityIndicator,
@@ -26,6 +25,7 @@ import { HTMLTitle } from '@/components/HTMLTitle';
 import { useAuth } from '@/lib/context/auth';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons'; // Import an icon library
+import { ThemedView } from '@/components/ThemedView';
 
 interface Task {
   id: number;
@@ -437,14 +437,14 @@ export default function TodoList() {
 
   if (isLoading && tasks.length === 0) {
     return (
-      <SafeAreaView style={[styles.container, styles.loadingContainer]}>
+      <View style={[styles.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" />
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView
+    <ThemedView
       style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}
     >
       {/* eslint-disable-next-line react-native/no-raw-text */}
@@ -514,7 +514,7 @@ export default function TodoList() {
         renderItem={() => null}
         stickySectionHeadersEnabled={false}
       />
-    </SafeAreaView>
+    </ThemedView>
   );
 }
 
@@ -522,7 +522,6 @@ const styles = StyleSheet.create({
   container: {
     // We'll set the background color dynamically based on theme in the component
     flex: 1,
-    padding: 16,
   },
   datePicker: {
     // We'll set background color dynamically in the component

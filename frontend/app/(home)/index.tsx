@@ -4,7 +4,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Platform,
-  Modal,
   SafeAreaView,
   FlatList,
   Alert,
@@ -13,9 +12,6 @@ import {
   View,
 } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import DatePicker, { DateType } from 'react-native-ui-datepicker';
-import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { TaskItem } from '@/components/tasks/TaskItem';
 import { TaskInputHeader } from '@/components/tasks/TaskInputHeader';
 import { useTask } from '@/lib/context/task';
@@ -60,10 +56,8 @@ export default function TodayTasksList() {
   // Track expanded task list state for each friend
   const [expandedTaskLists, setExpandedTaskLists] = useState<Record<string, boolean>>({});
 
-  const [showDatePicker, setShowDatePicker] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [tempDueDate, setTempDueDate] = useState<Date | null>(null);
   const [tasksInTransition, setTasksInTransition] = useState<Record<number, boolean>>({});
   const [displayedTaskStates, setDisplayedTaskStates] = useState<Record<number, boolean>>({});
   const { tasks, fetchTasks, updateTask, deleteTask } = useTask();
@@ -191,31 +185,10 @@ export default function TodayTasksList() {
   const handleDeleteTask = async (taskId: number) => {
     try {
       await deleteTask(taskId);
-      setShowDatePicker(null);
     } catch (error) {
       Alert.alert('Error', 'Failed to delete task');
       console.error('Failed to delete task:', error);
     }
-  };
-
-  const updateDueDate = async (taskId: number, date: Date) => {
-    try {
-      await updateTask(taskId, {
-        due_date: date.toString(),
-      });
-      if (Platform.OS === 'android') {
-        setShowDatePicker(null);
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update due date');
-      console.error('Failed to update due date:', error);
-    }
-  };
-
-  const getMinDate = () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return today;
   };
 
   // Filter for tasks due today
@@ -366,7 +339,7 @@ export default function TodayTasksList() {
   const todayTasks = getTodayTasks();
 
   return (
-    <SafeAreaView
+    <ThemedView
       style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}
     >
       {/* eslint-disable-next-line react-native/no-raw-text */}
@@ -406,7 +379,6 @@ export default function TodayTasksList() {
               dueDate={item.due_date}
               isInTransition={tasksInTransition[item.id]}
               onToggleComplete={toggleTaskCompletion}
-              onPressDate={id => setShowDatePicker(id.toString())}
               readOnly={false}
               hideDueDate={true}
             />
@@ -436,24 +408,13 @@ export default function TodayTasksList() {
         }
         ListFooterComponent={<View>{pinnedFriendsTasks.map(renderFriendTasksSection)}</View>}
       />
-    </SafeAreaView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-  },
-  datePicker: {
-    height: 216,
-    width: '100%',
-  },
-  datePickerWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingBottom: Platform.OS === 'web' ? 20 : 0,
-    width: '100%',
   },
   deleteButton: {
     alignItems: 'center',
@@ -503,30 +464,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  modalButton: {
-    fontSize: 16,
-  },
-  modalContent: {
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    paddingBottom: Platform.OS === 'web' ? 40 : 20,
-    width: '100%',
-  },
-  modalDoneButton: {
-    fontWeight: '600',
-  },
-  modalHeader: {
-    borderBottomWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 16,
-    width: '100%',
-  },
-  modalOverlay: {
-    backgroundColor: Colors.common.overlayBackground,
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
   refreshButton: {
     marginRight: 15,
   },
@@ -548,9 +485,5 @@ const styles = StyleSheet.create({
   },
   tasksList: {
     flex: 1,
-  },
-  webDatePicker: {
-    height: 320,
-    width: '100%',
   },
 });
