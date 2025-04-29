@@ -307,6 +307,7 @@ export default function TodoList() {
                           // Light mode defaults
                           calendar: { backgroundColor: Colors.light.background },
                           today: { borderColor: Colors.light.tint },
+                          today_label: { color: Colors.light.white },
                           selected: {
                             backgroundColor: Colors.light.tint,
                             borderColor: Colors.light.tint,

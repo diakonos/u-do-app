@@ -17,6 +17,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import DatePicker, { DateType } from 'react-native-ui-datepicker';
 import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { TaskItem } from '@/components/tasks/TaskItem';
+import { TaskInputHeader } from '@/components/tasks/TaskInputHeader';
 import { useTask } from '@/lib/context/task';
 import { useDashboard } from '@/lib/context/dashboard';
 import { useFriends } from '@/lib/context/friends';
@@ -586,10 +587,9 @@ export default function TodayTasksList() {
         )}
         keyExtractor={item => item.id.toString()}
         style={styles.tasksList}
-        contentContainerStyle={[
-          styles.tasksContent,
-          todayTasks.length === 0 && pinnedFriendsTasks.length === 0 && styles.emptyListContent,
-        ]}
+        contentContainerStyle={
+          todayTasks.length === 0 && pinnedFriendsTasks.length === 0 && styles.emptyListContent
+        }
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -597,6 +597,7 @@ export default function TodayTasksList() {
             tintColor={Colors[colorScheme ?? 'light'].text}
           />
         }
+        ListHeaderComponent={<TaskInputHeader />}
         ListEmptyComponent={
           pinnedFriendsTasks.length === 0 ? (
             <ThemedView style={styles.emptyState}>
@@ -606,11 +607,7 @@ export default function TodayTasksList() {
             </ThemedView>
           ) : null
         }
-        ListFooterComponent={
-          <View style={styles.friendTasksContainer}>
-            {pinnedFriendsTasks.map(renderFriendTasksSection)}
-          </View>
-        }
+        ListFooterComponent={<View>{pinnedFriendsTasks.map(renderFriendTasksSection)}</View>}
       />
     </SafeAreaView>
   );
@@ -671,9 +668,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  friendTasksContainer: {
-    marginTop: 24,
-  },
   friendTasksSection: {
     marginBottom: 24,
   },
@@ -723,9 +717,6 @@ const styles = StyleSheet.create({
     marginLeft: 'auto',
     marginRight: 8,
     opacity: 0.7,
-  },
-  tasksContent: {
-    gap: 12, // Adding gap between tasks
   },
   tasksList: {
     flex: 1,
