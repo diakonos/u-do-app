@@ -460,6 +460,9 @@ export default function TodayTasksList() {
     const filteredTasks = friendData.tasks.filter(isTaskDueToday);
     if (filteredTasks.length === 0) return null;
 
+    // Count completed tasks
+    const completedTasksCount = filteredTasks.filter(task => task.is_done).length;
+
     // Sort tasks: incomplete first, then completed
     const sortedTasks = [...filteredTasks].sort((a, b) => {
       if (a.is_done !== b.is_done) {
@@ -484,7 +487,10 @@ export default function TodayTasksList() {
           onPress={() => toggleSectionCollapse(friendData.username)}
         >
           <ThemedText style={styles.friendHeaderText}>
-            <Text>{friendData.username}&apos;s Tasks</Text>
+            {friendData.username}&apos;s Tasks
+          </ThemedText>
+          <ThemedText style={styles.taskCount}>
+            {completedTasksCount} / {filteredTasks.length}
           </ThemedText>
           <Ionicons
             name={isCollapsed ? 'chevron-down' : 'chevron-up'}
@@ -709,6 +715,13 @@ const styles = StyleSheet.create({
   },
   seeMoreText: {
     fontSize: 14,
+    opacity: 0.7,
+  },
+  taskCount: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 'auto',
+    marginRight: 8,
     opacity: 0.7,
   },
   tasksContent: {
