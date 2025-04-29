@@ -367,11 +367,7 @@ export default function TodayTasksList() {
       <FlatList
         data={todayTasks}
         renderItem={({ item }) => (
-          <Swipeable
-            key={item.id}
-            renderRightActions={() => renderRightActions(item.id)}
-            containerStyle={{}}
-          >
+          <Swipeable key={item.id} renderRightActions={() => renderRightActions(item.id)}>
             <TaskItem
               id={item.id}
               taskName={item.task_name}

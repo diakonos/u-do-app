@@ -18,6 +18,8 @@ export const Colors = {
     tint: '#463076',
     white: '#ffffff',
     todayBlue: '#007AFF',
+    success: '#2CBD66',
+    doneLine: 'rgba(0, 0, 0, 0.3)',
   },
   dark: {
     background: '#151718',
@@ -33,6 +35,8 @@ export const Colors = {
     tint: '#6936d8',
     white: '#ffffff',
     todayBlue: '#0A84FF',
+    success: '#2CBD66',
+    doneLine: 'rgba(255, 255, 255, 0.7)',
   },
   common: {
     overlayBackground: 'rgba(0, 0, 0, 0.4)',

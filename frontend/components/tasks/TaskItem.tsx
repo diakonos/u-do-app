@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Colors } from '@/constants/Colors';
+import { IconSymbol } from '@/components/ui/IconSymbol';
 
 interface TaskItemProps {
   id: number;
@@ -88,9 +89,11 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             <View
               style={[
                 styles.checkboxInner,
-                isDone && { backgroundColor: Colors[colorScheme ?? 'light'].icon },
+                isDone && { backgroundColor: Colors[colorScheme ?? 'light'].success },
               ]}
-            />
+            >
+              {isDone && <IconSymbol name="checkmark" size={24} color="white" />}
+            </View>
           )}
         </TouchableOpacity>
         <View style={styles.taskContent}>
@@ -99,6 +102,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               styles.taskText,
               { color: Colors[colorScheme ?? 'light'].text },
               isDone && styles.taskTextDone,
+              isDone && { textDecorationColor: Colors[colorScheme ?? 'light'].doneLine },
             ]}
           >
             {taskName}
@@ -157,18 +161,18 @@ export const TaskItem: React.FC<TaskItemProps> = ({
 const styles = StyleSheet.create({
   checkbox: {
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: 0, // Changed from 4 to 0 for square corners
     borderWidth: 2,
     height: 24,
     justifyContent: 'center',
-    marginRight: 10,
+    marginRight: 20,
     width: 24,
     // borderColor will be set dynamically in the component
   },
   checkboxInner: {
-    borderRadius: 6,
-    height: 12,
-    width: 12,
+    borderRadius: 0, // Changed from 6 to 0 for square corners
+    height: 24,
+    width: 24,
     // backgroundColor will be set dynamically in the component
   },
   dateButton: {
@@ -184,13 +188,11 @@ const styles = StyleSheet.create({
   },
   dueDate: {
     fontSize: 12,
-    marginTop: 4,
     // color will be set dynamically in the component
   },
   dueDateContainer: {
     alignItems: 'center',
     flexDirection: 'row',
-    marginTop: 4,
   },
   dueDateLoading: { opacity: 0.5 },
   noDueDate: {

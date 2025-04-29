@@ -50,7 +50,6 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   content: {
-    marginLeft: 24,
     marginTop: 6,
   },
   heading: {

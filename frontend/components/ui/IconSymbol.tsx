@@ -17,6 +17,7 @@ const MAPPING = {
   'person.2.fill': 'people',
   calendar: 'calendar-today',
   gear: 'settings',
+  checkmark: 'check',
 } as Partial<
   Record<
     import('expo-symbols').SymbolViewProps['name'],
