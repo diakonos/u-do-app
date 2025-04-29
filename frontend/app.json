@@ -34,6 +34,14 @@
           "resizeMode": "contain",
           "backgroundColor": "#463076"
         }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "react-native",
+          "organization": "justin-ling"
+        }
       ]
     ],
     "experiments": {

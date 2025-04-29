@@ -10,3 +10,6 @@ expo-env.d.ts
 # Native build folders
 /android
 /ios
+
+# Local
+.env.local

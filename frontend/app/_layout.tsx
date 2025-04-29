@@ -12,6 +12,14 @@ import { AuthProvider, useAuth } from '@/lib/context/auth';
 import { TaskProvider } from '@/lib/context/task';
 import { FriendsProvider } from '@/lib/context/friends';
 import { Typography } from '@/constants/Typography';
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: 'https://95ef48dd1caf60feb863806b6d0877d6@o4509234354651136.ingest.us.sentry.io/4509234356355072',
+
+  // uncomment the line below to enable Spotlight (https://spotlightjs.com)
+  // spotlight: __DEV__,
+});
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -74,7 +82,7 @@ function InitialLayout() {
   );
 }
 
-export default function RootLayout() {
+export default Sentry.wrap(function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.rootContainer}>
       <AuthProvider>
@@ -86,7 +94,7 @@ export default function RootLayout() {
       </AuthProvider>
     </GestureHandlerRootView>
   );
-}
+});
 
 const styles = StyleSheet.create({
   rootContainer: {
