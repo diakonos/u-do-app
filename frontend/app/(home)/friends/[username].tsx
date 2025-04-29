@@ -22,8 +22,26 @@ export default function FriendTasksScreen() {
       setIsRefreshing(true);
       const tasks = await getFriendTasks(username.toString());
 
-      // Filter for tasks due today
-      setTodayTasks(tasks);
+      // Sort tasks:
+      // 1. First group by completion status (incomplete first)
+      // 2. Sort incomplete tasks by creation date
+      // 3. Sort complete tasks by updated date
+      const sortedTasks = [...tasks].sort((a, b) => {
+        // First, group by completion status (incomplete first)
+        if (a.is_done !== b.is_done) {
+          return a.is_done ? 1 : -1;
+        }
+
+        // For incomplete tasks, sort by creation date
+        if (!a.is_done) {
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        }
+
+        // For complete tasks, sort by updated_at date
+        return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+      });
+
+      setTodayTasks(sortedTasks);
     } catch (error) {
       console.error('Error fetching friend tasks:', error);
       Alert.alert('Error', 'Failed to load tasks for this friend');

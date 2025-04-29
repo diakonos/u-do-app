@@ -41,9 +41,6 @@ export default function TodoList() {
   const colorScheme = useColorScheme();
 
   const [showDatePicker, setShowDatePicker] = useState<string | null>(null);
-  // We're leaving sortBy as a state variable even though it's not currently used elsewhere
-  // because it will be needed for future sort functionality
-  const [sortBy] = useState<'dueDate' | 'creationDate'>('dueDate');
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tempDueDate, setTempDueDate] = useState<Date | null>(null);
@@ -384,26 +381,17 @@ export default function TodoList() {
     const todayIncompleteTasks = allTodayTasks.filter(task => !task.displayed_is_done);
     const todayCompleteTasks = allTodayTasks.filter(task => task.displayed_is_done);
 
-    // Sort Today's Incomplete Tasks (using existing logic based on sortBy state)
+    // Sort Today's Incomplete Tasks by creation date
     const sortIncomplete = (taskGroup: Task[]) => {
-      return [...taskGroup].sort((a, b) => {
-        if (sortBy === 'dueDate') {
-          // Existing due date sort logic
-          if (!a.due_date && !b.due_date) return 0;
-          if (!a.due_date) return 1;
-          if (!b.due_date) return -1;
-          return new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime();
-        } else {
-          // Existing creation date sort logic
-          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-        }
-      });
+      return [...taskGroup].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      );
     };
     const sortedTodayIncomplete = sortIncomplete(todayIncompleteTasks);
 
-    // Sort Today's Complete Tasks by updated_at descending
+    // Sort Today's Complete Tasks by updated_at (oldest to newest)
     const sortedTodayComplete = [...todayCompleteTasks].sort(
-      (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+      (a, b) => new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime(),
     );
 
     // Combine incomplete and complete for the 'Today' section
@@ -427,7 +415,7 @@ export default function TodoList() {
     // Done (Complete, Not Today)
     const doneTasks = otherTasks.filter(task => task.displayed_is_done);
     const sortedDone = [...doneTasks].sort(
-      (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+      (a, b) => new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime(),
     );
 
     // --- Construct Sections ---
@@ -481,8 +469,6 @@ export default function TodoList() {
                 )}
               </TouchableOpacity>
             ) : null,
-          // Ensure header background allows white icon visibility if needed
-          // headerStyle: { backgroundColor: '#some_dark_color' },
         }}
       />
       <SectionList
