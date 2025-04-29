@@ -18,6 +18,7 @@ interface TaskItemProps {
   onPressDate?: (id: number) => void;
   isInTransition?: boolean;
   readOnly?: boolean;
+  hideDueDate?: boolean;
 }
 
 export const TaskItem: React.FC<TaskItemProps> = ({
@@ -29,6 +30,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   onPressDate,
   isInTransition = false,
   readOnly = false,
+  hideDueDate = false,
 }) => {
   const colorScheme = useColorScheme();
 
@@ -101,7 +103,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           >
             {taskName}
           </Text>
-          {dueDate || !readOnly ? (
+          {!hideDueDate && (dueDate || !readOnly) ? (
             <View style={styles.dueDateContainer}>
               {dueDate ? (
                 <Text
@@ -204,7 +206,8 @@ const styles = StyleSheet.create({
     width: 14,
   },
   taskContainer: {
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     // backgroundColor and borderBottomColor will be set dynamically
   },
   taskContent: {

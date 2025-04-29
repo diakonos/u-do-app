@@ -218,183 +218,6 @@ export default function TodayTasksList() {
     return today;
   };
 
-  const renderDatePicker = (item: Task) => {
-    if (showDatePicker !== item.id.toString()) return null;
-
-    const defaultDate = item.due_date ? new Date(item.due_date) : new Date();
-    defaultDate.setHours(0, 0, 0, 0);
-
-    return (
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={showDatePicker === item.id.toString()}
-        onRequestClose={() => {
-          setShowDatePicker(null);
-          setTempDueDate(null);
-        }}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => {
-            setShowDatePicker(null);
-            setTempDueDate(null);
-          }}
-        >
-          <Animated.View
-            entering={SlideInDown}
-            exiting={SlideOutDown}
-            style={[
-              styles.modalContent,
-              { backgroundColor: Colors[colorScheme ?? 'light'].background },
-            ]}
-          >
-            <View
-              style={[
-                styles.modalHeader,
-                { borderBottomColor: Colors[colorScheme ?? 'light'].icon + '40' },
-              ]}
-            >
-              <TouchableOpacity
-                onPress={() => {
-                  setShowDatePicker(null);
-                  setTempDueDate(null);
-                }}
-              >
-                <Text style={[styles.modalButton, { color: Colors[colorScheme ?? 'light'].tint }]}>
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  const dateToSave = tempDueDate || defaultDate;
-                  updateDueDate(item.id, dateToSave);
-                  setShowDatePicker(null);
-                  setTempDueDate(null);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.modalButton,
-                    styles.modalDoneButton,
-                    { color: Colors[colorScheme ?? 'light'].tint },
-                  ]}
-                >
-                  Done
-                </Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.datePickerWrapper}>
-              {Platform.OS === 'web' ? (
-                <DatePicker
-                  style={{
-                    ...styles.webDatePicker,
-                    backgroundColor:
-                      colorScheme === 'dark' ? Colors.dark.background : Colors.light.background,
-                  }}
-                  date={tempDueDate ? tempDueDate : defaultDate}
-                  mode="single"
-                  onChange={(params: { date: DateType }) => {
-                    setTempDueDate(params.date as Date);
-                  }}
-                  styles={{
-                    // Dark mode styles for the datepicker with more specific targeting
-                    ...(colorScheme === 'dark'
-                      ? {
-                          day: {
-                            color: Colors.dark.white,
-                            borderColor: Colors.dark.border,
-                          },
-                          day_label: {
-                            color: Colors.dark.white,
-                          },
-                          today: {
-                            borderColor: Colors.dark.tint,
-                            color: Colors.dark.white,
-                          },
-                          today_label: {
-                            color: Colors.dark.white,
-                          },
-                          selected: {
-                            backgroundColor: Colors.dark.tint,
-                            borderColor: Colors.dark.tint,
-                          },
-                          selected_label: {
-                            color: Colors.dark.white,
-                          },
-                          header: {
-                            color: Colors.dark.white,
-                            backgroundColor: Colors.dark.background,
-                          },
-                          month_label: {
-                            color: Colors.dark.white,
-                          },
-                          year: {
-                            color: Colors.dark.white,
-                          },
-                          month: {
-                            backgroundColor: Colors.dark.background,
-                            borderColor: Colors.dark.border,
-                          },
-                          year_label: {
-                            color: Colors.dark.white,
-                          },
-                          month_selector_label: {
-                            color: Colors.dark.white,
-                          },
-                          year_selector_label: {
-                            color: Colors.dark.white,
-                          },
-                          weekdays: {
-                            backgroundColor: Colors.dark.background,
-                          },
-                          weekday_label: {
-                            color: Colors.dark.white,
-                          },
-                        }
-                      : {
-                          // Light mode defaults
-                          calendar: { backgroundColor: Colors.light.background },
-                          today: { borderColor: Colors.light.tint },
-                          selected: {
-                            backgroundColor: Colors.light.tint,
-                            borderColor: Colors.light.tint,
-                          },
-                        }),
-                  }}
-                />
-              ) : (
-                <DateTimePicker
-                  testID="datePicker"
-                  value={tempDueDate || defaultDate}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  minimumDate={getMinDate()}
-                  onChange={(event, date) => {
-                    if (event.type === 'set' && date) {
-                      if (Platform.OS === 'android') {
-                        updateDueDate(item.id, date);
-                        setShowDatePicker(null);
-                      } else {
-                        setTempDueDate(date);
-                      }
-                    }
-                  }}
-                  style={[
-                    styles.datePicker,
-                    colorScheme === 'dark' ? { backgroundColor: Colors.dark.background } : {},
-                  ]}
-                  themeVariant={colorScheme!}
-                />
-              )}
-            </View>
-          </Animated.View>
-        </TouchableOpacity>
-      </Modal>
-    );
-  };
-
   // Filter for tasks due today
   const isTaskDueToday = (task: Task) => {
     if (!task.due_date) return false;
@@ -478,8 +301,8 @@ export default function TodayTasksList() {
     const isExpanded = expandedTaskLists[friendData.username] || false;
 
     // Determine how many tasks to show based on expanded state
-    const tasksToShow = isExpanded ? sortedTasks : sortedTasks.slice(0, 3);
-    const hasMoreTasks = sortedTasks.length > 3;
+    const tasksToShow = isExpanded ? sortedTasks : sortedTasks.slice(0, 5);
+    const hasMoreTasks = sortedTasks.length > 5;
 
     return (
       <View key={`friend-${friendData.username}`} style={styles.friendTasksSection}>
@@ -509,7 +332,10 @@ export default function TodayTasksList() {
                 taskName={task.task_name}
                 isDone={task.is_done}
                 dueDate={task.due_date}
+                isInTransition={tasksInTransition[task.id]}
+                onToggleComplete={toggleTaskCompletion}
                 readOnly={true}
+                hideDueDate={true}
               />
             ))}
 
@@ -519,7 +345,7 @@ export default function TodayTasksList() {
                 onPress={() => toggleTaskListExpansion(friendData.username)}
               >
                 <ThemedText style={styles.seeMoreText}>
-                  {isExpanded ? 'Show less' : `See ${sortedTasks.length - 3} more tasks`}
+                  {isExpanded ? 'Show less' : `See ${sortedTasks.length - 5} more tasks`}
                 </ThemedText>
               </TouchableOpacity>
             )}
@@ -581,8 +407,9 @@ export default function TodayTasksList() {
               isInTransition={tasksInTransition[item.id]}
               onToggleComplete={toggleTaskCompletion}
               onPressDate={id => setShowDatePicker(id.toString())}
+              readOnly={false}
+              hideDueDate={true}
             />
-            {renderDatePicker(item)}
           </Swipeable>
         )}
         keyExtractor={item => item.id.toString()}
@@ -661,6 +488,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 12,
+    marginTop: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
