@@ -4,6 +4,7 @@ import { Stack } from "expo-router";
 export default function FriendsLayout() {
   const whiteColor = useThemeColor({}, 'white');
   const tintColor = useThemeColor({}, 'brand');
+
   return (
     <Stack screenOptions={{
       navigationBarColor: tintColor,
@@ -12,7 +13,13 @@ export default function FriendsLayout() {
         backgroundColor: tintColor,
       },
     }}>
-      <Stack.Screen name="index" options={{ headerShown: true, title: "Friends" }} />
+      <Stack.Screen 
+        name="index" 
+        options={{ 
+          headerShown: true, 
+          title: "Friends",
+        }} 
+      />
       <Stack.Screen name="[username]" options={{ headerShown: true }} />
     </Stack>
   )

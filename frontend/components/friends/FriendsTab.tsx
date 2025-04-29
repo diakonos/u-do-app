@@ -5,7 +5,6 @@ import { ThemedView } from '@/components/ThemedView';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Friend, useFriends, FriendTask } from '@/lib/context/friends';
-import { useColorScheme } from '@/hooks/useColorScheme';
 
 // Store task counts for each friend
 interface FriendTaskCounts {
@@ -20,7 +19,6 @@ export default function FriendsTab() {
   const tintColor = useThemeColor({}, 'tint');
   const borderColor = useThemeColor({}, 'border');
   const secondaryTextColor = useThemeColor({}, 'secondaryText');
-  const colorScheme = useColorScheme();
   const { friends, isLoading, fetchFriends, isRefreshing, getFriendTasks } = useFriends();
   const router = useRouter();
   
@@ -112,6 +110,7 @@ export default function FriendsTab() {
   };
 
   return (
+    <>
     <FlatList
       data={friends}
       renderItem={({ item }) => (
@@ -156,6 +155,7 @@ export default function FriendsTab() {
         </ThemedView>
       }
     />
+    </>
   );
 }
 
