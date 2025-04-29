@@ -1,5 +1,5 @@
 import { PropsWithChildren, useState } from 'react';
-import { StyleSheet, TouchableOpacity, View, TextStyle } from 'react-native';
+import { StyleSheet, TouchableOpacity, TextStyle } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -13,7 +13,12 @@ interface CollapsibleProps {
   titleStyle?: TextStyle;
 }
 
-export function Collapsible({ children, title, defaultOpen = true, titleStyle = {} }: PropsWithChildren<CollapsibleProps>) {
+export function Collapsible({
+  children,
+  title,
+  defaultOpen = true,
+  titleStyle = {},
+}: PropsWithChildren<CollapsibleProps>) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const theme = useColorScheme() ?? 'light';
 
@@ -21,9 +26,12 @@ export function Collapsible({ children, title, defaultOpen = true, titleStyle = 
     <ThemedView>
       <TouchableOpacity
         style={styles.heading}
-        onPress={() => setIsOpen((value) => !value)}
-        activeOpacity={0.8}>
-        <ThemedText type="subtitle" style={[styles.headingText, titleStyle]}>{title}</ThemedText>
+        onPress={() => setIsOpen(value => !value)}
+        activeOpacity={0.8}
+      >
+        <ThemedText type="subtitle" style={[styles.headingText, titleStyle]}>
+          {title}
+        </ThemedText>
         <IconSymbol
           name="chevron.right"
           size={18}
@@ -38,23 +46,23 @@ export function Collapsible({ children, title, defaultOpen = true, titleStyle = 
 }
 
 const styles = StyleSheet.create({
+  chevron: {
+    marginLeft: 8,
+  },
+  content: {
+    marginLeft: 24,
+    marginTop: 6,
+  },
   heading: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 8,
     paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   headingText: {
     fontSize: 14,
     fontWeight: '600',
     opacity: 0.8,
-  },
-  chevron: {
-    marginLeft: 8,
-  },
-  content: {
-    marginTop: 6,
-    marginLeft: 24,
   },
 });

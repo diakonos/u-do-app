@@ -14,57 +14,74 @@ export type ThemedInputProps = TextInputProps & {
   darkPlaceholderColor?: string;
 };
 
-export const ThemedInput = forwardRef<TextInput, ThemedInputProps>(({
-  style,
-  lightColor,
-  darkColor,
-  lightBackgroundColor,
-  darkBackgroundColor,
-  lightBorderColor,
-  darkBorderColor,
-  lightPlaceholderColor,
-  darkPlaceholderColor,
-  placeholderTextColor,
-  ...rest
-}, ref) => {
-  const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
-  const backgroundColor = useThemeColor({ 
-    light: lightBackgroundColor, 
-    dark: darkBackgroundColor 
-  }, 'inputBackground');
-  const borderColor = useThemeColor({ 
-    light: lightBorderColor, 
-    dark: darkBorderColor 
-  }, 'icon');
-  const placeholderColor = useThemeColor({ 
-    light: lightPlaceholderColor, 
-    dark: darkPlaceholderColor 
-  }, 'icon');
+export const ThemedInput = forwardRef<TextInput, ThemedInputProps>(
+  (
+    {
+      style,
+      lightColor,
+      darkColor,
+      lightBackgroundColor,
+      darkBackgroundColor,
+      lightBorderColor,
+      darkBorderColor,
+      lightPlaceholderColor,
+      darkPlaceholderColor,
+      placeholderTextColor,
+      ...rest
+    },
+    ref,
+  ) => {
+    const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
+    const backgroundColor = useThemeColor(
+      {
+        light: lightBackgroundColor,
+        dark: darkBackgroundColor,
+      },
+      'inputBackground',
+    );
+    const borderColor = useThemeColor(
+      {
+        light: lightBorderColor,
+        dark: darkBorderColor,
+      },
+      'icon',
+    );
+    const placeholderColor = useThemeColor(
+      {
+        light: lightPlaceholderColor,
+        dark: darkPlaceholderColor,
+      },
+      'icon',
+    );
 
-  return (
-    <TextInput
-      ref={ref}
-      style={[
-        styles.input,
-        { 
-          color, 
-          backgroundColor,
-          borderColor
-        },
-        style,
-      ]}
-      placeholderTextColor={placeholderTextColor || placeholderColor}
-      {...rest}
-    />
-  );
-});
+    return (
+      <TextInput
+        ref={ref}
+        style={[
+          styles.input,
+          {
+            color,
+            backgroundColor,
+            borderColor,
+          },
+          style,
+        ]}
+        placeholderTextColor={placeholderTextColor || placeholderColor}
+        {...rest}
+      />
+    );
+  },
+);
+
+// Add displayName to fix the ESLint error
+ThemedInput.displayName = 'ThemedInput';
 
 const styles = StyleSheet.create({
   input: {
-    height: 50,
-    borderWidth: 1,
     borderRadius: 8,
-    paddingHorizontal: 15,
+    borderWidth: 1,
     fontSize: Typography.baseFontSize,
+    height: 50,
+    paddingHorizontal: 15,
   },
 });

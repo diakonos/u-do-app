@@ -33,15 +33,16 @@ export default function TabLayout() {
             web: {
               paddingBottom: safeArea.bottom,
               height: 49 + safeArea.bottom,
-            }
+            },
           }),
           tabBarLabelStyle: Platform.select({
             default: {},
             web: {
-              overflow: "visible",
-            }
-          })
-        }}>
+              overflow: 'visible',
+            },
+          }),
+        }}
+      >
         <Tabs.Screen
           name="index"
           options={{

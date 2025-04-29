@@ -1,6 +1,6 @@
 import { supabase } from '../supabase';
-import { ApiService } from './api';
-import { Friend } from '../context/friends';
+import { ApiService, RealtimePayload } from './api';
+import { Friend, FriendTask, UserSearchResult } from '../context/friends';
 
 interface FriendRequest {
   id: string;
@@ -31,11 +31,12 @@ export class FriendsService {
     return ApiService.authenticatedQuery(async () => {
       const currentUser = await ApiService.getCurrentUser();
       const currentUserId = currentUser.id;
-      
+
       // Fetch both incoming and outgoing accepted friend requests
       const { data: acceptedRequests, error: requestsError } = await supabase
         .from('friend_requests')
-        .select(`
+        .select(
+          `
           id, 
           created_at, 
           requester_id, 
@@ -51,7 +52,8 @@ export class FriendsService {
             email,
             username
           )
-        `)
+        `,
+        )
         .eq('status', 'confirmed')
         .or(`requester_id.eq.${currentUserId},recipient_id.eq.${currentUserId}`);
 
@@ -65,19 +67,23 @@ export class FriendsService {
         // If current user is the requester, the friend is the recipient
         // Otherwise, the friend is the requester
         const isFriendRequester = request.requester_id !== currentUserId;
-        
+
         // Access the first element if the result is an array, or use the object directly
-        const friendData = isFriendRequester ? 
-          (Array.isArray(request.requester) ? request.requester[0] : request.requester) : 
-          (Array.isArray(request.recipient) ? request.recipient[0] : request.recipient);
-        
+        const friendData = isFriendRequester
+          ? Array.isArray(request.requester)
+            ? request.requester[0]
+            : request.requester
+          : Array.isArray(request.recipient)
+            ? request.recipient[0]
+            : request.recipient;
+
         return {
           id: friendData?.user_id || '',
           user_id: friendData?.user_id || '',
           email: friendData?.email || 'Unknown email',
           username: friendData?.username || 'Unknown User',
           request_id: request.id,
-          created_at: request.created_at
+          created_at: request.created_at,
         };
       });
 
@@ -92,11 +98,12 @@ export class FriendsService {
     return ApiService.authenticatedQuery(async () => {
       const currentUser = await ApiService.getCurrentUser();
       const currentUserId = currentUser.id;
-      
+
       // Fetch incoming pending friend requests
       const { data: pendingRequests, error: requestsError } = await supabase
         .from('friend_requests')
-        .select(`
+        .select(
+          `
           id, 
           created_at, 
           requester_id, 
@@ -107,7 +114,8 @@ export class FriendsService {
             email,
             username
           )
-        `)
+        `,
+        )
         .eq('status', 'pending')
         .eq('recipient_id', currentUserId);
 
@@ -118,8 +126,10 @@ export class FriendsService {
       // Transform and type-cast the result to ensure it matches FriendRequest[]
       const typedRequests: FriendRequest[] = (pendingRequests || []).map(request => {
         // Access the first element if the result is an array, or use the object directly
-        const requesterData = Array.isArray(request.requester) ? request.requester[0] : request.requester;
-        
+        const requesterData = Array.isArray(request.requester)
+          ? request.requester[0]
+          : request.requester;
+
         return {
           id: request.id,
           created_at: request.created_at,
@@ -129,8 +139,8 @@ export class FriendsService {
           requester: {
             user_id: requesterData?.user_id || '',
             email: requesterData?.email || '',
-            username: requesterData?.username || ''
-          }
+            username: requesterData?.username || '',
+          },
         };
       });
 
@@ -145,9 +155,9 @@ export class FriendsService {
     return ApiService.authenticatedQuery(async () => {
       const currentUser = await ApiService.getCurrentUser();
       const currentUserId = currentUser.id;
-      
+
       let recipientId: string;
-      
+
       // Check if the input is a username or a user id
       if (!usernameOrUserId.match(/^[0-9a-fA-F-]+$/)) {
         // Find the user by username
@@ -160,7 +170,7 @@ export class FriendsService {
         if (userError || !userProfiles) {
           throw new Error('User not found');
         }
-        
+
         recipientId = userProfiles.user_id;
       } else {
         // Use the provided user ID directly
@@ -171,7 +181,9 @@ export class FriendsService {
       const { data: existingRequests, error: checkError } = await supabase
         .from('friend_requests')
         .select('id, status')
-        .or(`and(requester_id.eq.${currentUserId},recipient_id.eq.${recipientId}),and(requester_id.eq.${recipientId},recipient_id.eq.${currentUserId})`);
+        .or(
+          `and(requester_id.eq.${currentUserId},recipient_id.eq.${recipientId}),and(requester_id.eq.${recipientId},recipient_id.eq.${currentUserId})`,
+        );
 
       if (checkError) {
         throw checkError;
@@ -187,13 +199,11 @@ export class FriendsService {
       }
 
       // Send the friend request
-      const { error: requestError } = await supabase
-        .from('friend_requests')
-        .insert({
-          requester_id: currentUserId,
-          recipient_id: recipientId,
-          status: 'pending'
-        });
+      const { error: requestError } = await supabase.from('friend_requests').insert({
+        requester_id: currentUserId,
+        recipient_id: recipientId,
+        status: 'pending',
+      });
 
       if (requestError) {
         throw requestError;
@@ -204,12 +214,12 @@ export class FriendsService {
   /**
    * Search for users by username
    */
-  static async searchUsers(query: string): Promise<any[]> {
+  static async searchUsers(query: string): Promise<UserSearchResult[]> {
     return ApiService.authenticatedQuery(async () => {
       const { data, error } = await supabase.functions.invoke('search-users', {
-        body: { query }
+        body: { query },
       });
-      
+
       if (error) throw error;
       return data.users || [];
     });
@@ -252,10 +262,7 @@ export class FriendsService {
    */
   static async removeFriend(requestId: string): Promise<void> {
     return ApiService.authenticatedQuery(async () => {
-      const { error } = await supabase
-        .from('friend_requests')
-        .delete()
-        .eq('id', requestId);
+      const { error } = await supabase.from('friend_requests').delete().eq('id', requestId);
 
       if (error) {
         throw error;
@@ -266,16 +273,16 @@ export class FriendsService {
   /**
    * Subscribe to changes in friend requests for the current user
    */
-  static async subscribeToFriendRequestChanges(callback: (payload: any) => void) {
+  static async subscribeToFriendRequestChanges(callback: (payload: RealtimePayload) => void) {
     const currentUser = await ApiService.getCurrentUser();
     const currentUserId = currentUser.id;
-      
+
     // Subscribe to requester side changes
     const unsubRequester = ApiService.subscribeToChanges(
       'friend_requests',
       '*',
       `requester_id=eq.${currentUserId}`,
-      callback
+      callback,
     );
 
     // Subscribe to recipient side changes
@@ -283,7 +290,7 @@ export class FriendsService {
       'friend_requests',
       '*',
       `recipient_id=eq.${currentUserId}`,
-      callback
+      callback,
     );
 
     // Return combined unsubscribe function
@@ -297,28 +304,30 @@ export class FriendsService {
    * Fetch tasks for a friend directly from the database
    * Gets only tasks due today for the specified friend
    */
-  static async getFriendTasks(username: string): Promise<any[]> {
+  static async getFriendTasks(username: string): Promise<FriendTask[]> {
     return ApiService.authenticatedQuery(async () => {
       // Get today's date in YYYY-MM-DD format
       const today = new Date();
       const todayStr = today.toISOString().split('T')[0];
-      
+
       // Single query that joins user_profiles with tasks
       const { data, error } = await supabase
         .from('user_profiles')
-        .select(`
+        .select(
+          `
           user_id,
           tasks:tasks(*)
-        `)
+        `,
+        )
         .eq('username', username)
         .eq('tasks.due_date', todayStr)
         .single();
-      
+
       if (error) {
         console.error('Error fetching friend tasks:', error);
         throw new Error('Failed to fetch tasks');
       }
-      
+
       // Return the tasks array from the nested structure
       return data?.tasks || [];
     });

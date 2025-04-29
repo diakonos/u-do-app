@@ -11,11 +11,11 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { AuthProvider, useAuth } from '@/lib/context/auth';
 import { TaskProvider } from '@/lib/context/task';
 import { FriendsProvider } from '@/lib/context/friends';
-import { Typography } from '@/constants/Typography';
 import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
   dsn: 'https://95ef48dd1caf60feb863806b6d0877d6@o4509234354651136.ingest.us.sentry.io/4509234356355072',
+  denyUrls: ['localhost'],
 
   // uncomment the line below to enable Spotlight (https://spotlightjs.com)
   // spotlight: __DEV__,
@@ -39,7 +39,7 @@ function InitialLayout() {
 
     if (session) {
       const hasUsername = !!session.user?.user_metadata?.username;
-      
+
       if (!hasUsername && !isCreatingUsername) {
         // User is logged in but needs to create a username
         router.replace('/create-username');

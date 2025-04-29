@@ -26,7 +26,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
 
@@ -37,8 +39,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: 'udoapp://'
-      }
+        emailRedirectTo: 'udoapp://',
+      },
     });
     if (error) throw error;
   };
@@ -47,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.verifyOtp({
       email,
       token,
-      type: 'email'
+      type: 'email',
     });
     if (error) throw error;
   };
@@ -56,24 +58,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: 'udoapp://'
-      }
+        emailRedirectTo: 'udoapp://',
+      },
     });
     if (error) throw error;
   };
 
   const setUsername = async (username: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("User not found");
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not found');
 
     const { error } = await supabase.auth.updateUser({
-      data: { username }
+      data: { username },
     });
     if (error) throw error;
 
     // Manually update the session state after setting username
     // to trigger the navigation logic in _layout.tsx
-    const { data: { session: updatedSession } } = await supabase.auth.getSession();
+    const {
+      data: { session: updatedSession },
+    } = await supabase.auth.getSession();
     setSession(updatedSession);
   };
 
@@ -83,15 +89,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      session, 
-      isLoading, 
-      signIn, 
-      signOut, 
-      verifyOtp, 
-      resendOtp,
-      setUsername 
-    }}>
+    <AuthContext.Provider
+      value={{
+        session,
+        isLoading,
+        signIn,
+        signOut,
+        verifyOtp,
+        resendOtp,
+        setUsername,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

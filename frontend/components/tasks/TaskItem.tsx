@@ -1,11 +1,11 @@
 import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
+import {
+  View,
+  Text,
+  StyleSheet,
   TouchableOpacity,
   useColorScheme,
-  ActivityIndicator
+  ActivityIndicator,
 } from 'react-native';
 import { Colors } from '@/constants/Colors';
 
@@ -28,10 +28,10 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   onToggleComplete,
   onPressDate,
   isInTransition = false,
-  readOnly = false
+  readOnly = false,
 }) => {
   const colorScheme = useColorScheme();
-  
+
   const formatDate = (date: string | null) => {
     if (!date) return '';
     return new Date(date).toLocaleDateString();
@@ -40,9 +40,11 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   const isToday = (date: string) => {
     const today = new Date();
     const taskDate = new Date(date);
-    return taskDate.getDate() === today.getDate() &&
+    return (
+      taskDate.getDate() === today.getDate() &&
       taskDate.getMonth() === today.getMonth() &&
-      taskDate.getFullYear() === today.getFullYear();
+      taskDate.getFullYear() === today.getFullYear()
+    );
   };
 
   const isOverdue = (date: string) => {
@@ -54,79 +56,90 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   };
 
   return (
-    <View style={[
-      styles.taskContainer,
-      { 
-        backgroundColor: Colors[colorScheme ?? 'light'].background,
-        borderBottomColor: Colors[colorScheme ?? 'light'].icon + '40'
-      }
-    ]}>
+    <View
+      style={[
+        styles.taskContainer,
+        {
+          backgroundColor: Colors[colorScheme ?? 'light'].background,
+          borderBottomColor: Colors[colorScheme ?? 'light'].icon + '40',
+        },
+      ]}
+    >
       <View style={styles.taskHeader}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
-            styles.checkbox, 
+            styles.checkbox,
             { borderColor: Colors[colorScheme ?? 'light'].icon },
-            isInTransition && { borderColor: Colors[colorScheme ?? 'light'].tint }
+            isInTransition && { borderColor: Colors[colorScheme ?? 'light'].tint },
           ]}
           onPress={() => !isInTransition && onToggleComplete && onToggleComplete(id, !isDone)}
           activeOpacity={readOnly || isInTransition ? 1 : 0.2}
           disabled={isInTransition || readOnly}
         >
           {isInTransition ? (
-            <ActivityIndicator 
-              size="small" 
-              color={Colors[colorScheme ?? 'light'].tint} 
+            <ActivityIndicator
+              size="small"
+              color={Colors[colorScheme ?? 'light'].tint}
               style={styles.spinner}
             />
           ) : (
-            <View style={[
-              styles.checkboxInner, 
-              isDone && { backgroundColor: Colors[colorScheme ?? 'light'].icon }
-            ]} />
+            <View
+              style={[
+                styles.checkboxInner,
+                isDone && { backgroundColor: Colors[colorScheme ?? 'light'].icon },
+              ]}
+            />
           )}
         </TouchableOpacity>
         <View style={styles.taskContent}>
-          <Text style={[
-            styles.taskText, 
-            { color: Colors[colorScheme ?? 'light'].text },
-            isDone && { 
-              textDecorationLine: 'line-through',
-              color: Colors[colorScheme ?? 'light'].icon 
-            }
-          ]}>
+          <Text
+            style={[
+              styles.taskText,
+              { color: Colors[colorScheme ?? 'light'].text },
+              isDone && styles.taskTextDone,
+            ]}
+          >
             {taskName}
           </Text>
           {dueDate || !readOnly ? (
             <View style={styles.dueDateContainer}>
               {dueDate ? (
-                <Text style={[
-                  styles.dueDate,
-                  { color: Colors[colorScheme ?? 'light'].icon },
-                  isToday(dueDate) && { color: Colors[colorScheme ?? 'light'].todayBlue },
-                  isOverdue(dueDate) && !isDone && styles.overdueDate
-                ]}>
+                <Text
+                  style={[
+                    styles.dueDate,
+                    { color: Colors[colorScheme ?? 'light'].icon },
+                    isToday(dueDate) && { color: Colors[colorScheme ?? 'light'].todayBlue },
+                    isOverdue(dueDate) && !isDone && styles.overdueDate,
+                  ]}
+                >
                   Due: {formatDate(dueDate)}
                 </Text>
               ) : (
-                <Text style={[
-                  styles.noDueDate,
-                  { color: Colors[colorScheme ?? 'light'].icon }
-                ]}>No due date</Text>
+                <Text style={[styles.noDueDate, { color: Colors[colorScheme ?? 'light'].icon }]}>
+                  No due date
+                </Text>
               )}
               {!readOnly && onPressDate && (
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[
                     styles.dateButton,
-                    { backgroundColor: Colors[colorScheme ?? 'light'].background === '#fff' ? '#f0f0f0' : '#2A2D2E' }
+                    {
+                      backgroundColor:
+                        Colors[colorScheme ?? 'light'].background === '#fff'
+                          ? Colors.light.inputBackground
+                          : Colors.dark.inputBackground,
+                    },
                   ]}
                   onPress={() => onPressDate(id)}
                   disabled={isInTransition}
                 >
-                  <Text style={[
-                    styles.dateButtonText,
-                    { color: Colors[colorScheme ?? 'light'].icon },
-                    isInTransition && { opacity: 0.5 }
-                  ]}>
+                  <Text
+                    style={[
+                      styles.dateButtonText,
+                      { color: Colors[colorScheme ?? 'light'].icon },
+                      isInTransition && styles.dueDateLoading,
+                    ]}
+                  >
                     {dueDate ? 'Change Date' : 'Add Due Date'}
                   </Text>
                 </TouchableOpacity>
@@ -140,69 +153,72 @@ export const TaskItem: React.FC<TaskItemProps> = ({
 };
 
 const styles = StyleSheet.create({
-  taskContainer: {
-    backgroundColor: '#fff',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  taskHeader: {
-    flexDirection: 'row',
+  checkbox: {
     alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 2,
+    height: 24,
+    justifyContent: 'center',
+    marginRight: 10,
+    width: 24,
+    // borderColor will be set dynamically in the component
   },
-  taskText: {
-    fontSize: 16,
+  checkboxInner: {
+    borderRadius: 6,
+    height: 12,
+    width: 12,
+    // backgroundColor will be set dynamically in the component
+  },
+  dateButton: {
+    borderRadius: 4,
+    marginLeft: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    // backgroundColor will be set dynamically in the component
+  },
+  dateButtonText: {
+    fontSize: 12,
+    // color will be set dynamically in the component
   },
   dueDate: {
     fontSize: 12,
-    color: '#666',
+    marginTop: 4,
+    // color will be set dynamically in the component
+  },
+  dueDateContainer: {
+    alignItems: 'center',
+    flexDirection: 'row',
     marginTop: 4,
   },
-  overdueDate: {
-    color: 'red',
-  },
+  dueDateLoading: { opacity: 0.5 },
   noDueDate: {
     fontSize: 12,
-    color: '#999',
     marginTop: 4,
+    // color will be set dynamically in the component
   },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderWidth: 2,
-    borderColor: '#666',
-    borderRadius: 12,
-    marginRight: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: 'transparent',
+  overdueDate: {
+    // color will be set to error color dynamically
   },
   spinner: {
-    width: 14,
     height: 14,
+    width: 14,
+  },
+  taskContainer: {
+    padding: 12,
+    // backgroundColor and borderBottomColor will be set dynamically
   },
   taskContent: {
     flex: 1,
   },
-  dueDateContainer: {
-    flexDirection: 'row',
+  taskHeader: {
     alignItems: 'center',
-    marginTop: 4,
+    flexDirection: 'row',
   },
-  dateButton: {
-    marginLeft: 8,
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+  taskText: {
+    fontSize: 16,
+    // color will be set dynamically in the component
   },
-  dateButtonText: {
-    fontSize: 12,
-    color: '#666',
+  taskTextDone: {
+    textDecorationLine: 'line-through',
   },
 });

@@ -1,5 +1,12 @@
-import { useState, useRef, useEffect } from 'react';
-import { StyleSheet, SafeAreaView, ActivityIndicator, TouchableOpacity, Platform } from 'react-native';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import {
+  StyleSheet,
+  SafeAreaView,
+  ActivityIndicator,
+  TouchableOpacity,
+  Platform,
+  Text,
+} from 'react-native';
 import { ThemedView } from '@/components/ThemedView';
 import SegmentedControl from '@react-native-segmented-control/segmented-control';
 import { useThemeColor } from '@/hooks/useThemeColor';
@@ -11,6 +18,7 @@ import { HTMLTitle } from '@/components/HTMLTitle';
 import { useNavigation } from 'expo-router';
 import { useFriends } from '@/lib/context/friends';
 import { Ionicons } from '@expo/vector-icons';
+import { Colors } from '@/constants/Colors';
 
 type Tab = 'friends' | 'search' | 'requests';
 
@@ -29,61 +37,69 @@ export default function FriendsScreen() {
   const requestsTabRef = useRef(<RequestsTab />);
 
   // For active text, we need to ensure good contrast with the tint background color
-  const activeTextColor = "#FFFFFF"
-  
+  const activeTextColor = Colors.light.white;
+  const darkModeBackgroundColor = '#2A2D2E';
+  const lightTextColor = '#11181C';
+  const darkTextColor = '#ECEDEE';
+
   // Lighter gray background for dark mode inactive tabs
   const segmentedControlStyle = {
     ...styles.segmentedControl,
-    ...(colorScheme === 'dark' && { backgroundColor: '#2A2D2E' })
+    ...(colorScheme === 'dark' && { backgroundColor: darkModeBackgroundColor }),
   };
 
-  // Update navigation header options when active tab changes
-  useEffect(() => {
-    if (Platform.OS === 'web') {
-      navigation.setOptions({
-        headerRight: activeTab === 'friends' ? () => (
-          <TouchableOpacity 
-            onPress={handleRefresh} 
-            style={{ marginRight: 15 }} 
-            disabled={isRefreshing}
-          >
-            {isRefreshing ? (
-              <ActivityIndicator size="small" color={whiteColor} />
-            ) : (
-              <Ionicons name="refresh" size={24} color={whiteColor} />
-            )}
-          </TouchableOpacity>
-        ) : undefined
-      });
-    }
-  }, [activeTab, isRefreshing, navigation]);
-
-  // Handle refresh button press
-  const handleRefresh = async () => {
+  // Handle refresh button press - wrapped in useCallback to avoid recreation on every render
+  const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
       await fetchFriends(true); // Force refresh
     } finally {
       setIsRefreshing(false);
     }
-  };
+  }, [fetchFriends]);
+
+  // Update navigation header options when active tab changes
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      navigation.setOptions({
+        headerRight:
+          activeTab === 'friends'
+            ? () => (
+                <TouchableOpacity
+                  onPress={handleRefresh}
+                  style={styles.refreshButton}
+                  disabled={isRefreshing}
+                >
+                  {isRefreshing ? (
+                    <ActivityIndicator size="small" color={whiteColor} />
+                  ) : (
+                    <Ionicons name="refresh" size={24} color={whiteColor} />
+                  )}
+                </TouchableOpacity>
+              )
+            : undefined,
+      });
+    }
+  }, [activeTab, isRefreshing, navigation, handleRefresh, whiteColor]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <HTMLTitle>Friends</HTMLTitle>
+      <HTMLTitle>
+        <Text>Friends</Text>
+      </HTMLTitle>
       <ThemedView style={styles.container}>
         <SegmentedControl
           values={['My Friends', 'Search', 'Requests']}
           selectedIndex={activeTab === 'friends' ? 0 : activeTab === 'search' ? 1 : 2}
-          onChange={(event) => {
+          onChange={event => {
             const selectedTab = event.nativeEvent.selectedSegmentIndex;
             setActiveTab(selectedTab === 0 ? 'friends' : selectedTab === 1 ? 'search' : 'requests');
           }}
           tintColor={tintColor}
-          activeFontStyle={{ color: activeTextColor }} 
-          fontStyle={{ color: colorScheme === 'dark' ? '#ECEDEE' : '#11181C' }}
+          activeFontStyle={{ color: activeTextColor }}
+          fontStyle={{ color: colorScheme === 'dark' ? darkTextColor : lightTextColor }}
           style={segmentedControlStyle}
-          backgroundColor={colorScheme === 'dark' ? '#2A2D2E' : undefined}
+          backgroundColor={colorScheme === 'dark' ? darkModeBackgroundColor : undefined}
         />
 
         {/* Only render the active tab, but maintain component instances */}
@@ -96,12 +112,13 @@ export default function FriendsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
   container: {
     flex: 1,
     padding: 16,
+  },
+  refreshButton: { marginRight: 15 },
+  safeArea: {
+    flex: 1,
   },
   segmentedControl: {
     marginBottom: 16,

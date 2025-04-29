@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, Alert, View, ScrollView } from 'react-native';
-import { Stack, useLocalSearchParams, router } from 'expo-router';
+import { StyleSheet, Alert, View, ScrollView, Text } from 'react-native';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/lib/context/auth';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedInput } from '@/components/ThemedInput';
 import { TouchableOpacity } from 'react-native-gesture-handler';
-import { useColorScheme } from '@/hooks/useColorScheme';
 import { useThemeColor } from '@/hooks/useThemeColor';
 
 export default function VerifyOTP() {
@@ -16,14 +15,10 @@ export default function VerifyOTP() {
   const [resending, setResending] = useState(false);
   const { verifyOtp, resendOtp } = useAuth();
   const { email } = useLocalSearchParams<{ email: string }>();
-  const colorScheme = useColorScheme();
-  
+
   // Get theme colors
-  const textColor = useThemeColor({}, 'text');
-  const iconColor = useThemeColor({}, 'icon');
   const tintColor = useThemeColor({}, 'tint');
   const whiteColor = useThemeColor({}, 'white');
-  const inputBackgroundColor = useThemeColor({}, 'inputBackground');
 
   useEffect(() => {
     if (cooldown > 0) {
@@ -65,11 +60,13 @@ export default function VerifyOTP() {
     >
       <ThemedView style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
-        
+
         <View style={styles.contentContainer}>
-          <ThemedText style={styles.title}>Enter verification code</ThemedText>
+          <ThemedText style={styles.title}>
+            <Text>Enter verification code</Text>
+          </ThemedText>
           <ThemedText style={styles.subtitle}>
-            Enter the code we sent to {email}
+            <Text>Enter the code we sent to {email}</Text>
           </ThemedText>
 
           <ThemedInput
@@ -81,11 +78,11 @@ export default function VerifyOTP() {
             maxLength={6}
           />
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[
-              styles.button, 
+              styles.button,
               { backgroundColor: tintColor },
-              loading && styles.buttonDisabled
+              loading && styles.buttonDisabled,
             ]}
             onPress={handleVerify}
             disabled={loading || !otp}
@@ -96,15 +93,17 @@ export default function VerifyOTP() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.resendButton, (cooldown > 0 || resending) && styles.buttonDisabled]}
           onPress={handleResend}
           disabled={cooldown > 0 || resending}
         >
           <ThemedText style={styles.resendText}>
-            {resending ? 'Sending...' : 
-             cooldown > 0 ? `Resend OTP in ${cooldown}s` : 
-             "Resend the OTP"}
+            {resending
+              ? 'Sending...'
+              : cooldown > 0
+                ? `Resend OTP in ${cooldown}s`
+                : 'Resend the OTP'}
           </ThemedText>
         </TouchableOpacity>
       </ThemedView>
@@ -113,39 +112,13 @@ export default function VerifyOTP() {
 }
 
 const styles = StyleSheet.create({
-  scrollViewContent: {
-    flexGrow: 1,
-  },
-  container: {
-    flex: 1,
-    padding: 20,
-  },
-  contentContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 16,
-    marginBottom: 30,
-    textAlign: 'center',
-  },
-  input: {
-    width: '100%',
-    marginBottom: 20,
-  },
   button: {
-    width: '100%',
-    height: 50,
-    borderRadius: 8,
     alignItems: 'center',
+    borderRadius: 8,
+    height: 50,
     justifyContent: 'center',
     paddingHorizontal: 15,
+    width: '100%',
   },
   buttonDisabled: {
     opacity: 0.5,
@@ -154,14 +127,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  container: {
+    flex: 1,
+    padding: 20,
+  },
+  contentContainer: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+  },
+  input: {
+    marginBottom: 20,
+    width: '100%',
+  },
   resendButton: {
-    padding: 15,
     alignItems: 'center',
     marginBottom: 20,
+    padding: 15,
   },
   resendText: {
     fontSize: 16,
-    textDecorationLine: 'underline',
     textAlign: 'center',
+    textDecorationLine: 'underline',
+  },
+  scrollViewContent: {
+    flexGrow: 1,
+  },
+  subtitle: {
+    fontSize: 16,
+    marginBottom: 30,
+    textAlign: 'center',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 10,
   },
 });

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, FlatList, Alert, ActivityIndicator, View } from 'react-native';
+import { StyleSheet, FlatList, Alert, ActivityIndicator, Text } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -12,8 +12,6 @@ export default function FriendTasksScreen() {
   const { username } = useLocalSearchParams();
   const [todayTasks, setTodayTasks] = useState<FriendTask[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const tintColor = useThemeColor({}, 'tint');
-  const whiteColor = useThemeColor({}, 'white');
   const secondaryTextColor = useThemeColor({}, 'secondaryText');
   const { getFriendTasks } = useFriends();
 
@@ -23,7 +21,7 @@ export default function FriendTasksScreen() {
     try {
       setIsRefreshing(true);
       const tasks = await getFriendTasks(username.toString());
-      
+
       // Filter for tasks due today
       setTodayTasks(tasks);
     } catch (error) {
@@ -47,14 +45,16 @@ export default function FriendTasksScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <HTMLTitle>{`${username}'s tasks`}</HTMLTitle>
-      <Stack.Screen 
+      <HTMLTitle>
+        <Text>{`${username}'s tasks`}</Text>
+      </HTMLTitle>
+      <Stack.Screen
         options={{
-          title: username? `${username}\'s tasks` : 'Friend\'s Tasks',
+          title: username ? `${username}\'s tasks` : "Friend's Tasks",
           headerBackTitle: 'Friends',
-        }} 
+        }}
       />
-      
+
       <FlatList
         data={todayTasks}
         renderItem={({ item }) => (
@@ -66,21 +66,23 @@ export default function FriendTasksScreen() {
             readOnly={true}
           />
         )}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={item => item.id.toString()}
         style={styles.tasksList}
         contentContainerStyle={[
           styles.tasksContent,
-          todayTasks.length === 0 && styles.emptyListContent
+          todayTasks.length === 0 && styles.emptyListContent,
         ]}
         refreshing={isRefreshing}
         onRefresh={onRefresh}
         ListEmptyComponent={
           <ThemedView style={styles.emptyState}>
-            <ThemedText style={{
-              ...styles.emptyStateText,
-              color: secondaryTextColor
-            }}>
-              {isRefreshing ? <ActivityIndicator size="large" /> : "No tasks due today"}
+            <ThemedText
+              style={{
+                ...styles.emptyStateText,
+                color: secondaryTextColor,
+              }}
+            >
+              {isRefreshing ? <ActivityIndicator size="large" /> : 'No tasks due today'}
             </ThemedText>
           </ThemedView>
         }
@@ -94,30 +96,24 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  tasksList: {
-    flex: 1,
-  },
-  tasksContent: {
-    gap: 12,
-    paddingTop: 8,
-  },
   emptyListContent: {
     flex: 1,
   },
   emptyState: {
-    flex: 1,
     alignItems: 'center',
+    flex: 1,
     justifyContent: 'center',
     paddingVertical: 32,
   },
   emptyStateText: {
     fontSize: 16,
     textAlign: 'center',
+  },
+  tasksContent: {
+    gap: 12,
+    paddingTop: 8,
+  },
+  tasksList: {
+    flex: 1,
   },
 });

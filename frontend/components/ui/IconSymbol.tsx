@@ -15,7 +15,7 @@ const MAPPING = {
   'chevron.right': 'chevron-right',
   'list.bullet': 'format-list-bulleted',
   'person.2.fill': 'people',
-  'gear': 'settings',
+  gear: 'settings',
 } as Partial<
   Record<
     import('expo-symbols').SymbolViewProps['name'],

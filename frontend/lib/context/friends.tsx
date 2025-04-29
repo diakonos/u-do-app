@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback } from 'react';
 import { FriendsService } from '../services/friends-service';
 
 // Types for friends data management
@@ -74,57 +74,64 @@ export function FriendsProvider({ children }: { children: React.ReactNode }) {
   const [hasLoadedPendingRequests, setHasLoadedPendingRequests] = useState(false);
 
   // Fetch friends data
-  const fetchFriends = useCallback(async (forceRefresh = false) => {
-    // Skip fetching if data is already loaded and not forcing refresh
-    if (hasLoadedFriends && !forceRefresh) {
-      return;
-    }
-    
-    try {
-      setIsLoading(true);
-      const friendsList = await FriendsService.getFriends();
-      setFriends(friendsList);
-      setHasLoadedFriends(true);
-    } catch (error) {
-      console.error('Failed to fetch friends:', error);
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, [hasLoadedFriends]);
+  const fetchFriends = useCallback(
+    async (forceRefresh = false) => {
+      // Skip fetching if data is already loaded and not forcing refresh
+      if (hasLoadedFriends && !forceRefresh) {
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const friendsList = await FriendsService.getFriends();
+        setFriends(friendsList);
+        setHasLoadedFriends(true);
+      } catch (error) {
+        console.error('Failed to fetch friends:', error);
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    },
+    [hasLoadedFriends],
+  );
 
   // Fetch pending friend requests
-  const fetchPendingRequests = useCallback(async (forceRefresh = false) => {
-    // Skip fetching if data is already loaded and not forcing refresh
-    if (hasLoadedPendingRequests && !forceRefresh) {
-      return;
-    }
-    
-    try {
-      if (forceRefresh) {
-        setIsPendingRequestsRefreshing(true);
-      } else if (!hasLoadedPendingRequests) {
-        setIsLoading(true);
+  const fetchPendingRequests = useCallback(
+    async (forceRefresh = false) => {
+      // Skip fetching if data is already loaded and not forcing refresh
+      if (hasLoadedPendingRequests && !forceRefresh) {
+        return;
       }
-      
-      const pendingRequests = await FriendsService.getPendingRequests();
-      setPendingRequests(pendingRequests);
-      setHasLoadedPendingRequests(true);
-    } catch (error) {
-      console.error('Failed to fetch friend requests:', error);
-    } finally {
-      setIsLoading(false);
-      setIsPendingRequestsRefreshing(false);
-    }
-  }, [hasLoadedPendingRequests]);
+
+      try {
+        if (forceRefresh) {
+          setIsPendingRequestsRefreshing(true);
+        } else if (!hasLoadedPendingRequests) {
+          setIsLoading(true);
+        }
+
+        const pendingRequests = await FriendsService.getPendingRequests();
+        setPendingRequests(pendingRequests);
+        setHasLoadedPendingRequests(true);
+      } catch (error) {
+        console.error('Failed to fetch friend requests:', error);
+      } finally {
+        setIsLoading(false);
+        setIsPendingRequestsRefreshing(false);
+      }
+    },
+    [hasLoadedPendingRequests],
+  );
 
   // Send a friend request
   const sendFriendRequest = async (emailOrUserId: string) => {
     try {
       await FriendsService.sendFriendRequest(emailOrUserId);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to send friend request:', error);
-      throw new Error(error.message || 'Failed to send friend request');
+      const apiError = error as { message?: string };
+      throw new Error(apiError.message || 'Failed to send friend request');
     }
   };
 
@@ -132,10 +139,10 @@ export function FriendsProvider({ children }: { children: React.ReactNode }) {
   const acceptFriendRequest = async (requestId: string) => {
     try {
       await FriendsService.acceptFriendRequest(requestId);
-      
+
       // Update the local state optimistically
       setPendingRequests(prev => prev.filter(request => request.id !== requestId));
-      
+
       // Refresh friends list to include the new friend
       fetchFriends(true);
     } catch (error) {
@@ -148,7 +155,7 @@ export function FriendsProvider({ children }: { children: React.ReactNode }) {
   const rejectFriendRequest = async (requestId: string) => {
     try {
       await FriendsService.rejectFriendRequest(requestId);
-      
+
       // Update the local state optimistically
       setPendingRequests(prev => prev.filter(request => request.id !== requestId));
     } catch (error) {
@@ -161,7 +168,7 @@ export function FriendsProvider({ children }: { children: React.ReactNode }) {
   const removeFriend = async (requestId: string) => {
     try {
       await FriendsService.removeFriend(requestId);
-      
+
       // Update the local state optimistically
       setFriends(prev => prev.filter(friend => friend.request_id !== requestId));
     } catch (error) {
@@ -191,21 +198,23 @@ export function FriendsProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <FriendsContext.Provider value={{ 
-      friends, 
-      isLoading, 
-      isRefreshing, 
-      fetchFriends,
-      sendFriendRequest,
-      acceptFriendRequest,
-      rejectFriendRequest,
-      removeFriend,
-      pendingRequests,
-      fetchPendingRequests,
-      isPendingRequestsRefreshing,
-      searchUsers,
-      getFriendTasks
-    }}>
+    <FriendsContext.Provider
+      value={{
+        friends,
+        isLoading,
+        isRefreshing,
+        fetchFriends,
+        sendFriendRequest,
+        acceptFriendRequest,
+        rejectFriendRequest,
+        removeFriend,
+        pendingRequests,
+        fetchPendingRequests,
+        isPendingRequestsRefreshing,
+        searchUsers,
+        getFriendTasks,
+      }}
+    >
       {children}
     </FriendsContext.Provider>
   );

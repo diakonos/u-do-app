@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
-import { StyleSheet, SafeAreaView, ScrollView } from 'react-native';
+import { StyleSheet, SafeAreaView, ScrollView, Text } from 'react-native';
 import { User } from '@supabase/supabase-js';
+import { Colors } from '@/constants/Colors';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -16,19 +17,19 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollViewContent}
         showsVerticalScrollIndicator={false}
       >
         <ThemedView style={styles.container}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>Profile</ThemedText>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>
+            <Text>Profile</Text>
+          </ThemedText>
           <ProfileInfo />
-          
-          <ThemedText 
-            style={styles.logoutButton} 
-            onPress={handleLogout}>
-            Log Out
+
+          <ThemedText style={styles.logoutButton} onPress={handleLogout}>
+            <Text>Log Out</Text>
           </ThemedText>
         </ThemedView>
       </ScrollView>
@@ -41,12 +42,14 @@ function ProfileInfo() {
 
   useEffect(() => {
     // Get initial user
-    supabase.auth.getUser().then(({ data: { user }}) => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
     });
 
     // Listen for auth changes
-    const { data: { subscription }} = supabase.auth.onAuthStateChange((_, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_, session) => {
       setUser(session?.user ?? null);
     });
 
@@ -57,14 +60,34 @@ function ProfileInfo() {
 
   return (
     <ThemedView style={styles.profileContainer}>
-      <HTMLTitle>Settings</HTMLTitle>
-      <ThemedText>Email: {user?.email}</ThemedText>
-      <ThemedText>Username: {user?.user_metadata?.username || 'Not set'}</ThemedText>
+      <HTMLTitle>
+        <Text>Settings</Text>
+      </HTMLTitle>
+      <ThemedText>
+        <Text>Email: {user?.email}</Text>
+      </ThemedText>
+      <ThemedText>
+        <Text>Username: {user?.user_metadata?.username || 'Not set'}</Text>
+      </ThemedText>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 16,
+  },
+  logoutButton: {
+    color: Colors.light.error, // Using theme color instead of hard-coded color literal
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 24,
+  },
+  profileContainer: {
+    gap: 8,
+    marginBottom: 16,
+  },
   safeArea: {
     flex: 1,
   },
@@ -74,24 +97,7 @@ const styles = StyleSheet.create({
   scrollViewContent: {
     flexGrow: 1,
   },
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  title: {
-    marginBottom: 16,
-  },
   sectionTitle: {
     marginBottom: 8,
-  },
-  profileContainer: {
-    gap: 8,
-    marginBottom: 16,
-  },
-  logoutButton: {
-    marginTop: 24,
-    color: '#ff4444',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });

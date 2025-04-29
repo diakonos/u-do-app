@@ -1,20 +1,24 @@
 import { useState } from 'react';
-import { StyleSheet, Alert, ActivityIndicator, FlatList } from 'react-native';
+import { StyleSheet, Alert, ActivityIndicator, FlatList, Text } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedInput } from '@/components/ThemedInput';
 import { useFriends, UserSearchResult } from '@/lib/context/friends';
-import { useThemeColor } from '@/hooks/useThemeColor';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+
+// Define a proper error type to replace 'any'
+interface ApiError {
+  message: string;
+}
 
 export default function SearchTab() {
   const [username, setUsername] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
   const { sendFriendRequest, searchUsers } = useFriends();
-  
-  const colorScheme = useColorScheme() ?? "light";
+
+  const colorScheme = useColorScheme() ?? 'light';
 
   const handleSearchUser = async () => {
     if (!username.trim()) {
@@ -29,8 +33,9 @@ export default function SearchTab() {
       if (results.length === 0) {
         Alert.alert('No Results', 'No users found with that username');
       }
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to search for users');
+    } catch (error: unknown) {
+      const apiError = error as ApiError;
+      Alert.alert('Error', apiError.message || 'Failed to search for users');
       console.error(error);
     } finally {
       setIsSearching(false);
@@ -44,8 +49,9 @@ export default function SearchTab() {
       Alert.alert('Success', 'Friend request sent successfully!');
       // Remove the user from search results to prevent sending multiple requests
       setSearchResults(prev => prev.filter(user => user.user_id !== userId));
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to send friend request');
+    } catch (error: unknown) {
+      const apiError = error as ApiError;
+      Alert.alert('Error', apiError.message || 'Failed to send friend request');
       console.error(error);
     } finally {
       setIsSearching(false);
@@ -54,9 +60,11 @@ export default function SearchTab() {
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedText style={styles.title}>Find a friend</ThemedText>
+      <ThemedText style={styles.title}>
+        <Text>Find a friend</Text>
+      </ThemedText>
       <ThemedText style={styles.subtitle}>
-        Search for users by username
+        <Text>Search for users by username</Text>
       </ThemedText>
 
       <ThemedView style={styles.inputContainer}>
@@ -72,24 +80,29 @@ export default function SearchTab() {
         />
       </ThemedView>
 
-      <ThemedView 
+      <ThemedView
         style={[
-          styles.button, 
-          { opacity: isSearching || !username.trim() ? 0.7 : 1, backgroundColor: Colors[colorScheme].brand }
+          styles.button,
+          {
+            backgroundColor: Colors[colorScheme].brand,
+          },
+          isSearching || !username.trim() ? styles.buttonSearching : styles.buttonNotSearching,
         ]}
         onTouchStart={!isSearching ? handleSearchUser : undefined}
       >
         {isSearching ? (
-          <ActivityIndicator size="small" color="#FFFFFF" />
+          <ActivityIndicator size="small" color={Colors.light.white} />
         ) : (
-          <ThemedText style={styles.buttonText}>Search</ThemedText>
+          <ThemedText style={styles.buttonText}>
+            <Text>Search</Text>
+          </ThemedText>
         )}
       </ThemedView>
 
       {searchResults.length > 0 && (
         <FlatList
           data={searchResults}
-          keyExtractor={(item) => item.id}
+          keyExtractor={item => item.id}
           style={styles.resultsList}
           renderItem={({ item }) => (
             <ThemedView style={styles.resultItem}>
@@ -97,11 +110,13 @@ export default function SearchTab() {
                 <ThemedText style={styles.username}>{item.username}</ThemedText>
                 <ThemedText style={styles.email}>{item.email}</ThemedText>
               </ThemedView>
-              <ThemedView 
+              <ThemedView
                 style={[styles.addButton, { backgroundColor: Colors[colorScheme].tint }]}
                 onTouchStart={() => handleSendFriendRequest(item.user_id)}
               >
-                <ThemedText style={styles.addButtonText}>Add</ThemedText>
+                <ThemedText style={styles.addButtonText}>
+                  <Text>Add</Text>
+                </ThemedText>
               </ThemedView>
             </ThemedView>
           )}
@@ -112,51 +127,66 @@ export default function SearchTab() {
 }
 
 const styles = StyleSheet.create({
+  addButton: {
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  addButtonText: {
+    color: Colors.light.white,
+    fontWeight: '500',
+  },
+  button: {
+    alignItems: 'center',
+    borderRadius: 8,
+    height: 48,
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  buttonNotSearching: { opacity: 1 },
+  buttonSearching: { opacity: 0.7 },
+  buttonText: {
+    color: Colors.light.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
   container: {
     flex: 1,
     padding: 16,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 24,
-  },
-  inputContainer: {
-    marginBottom: 16,
+  email: {
+    color: Colors.light.secondaryText,
+    fontSize: 14,
   },
   input: {
     height: 48,
     padding: 12,
   },
-  button: {
-    height: 48,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
+  inputContainer: {
+    marginBottom: 16,
   },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
+  resultItem: {
+    alignItems: 'center',
+    borderColor: Colors.light.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    padding: 12,
   },
   resultsList: {
     flex: 1,
   },
-  resultItem: {
-    flexDirection: 'row',
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#eee',
-    borderRadius: 8,
-    marginBottom: 12,
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  subtitle: {
+    color: Colors.light.secondaryText,
+    fontSize: 16,
+    marginBottom: 24,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 8,
   },
   userInfo: {
     flex: 1,
@@ -165,18 +195,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 4,
-  },
-  email: {
-    fontSize: 14,
-    color: '#666',
-  },
-  addButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    color: 'white',
-    fontWeight: '500',
   },
 });

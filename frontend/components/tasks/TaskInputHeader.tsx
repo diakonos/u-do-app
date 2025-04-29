@@ -1,23 +1,22 @@
 import React, { useRef, useState } from 'react';
-import { 
-  View, 
+import {
+  View,
   TextInput,
-  TouchableOpacity, 
-  Text, 
+  TouchableOpacity,
+  Text,
   StyleSheet,
   useColorScheme,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
 } from 'react-native';
 import { Colors } from '@/constants/Colors';
 import { useTask } from '@/lib/context/task';
 import { ThemedInput } from '@/components/ThemedInput';
 
-interface TaskInputHeaderProps {
-}
+// Using type instead of empty interface
+type TaskInputHeaderProps = Record<string, never>;
 
-export const TaskInputHeader: React.FC<TaskInputHeaderProps> = ({ 
-}) => {
+export const TaskInputHeader: React.FC<TaskInputHeaderProps> = () => {
   const colorScheme = useColorScheme();
   const { createTask } = useTask();
   const [taskName, setTaskName] = useState('');
@@ -48,7 +47,7 @@ export const TaskInputHeader: React.FC<TaskInputHeaderProps> = ({
         style={styles.input}
         placeholder="Enter task name"
         defaultValue={taskName}
-        onChangeText={(text) => {
+        onChangeText={text => {
           setTaskName(text);
         }}
         onSubmitEditing={addTask}
@@ -57,11 +56,15 @@ export const TaskInputHeader: React.FC<TaskInputHeaderProps> = ({
         darkBorderColor={Colors.dark.icon}
       />
       <View style={styles.buttonContainer}>
-        <TouchableOpacity 
-          style={[styles.addButton, { backgroundColor: Colors[colorScheme!].brand}]} 
+        <TouchableOpacity
+          style={[styles.addButton, { backgroundColor: Colors[colorScheme!].brand }]}
           onPress={addTask}
         >
-          {isLoading ? <ActivityIndicator color={Colors[colorScheme!].white} /> : <Text style={styles.addButtonText}>Add Task</Text>}
+          {isLoading ? (
+            <ActivityIndicator color={Colors[colorScheme!].white} />
+          ) : (
+            <Text style={styles.addButtonText}>Add Task</Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -69,29 +72,29 @@ export const TaskInputHeader: React.FC<TaskInputHeaderProps> = ({
 };
 
 const styles = StyleSheet.create({
-  listHeader: {
-    paddingTop: 16,
-    marginTop: 8,
-  },
-  input: {
-    padding: 8,
-    marginBottom: 8,
-    marginHorizontal: 16,
-    height: 40,
-  },
-  buttonContainer: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-  },
   addButton: {
-    borderRadius: 8,
-    paddingVertical: 12,
     alignItems: 'center',
+    borderRadius: 8,
     justifyContent: 'center',
+    paddingVertical: 12,
   },
   addButtonText: {
-    color: '#FFFFFF',
+    color: Colors.light.white, // Replace the hardcoded color with a theme color
     fontSize: 16,
     fontWeight: '600',
+  },
+  buttonContainer: {
+    marginBottom: 16,
+    marginHorizontal: 16,
+  },
+  input: {
+    height: 40,
+    marginBottom: 8,
+    marginHorizontal: 16,
+    padding: 8,
+  },
+  listHeader: {
+    marginTop: 8,
+    paddingTop: 16,
   },
 });

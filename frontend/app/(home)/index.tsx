@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
   Platform,
   Modal,
   SafeAreaView,
@@ -11,11 +11,11 @@ import {
   Alert,
   ActivityIndicator,
   useColorScheme,
-  RefreshControl // Import RefreshControl if needed elsewhere, or just TouchableOpacity
+  RefreshControl,
 } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import DatePicker from 'react-native-ui-datepicker';
+import DatePicker, { DateType } from 'react-native-ui-datepicker';
 import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { Collapsible } from '@/components/Collapsible';
 import { TaskInputHeader } from '@/components/tasks/TaskInputHeader';
@@ -39,9 +39,11 @@ interface Task {
 
 export default function TodoList() {
   const colorScheme = useColorScheme();
-  
+
   const [showDatePicker, setShowDatePicker] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<'dueDate' | 'creationDate'>('dueDate');
+  // We're leaving sortBy as a state variable even though it's not currently used elsewhere
+  // because it will be needed for future sort functionality
+  const [sortBy] = useState<'dueDate' | 'creationDate'>('dueDate');
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tempDueDate, setTempDueDate] = useState<Date | null>(null);
@@ -51,12 +53,9 @@ export default function TodoList() {
   const { tasks, fetchTasks, updateTask, deleteTask } = useTask();
   const timeoutsRef = useRef<Record<number, NodeJS.Timeout>>({});
   const { isLoading: isLoadingAuth, session } = useAuth();
-  
-  useEffect(() => {
-    loadTasks();
-  }, []);
 
-  const loadTasks = async () => {
+  // Define loadTasks as a useCallback to fix the dependencies issue
+  const loadTasks = useCallback(async () => {
     if (isLoadingAuth || !session) return; // Prevent loading tasks if auth is still loading
     try {
       setIsLoading(true);
@@ -67,7 +66,11 @@ export default function TodoList() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isLoadingAuth, session, fetchTasks, setIsLoading]);
+
+  useEffect(() => {
+    loadTasks();
+  }, [loadTasks]); // Now loadTasks is properly memoized
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
@@ -80,35 +83,35 @@ export default function TodoList() {
       // Find the task that's being toggled
       const taskToUpdate = tasks.find(t => t.id === taskId);
       if (!taskToUpdate) return;
-      
+
       // Optimistically update the UI first
       setDisplayedTaskStates(prev => ({
         ...prev,
-        [taskId]: isDone
+        [taskId]: isDone,
       }));
-      
+
       // Set task as in transition state
       setTasksInTransition(prev => ({
         ...prev,
-        [taskId]: true
+        [taskId]: true,
       }));
-      
+
       // Clear any existing timeout for this task
       if (timeoutsRef.current[taskId]) {
         clearTimeout(timeoutsRef.current[taskId]);
       }
-      
+
       try {
         // Make the actual API request
         await updateTask(taskId, { is_done: isDone });
-        
+
         // Success: clear the transition state
         setTasksInTransition(prev => {
           const updated = { ...prev };
           delete updated[taskId];
           return updated;
         });
-        
+
         setDisplayedTaskStates(prev => {
           const updated = { ...prev };
           delete updated[taskId];
@@ -118,16 +121,16 @@ export default function TodoList() {
         // On error, revert the optimistic update
         setDisplayedTaskStates(prev => ({
           ...prev,
-          [taskId]: !isDone // Revert to the original state
+          [taskId]: !isDone, // Revert to the original state
         }));
-        
+
         // Clear the transition state
         setTasksInTransition(prev => {
           const updated = { ...prev };
           delete updated[taskId];
           return updated;
         });
-        
+
         // Alert the user about the error
         Alert.alert('Error', 'Failed to update task. Please try again.');
         console.error('Failed to update task:', error);
@@ -150,8 +153,8 @@ export default function TodoList() {
 
   const updateDueDate = async (taskId: number, date: Date) => {
     try {
-      await updateTask(taskId, { 
-        due_date: date.toString() 
+      await updateTask(taskId, {
+        due_date: date.toString(),
       });
       if (Platform.OS === 'android') {
         setShowDatePicker(null);
@@ -162,27 +165,6 @@ export default function TodoList() {
     }
   };
 
-  const formatDate = (date: string | null) => {
-    if (!date) return '';
-    return new Date(date).toLocaleDateString();
-  };
-
-  const isToday = (date: string) => {
-    const today = new Date();
-    const taskDate = new Date(date);
-    return taskDate.getDate() === today.getDate() &&
-      taskDate.getMonth() === today.getMonth() &&
-      taskDate.getFullYear() === today.getFullYear();
-  };
-
-  const isOverdue = (date: string) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const taskDate = new Date(date);
-    taskDate.setHours(0, 0, 0, 0);
-    return taskDate < today;
-  };
-
   const getMinDate = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -191,7 +173,7 @@ export default function TodoList() {
 
   const renderDatePicker = (item: Task) => {
     if (showDatePicker !== item.id.toString()) return null;
-    
+
     const defaultDate = item.due_date ? new Date(item.due_date) : new Date();
     defaultDate.setHours(0, 0, 0, 0);
 
@@ -213,28 +195,31 @@ export default function TodoList() {
             setTempDueDate(null);
           }}
         >
-          <Animated.View 
-            entering={SlideInDown} 
-            exiting={SlideOutDown} 
+          <Animated.View
+            entering={SlideInDown}
+            exiting={SlideOutDown}
             style={[
               styles.modalContent,
-              { backgroundColor: Colors[colorScheme ?? 'light'].background }
+              { backgroundColor: Colors[colorScheme ?? 'light'].background },
             ]}
           >
-            <View style={[
-              styles.modalHeader,
-              { borderBottomColor: Colors[colorScheme ?? 'light'].icon + '40' }
-            ]}>
-              <TouchableOpacity onPress={() => {
-                setShowDatePicker(null);
-                setTempDueDate(null);
-              }}>
-                <Text style={[
-                  styles.modalButton,
-                  { color: Colors[colorScheme ?? 'light'].tint }
-                ]}>Cancel</Text>
+            <View
+              style={[
+                styles.modalHeader,
+                { borderBottomColor: Colors[colorScheme ?? 'light'].icon + '40' },
+              ]}
+            >
+              <TouchableOpacity
+                onPress={() => {
+                  setShowDatePicker(null);
+                  setTempDueDate(null);
+                }}
+              >
+                <Text style={[styles.modalButton, { color: Colors[colorScheme ?? 'light'].tint }]}>
+                  Cancel
+                </Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => {
                   const dateToSave = tempDueDate || defaultDate;
                   updateDueDate(item.id, dateToSave);
@@ -242,86 +227,94 @@ export default function TodoList() {
                   setTempDueDate(null);
                 }}
               >
-                <Text style={[
-                  styles.modalButton, 
-                  styles.modalDoneButton, 
-                  { color: Colors[colorScheme ?? 'light'].tint }
-                ]}>Done</Text>
+                <Text
+                  style={[
+                    styles.modalButton,
+                    styles.modalDoneButton,
+                    { color: Colors[colorScheme ?? 'light'].tint },
+                  ]}
+                >
+                  Done
+                </Text>
               </TouchableOpacity>
             </View>
             <View style={styles.datePickerWrapper}>
               {Platform.OS === 'web' ? (
                 <DatePicker
                   style={{
-                    height: Platform.OS === 'web' ? 320 : 216, // Increased height for web to show all rows
-                    width: '100%',
-                    backgroundColor: colorScheme === 'dark' ? Colors.dark.background : '#fff'
+                    ...styles.webDatePicker,
+                    backgroundColor:
+                      colorScheme === 'dark' ? Colors.dark.background : Colors.light.background,
                   }}
                   date={tempDueDate ? tempDueDate : defaultDate}
                   mode="single"
-                  onChange={(params: any) => {
-                    console.log("Selected date:", params.date);
-                    setTempDueDate(params.date);
+                  onChange={(params: { date: DateType }) => {
+                    setTempDueDate(params.date as Date);
                   }}
                   styles={{
                     // Dark mode styles for the datepicker with more specific targeting
-                    ...(colorScheme === 'dark' ? {
-                      day: { 
-                        color: Colors.dark.white, 
-                        borderColor: Colors.dark.border
-                      },
-                      day_label: {
-                        color: Colors.dark.white
-                      },
-                      today: { 
-                        borderColor: Colors.dark.tint,
-                        color: Colors.dark.white
-                      },
-                      today_label: {
-                        color: Colors.dark.white
-                      },
-                      selected: { 
-                        backgroundColor: Colors.dark.tint,
-                        borderColor: Colors.dark.tint 
-                      },
-                      selected_label: { 
-                        color: Colors.dark.white 
-                      },
-                      header: { 
-                        color: Colors.dark.white, 
-                        backgroundColor: Colors.dark.background
-                      },
-                      month_label: { 
-                        color: Colors.dark.white
-                      },
-                      year: { 
-                        color: Colors.dark.white
-                      },
-                      month: { 
-                        backgroundColor: Colors.dark.background,
-                        borderColor: Colors.dark.border
-                      },
-                      year_label: {
-                        color: Colors.dark.white
-                      },
-                      month_selector_label: {
-                        color: Colors.dark.white
-                      },
-                      year_selector_label: {
-                        color: Colors.dark.white
-                      },
-                      weekdays: {
-                        backgroundColor: Colors.dark.background
-                      },
-                      weekday_label: { 
-                        color: Colors.dark.white
-                      },
-                    } : {
-                      // Light mode defaults
-                      calendar: { backgroundColor: Colors.light.background },
-                      today: { borderColor: Colors.light.tint },
-                      selected: { backgroundColor: Colors.light.tint, borderColor: Colors.light.tint },
-                    })
+                    ...(colorScheme === 'dark'
+                      ? {
+                          day: {
+                            color: Colors.dark.white,
+                            borderColor: Colors.dark.border,
+                          },
+                          day_label: {
+                            color: Colors.dark.white,
+                          },
+                          today: {
+                            borderColor: Colors.dark.tint,
+                            color: Colors.dark.white,
+                          },
+                          today_label: {
+                            color: Colors.dark.white,
+                          },
+                          selected: {
+                            backgroundColor: Colors.dark.tint,
+                            borderColor: Colors.dark.tint,
+                          },
+                          selected_label: {
+                            color: Colors.dark.white,
+                          },
+                          header: {
+                            color: Colors.dark.white,
+                            backgroundColor: Colors.dark.background,
+                          },
+                          month_label: {
+                            color: Colors.dark.white,
+                          },
+                          year: {
+                            color: Colors.dark.white,
+                          },
+                          month: {
+                            backgroundColor: Colors.dark.background,
+                            borderColor: Colors.dark.border,
+                          },
+                          year_label: {
+                            color: Colors.dark.white,
+                          },
+                          month_selector_label: {
+                            color: Colors.dark.white,
+                          },
+                          year_selector_label: {
+                            color: Colors.dark.white,
+                          },
+                          weekdays: {
+                            backgroundColor: Colors.dark.background,
+                          },
+                          weekday_label: {
+                            color: Colors.dark.white,
+                          },
+                        }
+                      : {
+                          // Light mode defaults
+                          calendar: { backgroundColor: Colors.light.background },
+                          today: { borderColor: Colors.light.tint },
+                          selected: {
+                            backgroundColor: Colors.light.tint,
+                            borderColor: Colors.light.tint,
+                          },
+                        }),
                   }}
                 />
               ) : (
@@ -333,7 +326,7 @@ export default function TodoList() {
                   minimumDate={getMinDate()}
                   onChange={(event, date) => {
                     if (event.type === 'set' && date) {
-                      console.log("Selected date:", date);
+                      console.log('Selected date:', date);
                       if (Platform.OS === 'android') {
                         updateDueDate(item.id, date);
                         setShowDatePicker(null);
@@ -343,8 +336,8 @@ export default function TodoList() {
                     }
                   }}
                   style={[
-                    styles.datePicker, 
-                    colorScheme === 'dark' ? { backgroundColor: Colors.dark.background } : {}
+                    styles.datePicker,
+                    colorScheme === 'dark' ? { backgroundColor: Colors.dark.background } : {},
                   ]}
                   themeVariant={colorScheme!}
                 />
@@ -358,7 +351,7 @@ export default function TodoList() {
 
   const categorizeTask = (task: Task): 'overdue' | 'today' | 'later' => {
     if (!task.due_date) return 'later';
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const taskDate = new Date(task.due_date);
@@ -373,7 +366,7 @@ export default function TodoList() {
     // Process tasks with their displayed state during transitions
     const processedTasks = tasks.map(task => ({
       ...task,
-      displayed_is_done: tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done
+      displayed_is_done: tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done,
     }));
 
     // Helper to check if a date is today
@@ -409,8 +402,8 @@ export default function TodoList() {
     const sortedTodayIncomplete = sortIncomplete(todayIncompleteTasks);
 
     // Sort Today's Complete Tasks by updated_at descending
-    const sortedTodayComplete = [...todayCompleteTasks].sort((a, b) =>
-      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    const sortedTodayComplete = [...todayCompleteTasks].sort(
+      (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
     );
 
     // Combine incomplete and complete for the 'Today' section
@@ -420,21 +413,21 @@ export default function TodoList() {
     const otherTasks = processedTasks.filter(task => !isTaskDueToday(task));
 
     // Overdue (Incomplete, Not Today)
-    const overdueTasks = otherTasks.filter(task =>
-      !task.displayed_is_done && categorizeTask(task) === 'overdue'
+    const overdueTasks = otherTasks.filter(
+      task => !task.displayed_is_done && categorizeTask(task) === 'overdue',
     );
     const sortedOverdue = sortIncomplete(overdueTasks);
 
     // Later (Incomplete, Not Today)
-    const laterTasks = otherTasks.filter(task =>
-      !task.displayed_is_done && categorizeTask(task) === 'later'
+    const laterTasks = otherTasks.filter(
+      task => !task.displayed_is_done && categorizeTask(task) === 'later',
     );
     const sortedLater = sortIncomplete(laterTasks);
 
     // Done (Complete, Not Today)
     const doneTasks = otherTasks.filter(task => task.displayed_is_done);
-    const sortedDone = [...doneTasks].sort((a, b) =>
-      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    const sortedDone = [...doneTasks].sort(
+      (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
     );
 
     // --- Construct Sections ---
@@ -443,15 +436,12 @@ export default function TodoList() {
       { title: 'Overdue', data: sortedOverdue },
       { title: 'Today', data: finalTodayTasks },
       { title: 'Later', data: sortedLater },
-      { title: 'Done', data: sortedDone }
+      { title: 'Done', data: sortedDone },
     ].filter(section => section.data.length > 0);
   };
 
   const renderRightActions = (taskId: number) => (
-    <TouchableOpacity 
-      onPress={() => handleDeleteTask(taskId)}
-      style={[styles.deleteButton]}
-    >
+    <TouchableOpacity onPress={() => handleDeleteTask(taskId)} style={styles.deleteButton}>
       <Text style={styles.deleteButtonText}>Delete</Text>
     </TouchableOpacity>
   );
@@ -465,40 +455,38 @@ export default function TodoList() {
   }
 
   return (
-    <SafeAreaView style={[
-      styles.container, 
-      { backgroundColor: Colors[colorScheme ?? 'light'].background }
-    ]}>
-      <HTMLTitle>My Task List</HTMLTitle>
-      <Stack.Screen 
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}
+    >
+      <HTMLTitle>
+        <Text>My Task List</Text>
+      </HTMLTitle>
+      <Stack.Screen
         options={{
-          headerRight: () => (
+          headerRight: () =>
             Platform.OS === 'web' ? (
-              <TouchableOpacity 
-                onPress={onRefresh} 
-                style={{ marginRight: 15 }} 
+              <TouchableOpacity
+                onPress={onRefresh}
+                style={styles.refreshButton}
                 disabled={refreshing} // Disable button while refreshing
               >
                 {refreshing ? (
                   <ActivityIndicator size="small" color="#ffffff" />
                 ) : (
-                  <Ionicons 
-                    name="refresh" 
-                    size={24} 
+                  <Ionicons
+                    name="refresh"
+                    size={24}
                     color="#ffffff" // Set color to white
                   />
                 )}
               </TouchableOpacity>
-            ) : null
-          ),
+            ) : null,
           // Ensure header background allows white icon visibility if needed
-          // headerStyle: { backgroundColor: '#some_dark_color' }, 
+          // headerStyle: { backgroundColor: '#some_dark_color' },
         }}
       />
       <SectionList
-        ListHeaderComponent={
-          <TaskInputHeader />
-        }
+        ListHeaderComponent={<TaskInputHeader />}
         // Use RefreshControl for native pull-to-refresh
         refreshControl={
           Platform.OS !== 'web' ? (
@@ -506,20 +494,20 @@ export default function TodoList() {
           ) : undefined // No RefreshControl on web
         }
         // Remove refreshing/onRefresh props from SectionList if using RefreshControl
-        // refreshing={refreshing || (isLoading && tasks.length > 0)} 
-        // onRefresh={onRefresh} 
+        // refreshing={refreshing || (isLoading && tasks.length > 0)}
+        // onRefresh={onRefresh}
         sections={getGroupedTasks()}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={item => item.id.toString()}
         renderSectionHeader={({ section: { title, data } }) => (
-          <Collapsible 
-            title={`${title} (${data.length})`} 
+          <Collapsible
+            title={`${title} (${data.length})`}
             defaultOpen={title !== 'Done'}
             titleStyle={{ color: Colors[colorScheme ?? 'light'].text }}
           >
             {data.map(item => (
-              <Swipeable 
+              <Swipeable
                 key={item.id}
-                renderRightActions={() => renderRightActions(item.id)} 
+                renderRightActions={() => renderRightActions(item.id)}
                 containerStyle={{}}
               >
                 <TaskItem
@@ -529,7 +517,7 @@ export default function TodoList() {
                   dueDate={item.due_date}
                   isInTransition={tasksInTransition[item.id]}
                   onToggleComplete={toggleTaskCompletion}
-                  onPressDate={(id) => setShowDatePicker(id.toString())}
+                  onPressDate={id => setShowDatePicker(id.toString())}
                 />
                 {renderDatePicker(item)}
               </Swipeable>
@@ -545,63 +533,68 @@ export default function TodoList() {
 
 const styles = StyleSheet.create({
   container: {
+    // We'll set the background color dynamically based on theme in the component
     flex: 1,
     padding: 16,
-    backgroundColor: '#fff',
   },
-  loadingContainer: {
-    justifyContent: 'center',
+  datePicker: {
+    // We'll set background color dynamically in the component
+    height: 216,
+    width: '100%', // Make date picker fill the screen width
+  },
+  datePickerWrapper: {
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: Platform.OS === 'web' ? 20 : 0,
+    width: '100%', // Add bottom padding on web
   },
   deleteButton: {
-    backgroundColor: 'red',
-    justifyContent: 'center',
     alignItems: 'center',
-    width: 80,
+    backgroundColor: Colors.light.danger, // Use theme color instead of hardcoded 'red'
     height: '100%',
+    justifyContent: 'center',
+    width: 80,
   },
   deleteButtonText: {
+    color: Colors.light.white, // Use theme color instead of hardcoded '#fff'
     fontSize: 16,
-    color: '#fff',
     fontWeight: 'bold',
     textAlign: 'center',
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'flex-end',
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalButton: {
+    // We'll set color dynamically in the component
+    fontSize: 16,
   },
   modalContent: {
-    backgroundColor: '#fff',
+    // We'll set background color dynamically in the component
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
     paddingBottom: Platform.OS === 'web' ? 40 : 20, // Increased padding for web
     width: '100%', // Ensure the modal content fills the screen width
   },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    width: '100%', // Ensure header spans the full width
-  },
-  modalButton: {
-    fontSize: 16,
-    color: '#007AFF',
-  },
   modalDoneButton: {
     fontWeight: '600',
   },
-  datePicker: {
-    height: 216,
-    backgroundColor: '#fff',
-    width: '100%', // Make date picker fill the screen width
+  modalHeader: {
+    // We'll set border color dynamically in the component
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 16,
+    width: '100%', // Ensure header spans the full width
   },
-  datePickerWrapper: {
+  modalOverlay: {
+    backgroundColor: Colors.common.overlayBackground, // Use theme color instead of rgba literal
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  refreshButton: { marginRight: 15 },
+  webDatePicker: {
+    height: 320,
     width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingBottom: Platform.OS === 'web' ? 20 : 0, // Add bottom padding on web
   },
 });

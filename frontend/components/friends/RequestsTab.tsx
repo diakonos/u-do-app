@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { StyleSheet, FlatList, ActivityIndicator, Alert, RefreshControl } from 'react-native';
+import { StyleSheet, FlatList, ActivityIndicator, Alert, RefreshControl, Text } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useFocusEffect } from 'expo-router';
@@ -12,13 +12,20 @@ export default function RequestsTab() {
   const borderColor = useThemeColor({}, 'border');
   const secondaryTextColor = useThemeColor({}, 'secondaryText');
   const dangerColor = useThemeColor({}, 'danger');
-  const { pendingRequests, fetchPendingRequests, acceptFriendRequest, rejectFriendRequest, isLoading, isPendingRequestsRefreshing } = useFriends();
+  const {
+    pendingRequests,
+    fetchPendingRequests,
+    acceptFriendRequest,
+    rejectFriendRequest,
+    isLoading,
+    isPendingRequestsRefreshing,
+  } = useFriends();
 
   // Fetch pending requests when screen is focused
   useFocusEffect(
     useCallback(() => {
       fetchPendingRequests();
-    }, [fetchPendingRequests])
+    }, [fetchPendingRequests]),
   );
 
   const onRefresh = useCallback(() => {
@@ -89,29 +96,35 @@ export default function RequestsTab() {
       renderItem={({ item }) => (
         <ThemedView style={requestItemStyle}>
           <ThemedView style={styles.requestInfo}>
-            <ThemedText style={styles.username}>{item.requester?.username || 'Unknown User'}</ThemedText>
+            <ThemedText style={styles.username}>
+              {item.requester?.username || 'Unknown User'}
+            </ThemedText>
             <ThemedText style={emailStyle}>{item.requester?.email || 'Unknown email'}</ThemedText>
           </ThemedView>
           <ThemedView style={styles.actionsContainer}>
             <ThemedView style={actionButtonStyle}>
-              <ThemedText style={styles.actionText} onPress={() => handleAccept(item.id)}>Accept</ThemedText>
+              <ThemedText style={styles.actionText} onPress={() => handleAccept(item.id)}>
+                <Text>Accept</Text>
+              </ThemedText>
             </ThemedView>
             <ThemedView style={rejectButtonStyle}>
-              <ThemedText style={rejectTextStyle} onPress={() => handleReject(item.id)}>Reject</ThemedText>
+              <ThemedText style={rejectTextStyle} onPress={() => handleReject(item.id)}>
+                <Text>Reject</Text>
+              </ThemedText>
             </ThemedView>
           </ThemedView>
         </ThemedView>
       )}
-      keyExtractor={(item) => item.id}
+      keyExtractor={item => item.id}
       style={styles.requestsList}
       contentContainerStyle={[
         styles.requestsContent,
-        pendingRequests.length === 0 && styles.emptyListContent
+        pendingRequests.length === 0 && styles.emptyListContent,
       ]}
       ListEmptyComponent={
         <ThemedView style={styles.emptyState}>
           <ThemedText style={emptyStateTextStyle}>
-            You don't have any pending friend requests
+            <Text>You don&apos;t have any pending friend requests</Text>
           </ThemedText>
         </ThemedView>
       }
@@ -128,62 +141,61 @@ export default function RequestsTab() {
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
+  actionButton: {
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
-  requestsList: {
-    flex: 1,
+  actionText: {
+    fontWeight: '500',
   },
-  requestsContent: {
+  actionsContainer: {
+    flexDirection: 'row',
     gap: 12,
-    padding: 16,
-  },
-  emptyListContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  requestItem: {
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 12,
-  },
-  requestInfo: {
-    marginBottom: 12,
-  },
-  username: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
+    justifyContent: 'flex-end',
   },
   email: {
     fontSize: 14,
   },
-  actionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
-  },
-  actionButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  actionText: {
-    color: 'white',
-    fontWeight: '500',
+  emptyListContent: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
   },
   emptyState: {
-    flex: 1,
     alignItems: 'center',
+    flex: 1,
     justifyContent: 'center',
   },
   emptyStateText: {
     fontSize: 16,
     textAlign: 'center',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+    padding: 24,
+  },
+  requestInfo: {
+    marginBottom: 12,
+  },
+  requestItem: {
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+    padding: 16,
+  },
+  requestsContent: {
+    gap: 12,
+    padding: 16,
+  },
+  requestsList: {
+    flex: 1,
+  },
+  username: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
   },
 });
