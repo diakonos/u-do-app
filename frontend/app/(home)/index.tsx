@@ -77,10 +77,15 @@ export default function TodoList() {
 
   const toggleTaskCompletion = async (taskId: number, isDone: boolean) => {
     try {
-      // Clear any existing timeout for this task
-      if (timeoutsRef.current[taskId]) {
-        clearTimeout(timeoutsRef.current[taskId]);
-      }
+      // Find the task that's being toggled
+      const taskToUpdate = tasks.find(t => t.id === taskId);
+      if (!taskToUpdate) return;
+      
+      // Optimistically update the UI first
+      setDisplayedTaskStates(prev => ({
+        ...prev,
+        [taskId]: isDone
+      }));
       
       // Set task as in transition state
       setTasksInTransition(prev => ({
@@ -88,37 +93,45 @@ export default function TodoList() {
         [taskId]: true
       }));
       
-      // Store the current displayed state (pre-transition)
-      const task = tasks.find(t => t.id === taskId);
-      if (task) {
-        setDisplayedTaskStates(prev => ({
-          ...prev,
-          [taskId]: task.is_done
-        }));
+      // Clear any existing timeout for this task
+      if (timeoutsRef.current[taskId]) {
+        clearTimeout(timeoutsRef.current[taskId]);
       }
       
-      // Add a 3-second delay before finalizing the change
-      timeoutsRef.current[taskId] = setTimeout(async () => {
-        try {
-          await updateTask(taskId, { is_done: isDone });
-          
-          // Remove task from transition state and displayed state tracking
-          setTasksInTransition(prev => {
-            const updated = { ...prev };
-            delete updated[taskId];
-            return updated;
-          });
-          
-          setDisplayedTaskStates(prev => {
-            const updated = { ...prev };
-            delete updated[taskId];
-            return updated;
-          });
-        } catch (error) {
-          Alert.alert('Error', 'Failed to update task');
-          console.error('Failed to update task:', error);
-        }
-      }, 3000);
+      try {
+        // Make the actual API request
+        await updateTask(taskId, { is_done: isDone });
+        
+        // Success: clear the transition state
+        setTasksInTransition(prev => {
+          const updated = { ...prev };
+          delete updated[taskId];
+          return updated;
+        });
+        
+        setDisplayedTaskStates(prev => {
+          const updated = { ...prev };
+          delete updated[taskId];
+          return updated;
+        });
+      } catch (error) {
+        // On error, revert the optimistic update
+        setDisplayedTaskStates(prev => ({
+          ...prev,
+          [taskId]: !isDone // Revert to the original state
+        }));
+        
+        // Clear the transition state
+        setTasksInTransition(prev => {
+          const updated = { ...prev };
+          delete updated[taskId];
+          return updated;
+        });
+        
+        // Alert the user about the error
+        Alert.alert('Error', 'Failed to update task. Please try again.');
+        console.error('Failed to update task:', error);
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to update task');
       console.error('Failed to update task:', error);

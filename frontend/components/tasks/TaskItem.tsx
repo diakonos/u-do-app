@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
-  TouchableOpacity, 
-  Platform,
-  useColorScheme
+  TouchableOpacity,
+  useColorScheme,
+  ActivityIndicator
 } from 'react-native';
 import { Colors } from '@/constants/Colors';
 
@@ -68,13 +68,22 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             { borderColor: Colors[colorScheme ?? 'light'].icon },
             isInTransition && { borderColor: Colors[colorScheme ?? 'light'].tint }
           ]}
-          onPress={() => onToggleComplete && onToggleComplete(id, !isDone)}
-          activeOpacity={readOnly ? 1 : 0.2}
+          onPress={() => !isInTransition && onToggleComplete && onToggleComplete(id, !isDone)}
+          activeOpacity={readOnly || isInTransition ? 1 : 0.2}
+          disabled={isInTransition || readOnly}
         >
-          <View style={[
-            styles.checkboxInner, 
-            isDone && { backgroundColor: Colors[colorScheme ?? 'light'].icon }
-          ]} />
+          {isInTransition ? (
+            <ActivityIndicator 
+              size="small" 
+              color={Colors[colorScheme ?? 'light'].tint} 
+              style={styles.spinner}
+            />
+          ) : (
+            <View style={[
+              styles.checkboxInner, 
+              isDone && { backgroundColor: Colors[colorScheme ?? 'light'].icon }
+            ]} />
+          )}
         </TouchableOpacity>
         <View style={styles.taskContent}>
           <Text style={[
@@ -111,10 +120,12 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                     { backgroundColor: Colors[colorScheme ?? 'light'].background === '#fff' ? '#f0f0f0' : '#2A2D2E' }
                   ]}
                   onPress={() => onPressDate(id)}
+                  disabled={isInTransition}
                 >
                   <Text style={[
                     styles.dateButtonText,
-                    { color: Colors[colorScheme ?? 'light'].icon }
+                    { color: Colors[colorScheme ?? 'light'].icon },
+                    isInTransition && { opacity: 0.5 }
                   ]}>
                     {dueDate ? 'Change Date' : 'Add Due Date'}
                   </Text>
@@ -170,6 +181,10 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
     backgroundColor: 'transparent',
+  },
+  spinner: {
+    width: 14,
+    height: 14,
   },
   taskContent: {
     flex: 1,
