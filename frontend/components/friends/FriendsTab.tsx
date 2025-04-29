@@ -68,9 +68,6 @@ export default function FriendsTab() {
           <ThemedView style={friendItemStyle}>
             <ThemedView style={styles.friendInfo}>
               <ThemedText style={styles.username}>{item.username}</ThemedText>
-              <ThemedText style={friendSinceStyle}>
-                Friends since {new Date(item.created_at).toLocaleDateString()}
-              </ThemedText>
             </ThemedView>
           </ThemedView>
         </TouchableOpacity>
