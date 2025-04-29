@@ -5,6 +5,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { useFocusEffect } from 'expo-router';
 import { useFriends } from '@/lib/context/friends';
 import { useThemeColor } from '@/hooks/useThemeColor';
+import { Colors } from '@/constants/Colors';
 
 export default function RequestsTab() {
   const textColor = useThemeColor({}, 'text');
@@ -148,6 +149,7 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontWeight: '500',
+    color: Colors.light.white,
   },
   actionsContainer: {
     flexDirection: 'row',
