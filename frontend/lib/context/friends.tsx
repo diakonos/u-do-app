@@ -190,31 +190,6 @@ export function FriendsProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Set up real-time subscriptions
-  useEffect(() => {
-    let unsubscribe: () => void;
-    
-    const setupSubscription = async () => {
-      try {
-        unsubscribe = await FriendsService.subscribeToFriendRequestChanges(() => {
-          // Refresh data when changes occur
-          fetchFriends(true);
-          fetchPendingRequests();
-        });
-      } catch (error) {
-        console.error('Failed to set up subscription:', error);
-      }
-    };
-
-    setupSubscription();
-
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
-  }, [fetchFriends, fetchPendingRequests]);
-
   return (
     <FriendsContext.Provider value={{ 
       friends, 

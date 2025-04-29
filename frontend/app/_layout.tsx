@@ -52,6 +52,8 @@ function InitialLayout() {
         router.replace('/auth');
       }
     }
+
+    SplashScreen.hideAsync(); // Hide the splash screen after routing logic is complete
   }, [session, segments, isLoading, router]);
 
   if (isLoading) {

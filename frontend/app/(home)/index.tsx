@@ -10,8 +10,8 @@ import {
   SectionList,
   Alert,
   ActivityIndicator,
-  RefreshControl,
-  useColorScheme
+  useColorScheme,
+  RefreshControl // Import RefreshControl if needed elsewhere, or just TouchableOpacity
 } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -23,6 +23,9 @@ import { TaskItem } from '@/components/tasks/TaskItem';
 import { useTask } from '@/lib/context/task';
 import { Colors } from '@/constants/Colors';
 import { HTMLTitle } from '@/components/HTMLTitle';
+import { useAuth } from '@/lib/context/auth';
+import { Stack } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons'; // Import an icon library
 
 interface Task {
   id: number;
@@ -47,12 +50,14 @@ export default function TodoList() {
   const [displayedTaskStates, setDisplayedTaskStates] = useState<Record<number, boolean>>({});
   const { tasks, fetchTasks, updateTask, deleteTask } = useTask();
   const timeoutsRef = useRef<Record<number, NodeJS.Timeout>>({});
+  const { isLoading: isLoadingAuth, session } = useAuth();
   
   useEffect(() => {
     loadTasks();
   }, []);
 
   const loadTasks = async () => {
+    if (isLoadingAuth || !session) return; // Prevent loading tasks if auth is still loading
     try {
       setIsLoading(true);
       await fetchTasks();
@@ -68,9 +73,7 @@ export default function TodoList() {
     setRefreshing(true);
     await loadTasks();
     setRefreshing(false);
-  }, []);
-
-  
+  }, [loadTasks]); // Added loadTasks dependency
 
   const toggleTaskCompletion = async (taskId: number, isDone: boolean) => {
     try {
@@ -431,10 +434,6 @@ export default function TodoList() {
     ].filter(section => section.data.length > 0);
   };
 
-  const toggleSortBy = () => {
-    setSortBy(current => current === 'dueDate' ? 'creationDate' : 'dueDate');
-  };
-
   const renderRightActions = (taskId: number) => (
     <TouchableOpacity 
       onPress={() => handleDeleteTask(taskId)}
@@ -458,13 +457,44 @@ export default function TodoList() {
       { backgroundColor: Colors[colorScheme ?? 'light'].background }
     ]}>
       <HTMLTitle>My Task List</HTMLTitle>
+      <Stack.Screen 
+        options={{
+          headerRight: () => (
+            Platform.OS === 'web' ? (
+              <TouchableOpacity 
+                onPress={onRefresh} 
+                style={{ marginRight: 15 }} 
+                disabled={refreshing} // Disable button while refreshing
+              >
+                {refreshing ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Ionicons 
+                    name="refresh" 
+                    size={24} 
+                    color="#ffffff" // Set color to white
+                  />
+                )}
+              </TouchableOpacity>
+            ) : null
+          ),
+          // Ensure header background allows white icon visibility if needed
+          // headerStyle: { backgroundColor: '#some_dark_color' }, 
+        }}
+      />
       <SectionList
         ListHeaderComponent={
           <TaskInputHeader />
         }
+        // Use RefreshControl for native pull-to-refresh
         refreshControl={
-          <RefreshControl refreshing={refreshing || (isLoading && tasks.length > 0)} onRefresh={onRefresh} />
+          Platform.OS !== 'web' ? (
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          ) : undefined // No RefreshControl on web
         }
+        // Remove refreshing/onRefresh props from SectionList if using RefreshControl
+        // refreshing={refreshing || (isLoading && tasks.length > 0)} 
+        // onRefresh={onRefresh} 
         sections={getGroupedTasks()}
         keyExtractor={(item) => item.id.toString()}
         renderSectionHeader={({ section: { title, data } }) => (
