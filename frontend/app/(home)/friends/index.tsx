@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Platform,
-  Text,
 } from 'react-native';
 import { ThemedView } from '@/components/ThemedView';
 import SegmentedControl from '@react-native-segmented-control/segmented-control';
@@ -15,7 +14,7 @@ import RequestsTab from '@/components/friends/RequestsTab';
 import SearchTab from '@/components/friends/SearchTab';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { HTMLTitle } from '@/components/HTMLTitle';
-import { useNavigation } from 'expo-router';
+import { Stack, useNavigation } from 'expo-router';
 import { useFriends } from '@/lib/context/friends';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
@@ -84,9 +83,9 @@ export default function FriendsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <HTMLTitle>
-        <Text>Friends</Text>
-      </HTMLTitle>
+      <Stack.Screen options={{ title: 'Friends' }} />
+      {/* eslint-disable-next-line react-native/no-raw-text */}
+      <HTMLTitle>Friends</HTMLTitle>
       <ThemedView style={styles.container}>
         <SegmentedControl
           values={['My Friends', 'Search', 'Requests']}

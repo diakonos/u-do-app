@@ -44,18 +44,24 @@ export default function TabLayout() {
         }}
       >
         <Tabs.Screen
+          name="today"
+          options={{
+            title: 'Today',
+            tabBarIcon: ({ color }) => <IconSymbol size={28} name="calendar" color={color} />,
+          }}
+        />
+        <Tabs.Screen
           name="index"
           options={{
-            title: 'My List',
-            headerTitle: 'My List',
+            title: 'Tasks',
             tabBarIcon: ({ color }) => <IconSymbol size={28} name="list.bullet" color={color} />,
           }}
         />
         <Tabs.Screen
           name="friends"
           options={{
-            title: 'Friends',
             headerShown: false,
+            title: 'Friends',
             tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.2.fill" color={color} />,
           }}
         />
@@ -63,7 +69,6 @@ export default function TabLayout() {
           name="settings"
           options={{
             title: 'Settings',
-            headerTitle: 'Settings',
             tabBarIcon: ({ color }) => <IconSymbol size={28} name="gear" color={color} />,
           }}
         />

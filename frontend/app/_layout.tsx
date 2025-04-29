@@ -11,6 +11,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { AuthProvider, useAuth } from '@/lib/context/auth';
 import { TaskProvider } from '@/lib/context/task';
 import { FriendsProvider } from '@/lib/context/friends';
+import { DashboardProvider } from '@/lib/context/dashboard';
 import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
@@ -88,7 +89,9 @@ export default Sentry.wrap(function RootLayout() {
       <AuthProvider>
         <TaskProvider>
           <FriendsProvider>
-            <InitialLayout />
+            <DashboardProvider>
+              <InitialLayout />
+            </DashboardProvider>
           </FriendsProvider>
         </TaskProvider>
       </AuthProvider>

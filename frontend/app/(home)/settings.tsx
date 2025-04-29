@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { StyleSheet, SafeAreaView, ScrollView, Text } from 'react-native';
 import { User } from '@supabase/supabase-js';
 import { Colors } from '@/constants/Colors';
@@ -60,9 +60,9 @@ function ProfileInfo() {
 
   return (
     <ThemedView style={styles.profileContainer}>
-      <HTMLTitle>
-        <Text>Settings</Text>
-      </HTMLTitle>
+      <Stack.Screen options={{ headerTitle: 'Settings' }} />
+      {/* eslint-disable-next-line react-native/no-raw-text */}
+      <HTMLTitle>Settings</HTMLTitle>
       <ThemedText>
         <Text>Email: {user?.email}</Text>
       </ThemedText>
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   logoutButton: {
-    color: Colors.light.error, // Using theme color instead of hard-coded color literal
+    color: Colors.light.danger,
     fontSize: 16,
     fontWeight: '600',
     marginTop: 24,

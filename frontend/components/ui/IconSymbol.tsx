@@ -15,6 +15,7 @@ const MAPPING = {
   'chevron.right': 'chevron-right',
   'list.bullet': 'format-list-bulleted',
   'person.2.fill': 'people',
+  calendar: 'calendar-today',
   gear: 'settings',
 } as Partial<
   Record<

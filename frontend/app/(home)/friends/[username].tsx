@@ -1,10 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, FlatList, Alert, ActivityIndicator, Text } from 'react-native';
+import {
+  StyleSheet,
+  FlatList,
+  Alert,
+  ActivityIndicator,
+  Text,
+  TouchableOpacity,
+} from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { useFriends, FriendTask } from '@/lib/context/friends';
+import { useDashboard } from '@/lib/context/dashboard';
 import { HTMLTitle } from '@/components/HTMLTitle';
 import { TaskItem } from '@/components/tasks/TaskItem';
 
@@ -12,8 +20,22 @@ export default function FriendTasksScreen() {
   const { username } = useLocalSearchParams();
   const [todayTasks, setTodayTasks] = useState<FriendTask[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isPinned, setIsPinned] = useState(false);
+  const [isTogglingPin, setIsTogglingPin] = useState(false);
+
   const secondaryTextColor = useThemeColor({}, 'secondaryText');
+  const whiteColor = useThemeColor({}, 'white');
+  const brandColor = useThemeColor({}, 'brand');
+  const tintColor = useThemeColor({}, 'tint');
+
   const { getFriendTasks } = useFriends();
+  const {
+    dashboardConfigs,
+    loadDashboardConfig,
+    checkIfConfigExists,
+    createDashboardConfig,
+    deleteDashboardConfig,
+  } = useDashboard();
 
   const fetchFriendTasks = useCallback(async () => {
     if (!username) return;
@@ -50,12 +72,45 @@ export default function FriendTasksScreen() {
     }
   }, [username, getFriendTasks]);
 
+  // Check if this friend is pinned to dashboard
+  useEffect(() => {
+    if (!username || dashboardConfigs.length === 0) return;
+
+    const isPinnedToToday = checkIfConfigExists('friend_tasks', username.toString());
+    setIsPinned(isPinnedToToday);
+  }, [username, dashboardConfigs, checkIfConfigExists]);
+
   // Fetch tasks when screen loads
   useEffect(() => {
     if (username) {
       fetchFriendTasks();
+      loadDashboardConfig(); // Load dashboard configs to check if this friend is pinned
     }
-  }, [username, fetchFriendTasks]);
+  }, [username, fetchFriendTasks, loadDashboardConfig]);
+
+  // Handle pin/unpin action
+  const togglePinToToday = async () => {
+    if (!username) return;
+
+    try {
+      setIsTogglingPin(true);
+
+      if (isPinned) {
+        // Unpin - delete the config
+        await deleteDashboardConfig('friend_tasks', username.toString());
+        setIsPinned(false);
+      } else {
+        // Pin - create the config
+        await createDashboardConfig('friend_tasks', username.toString());
+        setIsPinned(true);
+      }
+    } catch (error) {
+      console.error('Error toggling pin status:', error);
+      Alert.alert('Error', 'Failed to update dashboard configuration');
+    } finally {
+      setIsTogglingPin(false);
+    }
+  };
 
   const onRefresh = useCallback(() => {
     fetchFriendTasks();
@@ -70,6 +125,21 @@ export default function FriendTasksScreen() {
         options={{
           title: username ? `${username}\'s tasks` : "Friend's Tasks",
           headerBackTitle: 'Friends',
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={togglePinToToday}
+              disabled={isTogglingPin}
+              style={[styles.pinButton, { backgroundColor: isPinned ? brandColor : tintColor }]}
+            >
+              {isTogglingPin ? (
+                <ActivityIndicator size="small" color={whiteColor} />
+              ) : (
+                <Text style={[styles.pinButtonText, { color: whiteColor }]}>
+                  {isPinned ? 'Pinned to Today' : 'Pin to Today'}
+                </Text>
+              )}
+            </TouchableOpacity>
+          ),
         }}
       />
 
@@ -126,6 +196,15 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontSize: 16,
     textAlign: 'center',
+  },
+  pinButton: {
+    borderRadius: 4,
+    marginRight: 8,
+    padding: 8,
+  },
+  pinButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   tasksContent: {
     gap: 12,
