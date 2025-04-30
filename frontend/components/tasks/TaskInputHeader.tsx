@@ -2,16 +2,14 @@ import React, { useRef, useState } from 'react';
 import {
   View,
   TextInput,
-  TouchableOpacity,
-  Text,
   StyleSheet,
   useColorScheme,
   Alert,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { Colors } from '@/constants/Colors';
 import { useTask } from '@/lib/context/task';
-import { ThemedInput } from '@/components/ThemedInput';
 
 // Using type instead of empty interface
 type TaskInputHeaderProps = Record<string, never>;
@@ -41,60 +39,75 @@ export const TaskInputHeader: React.FC<TaskInputHeaderProps> = () => {
   };
 
   return (
-    <View style={styles.listHeader}>
-      <ThemedInput
-        ref={input}
-        style={styles.input}
-        placeholder="Enter task name"
-        defaultValue={taskName}
-        onChangeText={text => {
-          setTaskName(text);
-        }}
-        onSubmitEditing={addTask}
-        key="task-input"
-        lightBorderColor={Colors.light.icon}
-        darkBorderColor={Colors.dark.icon}
-      />
-      <View style={styles.buttonContainer}>
+    <View>
+      <View style={styles.inputContainer}>
+        {/* Empty checkbox to match task item appearance */}
         <TouchableOpacity
-          style={[styles.addButton, { backgroundColor: Colors[colorScheme!].brand }]}
-          onPress={addTask}
+          style={[styles.checkbox, { borderColor: Colors[colorScheme!].icon }]}
+          activeOpacity={1}
+          disabled={true}
         >
-          {isLoading ? (
-            <ActivityIndicator color={Colors[colorScheme!].white} />
-          ) : (
-            <Text style={styles.addButtonText}>Add Task</Text>
-          )}
+          <View style={styles.checkboxInner} />
         </TouchableOpacity>
+
+        {isLoading && (
+          <ActivityIndicator
+            size="small"
+            color={Colors[colorScheme!].icon}
+            style={styles.loadingIndicator}
+          />
+        )}
+        <TextInput
+          ref={input}
+          style={[
+            styles.input,
+            {
+              color: Colors[colorScheme!].text,
+            },
+          ]}
+          placeholder="New task"
+          placeholderTextColor={Colors[colorScheme!].icon}
+          defaultValue={taskName}
+          onChangeText={text => {
+            setTaskName(text);
+          }}
+          onSubmitEditing={addTask}
+          key="task-input"
+        />
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  addButton: {
+  checkbox: {
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: 0,
+    borderWidth: 2,
+    height: 24,
     justifyContent: 'center',
-    paddingVertical: 12,
+    marginRight: 20,
+    width: 24,
   },
-  addButtonText: {
-    color: Colors.light.white, // Replace the hardcoded color with a theme color
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  buttonContainer: {
-    marginBottom: 16,
-    marginHorizontal: 16,
+  checkboxInner: {
+    borderRadius: 0,
+    height: 24,
+    width: 24,
   },
   input: {
+    flex: 1,
+    fontSize: 16,
     height: 40,
-    marginBottom: 8,
-    marginHorizontal: 16,
-    padding: 8,
+    // @ts-expect-error Property is valid
+    outlineStyle: 'none',
+    paddingRight: 8,
   },
-  listHeader: {
-    marginTop: 8,
-    paddingTop: 16,
+  inputContainer: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+  },
+  loadingIndicator: {
+    marginRight: 8,
   },
 });

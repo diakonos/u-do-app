@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     width: 14,
   },
   taskContainer: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 16, // Increased from 12 to add more left padding
     paddingVertical: 8,
     // backgroundColor and borderBottomColor will be set dynamically
   },

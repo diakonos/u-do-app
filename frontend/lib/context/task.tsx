@@ -1,7 +1,7 @@
 import { createContext, useContext, useCallback, useState } from 'react';
 import { supabase } from '../supabase';
 
-type Task = {
+export type Task = {
   id: number;
   task_name: string;
   due_date: string;
