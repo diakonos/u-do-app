@@ -1,13 +1,5 @@
 import React, { useState, useRef } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  TouchableOpacity,
-  useColorScheme,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, useColorScheme } from 'react-native';
 import { Colors } from '@/constants/Colors';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 
@@ -22,6 +14,7 @@ interface TaskItemProps {
   readOnly?: boolean;
   hideDueDate?: boolean;
   onUpdateTaskName?: (id: number, newTaskName: string) => void;
+  onDeleteTask?: (id: number) => void; // Add new prop for deleting tasks
 }
 
 export const TaskItem: React.FC<TaskItemProps> = ({
@@ -35,6 +28,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   readOnly = false,
   hideDueDate = false,
   onUpdateTaskName,
+  onDeleteTask,
 }) => {
   const colorScheme = useColorScheme();
   const [isEditing, setIsEditing] = useState(false);
@@ -75,11 +69,26 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   };
 
   const handleSaveEdit = () => {
-    if (!onUpdateTaskName || editValue.trim() === '') return;
+    // Exit editing mode
     setIsEditing(false);
-    if (editValue !== taskName) {
-      onUpdateTaskName(id, editValue.trim());
+
+    // If no handlers are available, just exit
+    if (!onUpdateTaskName) return;
+
+    // Get the trimmed value
+    const trimmedValue = editValue.trim();
+
+    // If the value is empty and we have a delete handler, delete the task
+    if (trimmedValue === '' && onDeleteTask) {
+      onDeleteTask(id);
+      return;
     }
+
+    // Don't do an update if the value is empty or unchanged
+    if (trimmedValue === '' || trimmedValue === taskName) return;
+
+    // Update the task name
+    onUpdateTaskName(id, trimmedValue);
   };
 
   return (
@@ -90,35 +99,24 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           backgroundColor: Colors[colorScheme ?? 'light'].background,
           borderBottomColor: Colors[colorScheme ?? 'light'].icon + '40',
         },
+        isInTransition && styles.taskInTransition,
       ]}
     >
       <View style={styles.taskHeader}>
         <TouchableOpacity
-          style={[
-            styles.checkbox,
-            { borderColor: Colors[colorScheme ?? 'light'].icon },
-            isInTransition && { borderColor: Colors[colorScheme ?? 'light'].tint },
-          ]}
+          style={[styles.checkbox, { borderColor: Colors[colorScheme ?? 'light'].icon }]}
           onPress={() => !isInTransition && onToggleComplete && onToggleComplete(id, !isDone)}
           activeOpacity={readOnly || isInTransition ? 1 : 0.2}
           disabled={isInTransition || readOnly}
         >
-          {isInTransition ? (
-            <ActivityIndicator
-              size="small"
-              color={Colors[colorScheme ?? 'light'].tint}
-              style={styles.spinner}
-            />
-          ) : (
-            <View
-              style={[
-                styles.checkboxInner,
-                isDone && { backgroundColor: Colors[colorScheme ?? 'light'].success },
-              ]}
-            >
-              {isDone && <IconSymbol name="checkmark" size={24} color="white" />}
-            </View>
-          )}
+          <View
+            style={[
+              styles.checkboxInner,
+              isDone && { backgroundColor: Colors[colorScheme ?? 'light'].success },
+            ]}
+          >
+            {isDone && <IconSymbol name="checkmark" size={24} color="white" />}
+          </View>
         </TouchableOpacity>
         <View style={styles.taskContent}>
           {isEditing ? (
@@ -247,10 +245,6 @@ const styles = StyleSheet.create({
   overdueDate: {
     // color will be set to error color dynamically
   },
-  spinner: {
-    height: 14,
-    width: 14,
-  },
   taskContainer: {
     paddingHorizontal: 16, // Increased from 12 to add more left padding
   },
@@ -260,6 +254,9 @@ const styles = StyleSheet.create({
   taskHeader: {
     alignItems: 'center',
     flexDirection: 'row',
+  },
+  taskInTransition: {
+    opacity: 0.7,
   },
   taskInput: {
     fontSize: 16,

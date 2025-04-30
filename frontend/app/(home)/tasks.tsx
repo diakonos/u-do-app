@@ -33,6 +33,8 @@ export default function TodoList() {
   const [displayedTaskStates, setDisplayedTaskStates] = useState<Record<number, boolean>>({});
   // Track task names during editing
   const [displayedTaskNames, setDisplayedTaskNames] = useState<Record<number, string>>({});
+  // Track tasks being deleted optimistically
+  const [tasksBeingDeleted, setTasksBeingDeleted] = useState<Record<number, boolean>>({});
   // Add state for tracking collapsed sections - Done section starts collapsed by default
   const [isDoneSectionCollapsed, setIsDoneSectionCollapsed] = useState(true);
   const { tasks, fetchTasks, updateTask, deleteTask } = useTask();
@@ -195,7 +197,38 @@ export default function TodoList() {
 
   const handleDeleteTask = async (taskId: number) => {
     try {
-      await deleteTask(taskId);
+      // Find the task being deleted
+      const taskToDelete = tasks.find(t => t.id === taskId);
+      if (!taskToDelete) return;
+
+      // Mark the task as being deleted optimistically
+      setTasksBeingDeleted(prev => ({
+        ...prev,
+        [taskId]: true,
+      }));
+
+      try {
+        // Make the actual API request
+        await deleteTask(taskId);
+
+        // Success: remove from the deleted tasks tracking
+        setTasksBeingDeleted(prev => {
+          const updated = { ...prev };
+          delete updated[taskId];
+          return updated;
+        });
+      } catch (error) {
+        // On error, revert the optimistic deletion
+        setTasksBeingDeleted(prev => {
+          const updated = { ...prev };
+          delete updated[taskId];
+          return updated;
+        });
+
+        // Alert the user about the error
+        Alert.alert('Error', 'Failed to delete task. Please try again.');
+        console.error('Failed to delete task:', error);
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to delete task');
       console.error('Failed to delete task:', error);
@@ -210,6 +243,9 @@ export default function TodoList() {
 
     // Filter out tasks with future due dates first
     const filteredTasks = tasks.filter(task => {
+      // Skip tasks being deleted optimistically
+      if (tasksBeingDeleted[task.id]) return false;
+
       // Include tasks with no due date or due date today or in the past
       if (!task.due_date) return true;
 
@@ -264,6 +300,7 @@ export default function TodoList() {
           isInTransition={tasksInTransition[item.id]}
           onToggleComplete={toggleTaskCompletion}
           onUpdateTaskName={handleUpdateTaskName}
+          onDeleteTask={handleDeleteTask}
           hideDueDate={true}
         />
       </Swipeable>

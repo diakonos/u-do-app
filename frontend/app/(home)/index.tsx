@@ -62,6 +62,8 @@ export default function TodayTasksList() {
   const [displayedTaskStates, setDisplayedTaskStates] = useState<Record<number, boolean>>({});
   // Track task names during editing
   const [displayedTaskNames, setDisplayedTaskNames] = useState<Record<number, string>>({});
+  // Track tasks being deleted optimistically
+  const [tasksBeingDeleted, setTasksBeingDeleted] = useState<Record<number, boolean>>({});
   const { tasks, fetchTasks, updateTask, deleteTask } = useTask();
   const timeoutsRef = useRef<Record<number, NodeJS.Timeout>>({});
   const { isLoading: isLoadingAuth, session } = useAuth();
@@ -253,7 +255,38 @@ export default function TodayTasksList() {
 
   const handleDeleteTask = async (taskId: number) => {
     try {
-      await deleteTask(taskId);
+      // Find the task being deleted
+      const taskToDelete = tasks.find(t => t.id === taskId);
+      if (!taskToDelete) return;
+
+      // Mark the task as being deleted optimistically
+      setTasksBeingDeleted(prev => ({
+        ...prev,
+        [taskId]: true,
+      }));
+
+      try {
+        // Make the actual API request
+        await deleteTask(taskId);
+
+        // Success: remove from the deleted tasks tracking
+        setTasksBeingDeleted(prev => {
+          const updated = { ...prev };
+          delete updated[taskId];
+          return updated;
+        });
+      } catch (error) {
+        // On error, revert the optimistic deletion
+        setTasksBeingDeleted(prev => {
+          const updated = { ...prev };
+          delete updated[taskId];
+          return updated;
+        });
+
+        // Alert the user about the error
+        Alert.alert('Error', 'Failed to delete task. Please try again.');
+        console.error('Failed to delete task:', error);
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to delete task');
       console.error('Failed to delete task:', error);
@@ -273,10 +306,8 @@ export default function TodayTasksList() {
   // Get tasks due today and sort them appropriately
   const getTodayTasks = () => {
     // Get all tasks due today
-    const todayTasks = tasks.filter(isTaskDueToday);
-
-    // Sort tasks: incomplete first, then by creation date
-    return todayTasks
+    const todayTasks = tasks
+      .filter(task => !tasksBeingDeleted[task.id] && isTaskDueToday(task))
       .sort((a, b) => {
         // First, group by completion status (incomplete first)
         const aIsDone = tasksInTransition[a.id] ? displayedTaskStates[a.id] : a.is_done;
@@ -298,6 +329,8 @@ export default function TodayTasksList() {
         ...task,
         task_name: displayedTaskNames[task.id] || task.task_name,
       }));
+
+    return todayTasks;
   };
 
   // Render the delete action when swiping a task to the right
@@ -381,7 +414,9 @@ export default function TodayTasksList() {
                 dueDate={task.due_date}
                 isInTransition={tasksInTransition[task.id]}
                 onToggleComplete={toggleTaskCompletion}
-                readOnly={true}
+                onUpdateTaskName={handleUpdateTaskName}
+                onDeleteTask={handleDeleteTask}
+                readOnly={false}
                 hideDueDate={true}
               />
             ))}
@@ -450,6 +485,7 @@ export default function TodayTasksList() {
               isInTransition={tasksInTransition[item.id]}
               onToggleComplete={toggleTaskCompletion}
               onUpdateTaskName={handleUpdateTaskName}
+              onDeleteTask={handleDeleteTask}
               readOnly={false}
               hideDueDate={true}
             />
