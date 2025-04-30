@@ -305,32 +305,24 @@ export default function TodayTasksList() {
 
   // Get tasks due today and sort them appropriately
   const getTodayTasks = () => {
-    // Get all tasks due today
-    const todayTasks = tasks
-      .filter(task => !tasksBeingDeleted[task.id] && isTaskDueToday(task))
+    // Get all incomplete tasks
+    const incompleteTasks = tasks
+      .filter(
+        task =>
+          !tasksBeingDeleted[task.id] &&
+          // Check if task is incomplete (considering transition state)
+          !(tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done),
+      )
       .sort((a, b) => {
-        // First, group by completion status (incomplete first)
-        const aIsDone = tasksInTransition[a.id] ? displayedTaskStates[a.id] : a.is_done;
-        const bIsDone = tasksInTransition[b.id] ? displayedTaskStates[b.id] : b.is_done;
-
-        if (aIsDone !== bIsDone) {
-          return aIsDone ? 1 : -1;
-        }
-
-        // For incomplete tasks, sort by creation date
-        if (!aIsDone) {
-          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-        }
-
-        // For completed tasks, sort by updated_at
-        return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+        // Sort by creation date
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       })
       .map(task => ({
         ...task,
         task_name: displayedTaskNames[task.id] || task.task_name,
       }));
 
-    return todayTasks;
+    return incompleteTasks;
   };
 
   // Render the delete action when swiping a task to the right
@@ -504,7 +496,7 @@ export default function TodayTasksList() {
           pinnedFriendsTasks.length === 0 ? (
             <ThemedView style={styles.emptyState}>
               <ThemedText style={styles.emptyStateText}>
-                <Text>No tasks due today</Text>
+                <Text>No incomplete tasks</Text>
               </ThemedText>
             </ThemedView>
           ) : null

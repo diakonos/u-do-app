@@ -265,31 +265,23 @@ export default function TodoList() {
 
   // Get incomplete tasks
   const getIncompleteTasks = () => {
-    const processedTasks = processFilteredTasks();
+    // Get incomplete tasks regardless of due date
+    const incompleteTasks = tasks
+      .filter(
+        task =>
+          !tasksBeingDeleted[task.id] &&
+          // Check if task is incomplete (considering transition state)
+          !(tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done),
+      )
+      .map(task => ({
+        ...task,
+        displayed_is_done: tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done,
+        task_name: displayedTaskNames[task.id] || task.task_name,
+      }))
+      // Sort by creation date (oldest to newest)
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
-    // Get current date without time for date comparison
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Include tasks that are:
-    // 1. Not done, OR
-    // 2. Done AND (due today OR has no due date)
-    const incompleteTasks = processedTasks.filter(task => {
-      if (!task.displayed_is_done) return true;
-
-      // If task is done, check if it's due today or has no due date
-      if (!task.due_date) return true; // Keep tasks with no due date
-
-      const taskDueDate = new Date(task.due_date);
-      taskDueDate.setHours(0, 0, 0, 0);
-
-      return taskDueDate.getTime() === today.getTime(); // Keep tasks due today
-    });
-
-    // Sort incomplete tasks by creation date (oldest to newest)
-    return [...incompleteTasks].sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-    );
+    return incompleteTasks;
   };
 
   // Get complete tasks to archive
