@@ -156,19 +156,19 @@ export default function TodayTasksList() {
           ...prev,
           [taskId]: originalState,
         }));
-        
+
         setTasksInTransition(prev => {
           const updated = { ...prev };
           delete updated[taskId];
           return updated;
         });
-        
+
         Alert.alert(
           'Request Timeout',
           'The task update is taking longer than expected. Please try again.',
         );
       }, 10000); // 10 second timeout
-      
+
       timeoutsRef.current[taskId] = timeoutId;
 
       try {
@@ -178,7 +178,7 @@ export default function TodayTasksList() {
         // Success: clear the timeout and transition state
         clearTimeout(timeoutsRef.current[taskId]);
         delete timeoutsRef.current[taskId];
-        
+
         setTasksInTransition(prev => {
           const updated = { ...prev };
           delete updated[taskId];
@@ -194,7 +194,7 @@ export default function TodayTasksList() {
         // On error, clear the timeout
         clearTimeout(timeoutsRef.current[taskId]);
         delete timeoutsRef.current[taskId];
-        
+
         // Revert the optimistic update
         setDisplayedTaskStates(prev => ({
           ...prev,
@@ -219,7 +219,7 @@ export default function TodayTasksList() {
         delete updated[taskId];
         return updated;
       });
-      
+
       Alert.alert('Error', 'Failed to update task');
       console.error('Failed to update task:', error);
     }
@@ -362,7 +362,9 @@ export default function TodayTasksList() {
       task =>
         !tasksBeingDeleted[task.id] &&
         // Check if task is complete, using displayedTaskStates if available
-        (displayedTaskStates[task.id] !== undefined ? displayedTaskStates[task.id] : task.is_done) &&
+        (displayedTaskStates[task.id] !== undefined
+          ? displayedTaskStates[task.id]
+          : task.is_done) &&
         // Check if task was updated today
         new Date(task.updated_at) >= today &&
         new Date(task.updated_at) < tomorrow,
@@ -377,7 +379,8 @@ export default function TodayTasksList() {
       .map(task => ({
         ...task,
         task_name: displayedTaskNames[task.id] || task.task_name,
-        is_done: displayedTaskStates[task.id] !== undefined ? displayedTaskStates[task.id] : task.is_done,
+        is_done:
+          displayedTaskStates[task.id] !== undefined ? displayedTaskStates[task.id] : task.is_done,
       }));
   };
 
