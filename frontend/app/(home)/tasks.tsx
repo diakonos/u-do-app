@@ -354,9 +354,6 @@ export default function TodoList() {
         }}
       />
 
-      {/* Add extra padding below the navigation bar */}
-      <View style={styles.headerPadding} />
-
       {/* Use RefreshControl for pull-to-refresh */}
       <RefreshControl refreshing={refreshing} onRefresh={onRefresh}>
         <View />
@@ -368,6 +365,7 @@ export default function TodoList() {
         renderItem={({ item }) => renderTaskItem(item)}
         keyExtractor={item => item.id.toString()}
         style={styles.tasksList}
+        contentContainerStyle={{ paddingTop: 16 }} // Add margin below the navigation bar
       />
 
       {/* Task Input - placed between incomplete tasks and completed tasks */}

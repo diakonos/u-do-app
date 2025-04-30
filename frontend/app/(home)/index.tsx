@@ -493,9 +493,10 @@ export default function TodayTasksList() {
         )}
         keyExtractor={item => item.id.toString()}
         style={styles.tasksList}
-        contentContainerStyle={
-          todayTasks.length === 0 && pinnedFriendsTasks.length === 0 && styles.emptyListContent
-        }
+        contentContainerStyle={[
+          todayTasks.length === 0 && pinnedFriendsTasks.length === 0 && styles.emptyListContent,
+          { paddingTop: 16 }, // Add margin below the navigation bar
+        ]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -503,7 +504,6 @@ export default function TodayTasksList() {
             tintColor={Colors[colorScheme ?? 'light'].text}
           />
         }
-        ListHeaderComponent={<TaskInputHeader />}
         ListEmptyComponent={
           pinnedFriendsTasks.length === 0 ? (
             <ThemedView style={styles.emptyState}>
@@ -513,7 +513,14 @@ export default function TodayTasksList() {
             </ThemedView>
           ) : null
         }
-        ListFooterComponent={<View>{pinnedFriendsTasks.map(renderFriendTasksSection)}</View>}
+        ListFooterComponent={
+          <View>
+            <TaskInputHeader />
+            <View style={{ marginTop: 24 }}>
+              {pinnedFriendsTasks.map(renderFriendTasksSection)}
+            </View>
+          </View>
+        }
       />
     </ThemedView>
   );
