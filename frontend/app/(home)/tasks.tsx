@@ -38,7 +38,7 @@ interface Task {
 }
 
 export default function TodoList() {
-  const colorScheme = useColorScheme();
+  const colorScheme = useColorScheme() ?? 'light';
 
   const [showDatePicker, setShowDatePicker] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -260,18 +260,18 @@ export default function TodoList() {
                             color: Colors.dark.white,
                           },
                           today: {
-                            borderColor: Colors.dark.tint,
+                            backgroundColor: Colors.dark.inputBackground,
                             color: Colors.dark.white,
                           },
                           today_label: {
-                            color: Colors.dark.white,
+                            color: 'red',
                           },
                           selected: {
                             backgroundColor: Colors.dark.tint,
                             borderColor: Colors.dark.tint,
                           },
                           selected_label: {
-                            color: Colors.dark.white,
+                            color: 'red',
                           },
                           header: {
                             color: Colors.dark.white,
@@ -305,12 +305,14 @@ export default function TodoList() {
                         }
                       : {
                           // Light mode defaults
-                          calendar: { backgroundColor: Colors.light.background },
-                          today: { borderColor: Colors.light.tint },
-                          today_label: { color: Colors.light.white },
+                          calendar: { backgroundColor: Colors[colorScheme].background },
+                          today: { backgroundColor: Colors[colorScheme].inputBackground },
                           selected: {
-                            backgroundColor: Colors.light.tint,
-                            borderColor: Colors.light.tint,
+                            backgroundColor: Colors[colorScheme].tint,
+                            borderColor: Colors[colorScheme].tint,
+                          },
+                          selected_label: {
+                            color: Colors[colorScheme].white,
                           },
                         }),
                   }}
