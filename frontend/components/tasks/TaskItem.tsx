@@ -115,7 +115,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               isDone && { backgroundColor: Colors[colorScheme ?? 'light'].success },
             ]}
           >
-            {isDone && <IconSymbol name="checkmark" size={24} color="white" />}
+            {isDone && <IconSymbol name="checkmark" size={20} color="white" />}
           </View>
         </TouchableOpacity>
         <View style={styles.taskContent}>
@@ -205,16 +205,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 0, // Changed from 4 to 0 for square corners
     borderWidth: 2,
-    height: 24,
+    height: 20,
     justifyContent: 'center',
-    marginRight: 20,
-    width: 24,
+    marginRight: 15,
+    width: 20,
     // borderColor will be set dynamically in the component
   },
   checkboxInner: {
     borderRadius: 0, // Changed from 6 to 0 for square corners
-    height: 24,
-    width: 24,
+    height: 20,
+    width: 20,
     // backgroundColor will be set dynamically in the component
   },
   dateButton: {

@@ -42,18 +42,17 @@ export const TaskInputHeader: React.FC<TaskInputHeaderProps> = () => {
   return (
     <View>
       <View style={styles.inputContainer}>
-        {/* Plus icon */}
-        <TouchableOpacity style={styles.iconContainer} activeOpacity={1} disabled={true}>
-          <IconSymbol name="plus" size={24} color={Colors[colorScheme!].icon} />
-        </TouchableOpacity>
+        {/* Icon area - either shows plus icon or loading indicator */}
+        <View style={styles.iconAreaContainer}>
+          {isLoading ? (
+            <ActivityIndicator size="small" color={Colors[colorScheme!].icon} />
+          ) : (
+            <TouchableOpacity style={styles.iconContainer} activeOpacity={1} disabled={true}>
+              <IconSymbol name="plus" size={24} color={Colors[colorScheme!].icon} />
+            </TouchableOpacity>
+          )}
+        </View>
 
-        {isLoading && (
-          <ActivityIndicator
-            size="small"
-            color={Colors[colorScheme!].icon}
-            style={styles.loadingIndicator}
-          />
-        )}
         <TextInput
           ref={input}
           style={[
@@ -69,6 +68,11 @@ export const TaskInputHeader: React.FC<TaskInputHeaderProps> = () => {
             setTaskName(text);
           }}
           onSubmitEditing={addTask}
+          onBlur={() => {
+            if (taskName.trim()) {
+              addTask();
+            }
+          }}
           key="task-input"
         />
       </View>
@@ -77,11 +81,17 @@ export const TaskInputHeader: React.FC<TaskInputHeaderProps> = () => {
 };
 
 const styles = StyleSheet.create({
-  iconContainer: {
+  iconAreaContainer: {
     alignItems: 'center',
     height: 24,
     justifyContent: 'center',
     marginRight: 20,
+    width: 24,
+  },
+  iconContainer: {
+    alignItems: 'center',
+    height: 24,
+    justifyContent: 'center',
     width: 24,
   },
   input: {
@@ -96,8 +106,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     paddingHorizontal: 16,
-  },
-  loadingIndicator: {
-    marginRight: 8,
   },
 });
