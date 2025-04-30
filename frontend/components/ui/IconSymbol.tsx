@@ -18,6 +18,7 @@ const MAPPING = {
   calendar: 'calendar-today',
   gear: 'settings',
   checkmark: 'check',
+  plus: 'add',
 } as Partial<
   Record<
     import('expo-symbols').SymbolViewProps['name'],

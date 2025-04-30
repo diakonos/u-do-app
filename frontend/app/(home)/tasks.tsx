@@ -263,25 +263,45 @@ export default function TodoList() {
     }));
   };
 
-  // Get incomplete tasks
+  // Get incomplete tasks and tasks completed today
   const getIncompleteTasks = () => {
-    // Get incomplete tasks regardless of due date
-    const incompleteTasks = tasks
-      .filter(
-        task =>
-          !tasksBeingDeleted[task.id] &&
-          // Check if task is incomplete (considering transition state)
-          !(tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done),
-      )
-      .map(task => ({
-        ...task,
-        displayed_is_done: tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done,
-        task_name: displayedTaskNames[task.id] || task.task_name,
-      }))
-      // Sort by creation date (oldest to newest)
-      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-    return incompleteTasks;
+    // Get all incomplete tasks
+    const incompleteTasks = tasks.filter(
+      task =>
+        !tasksBeingDeleted[task.id] &&
+        // Check if task is incomplete (considering transition state)
+        !(tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done),
+    );
+
+    // Get tasks that were completed today
+    const completedTodayTasks = tasks.filter(
+      task =>
+        !tasksBeingDeleted[task.id] &&
+        // Check if task is complete (considering transition state)
+        (tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done) &&
+        // Check if task was updated today
+        new Date(task.updated_at) >= today &&
+        new Date(task.updated_at) < tomorrow,
+    );
+
+    // Combine both lists and sort them
+    return (
+      [...incompleteTasks, ...completedTodayTasks]
+        .map(task => ({
+          ...task,
+          displayed_is_done: tasksInTransition[task.id]
+            ? displayedTaskStates[task.id]
+            : task.is_done,
+          task_name: displayedTaskNames[task.id] || task.task_name,
+        }))
+        // Sort by creation date (oldest to newest)
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    );
   };
 
   // Get complete tasks to archive

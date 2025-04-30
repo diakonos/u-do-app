@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Colors } from '@/constants/Colors';
 import { useTask } from '@/lib/context/task';
+import { IconSymbol } from '@/components/ui/IconSymbol';
 
 // Using type instead of empty interface
 type TaskInputHeaderProps = Record<string, never>;
@@ -41,13 +42,9 @@ export const TaskInputHeader: React.FC<TaskInputHeaderProps> = () => {
   return (
     <View>
       <View style={styles.inputContainer}>
-        {/* Empty checkbox to match task item appearance */}
-        <TouchableOpacity
-          style={[styles.checkbox, { borderColor: Colors[colorScheme!].icon }]}
-          activeOpacity={1}
-          disabled={true}
-        >
-          <View style={styles.checkboxInner} />
+        {/* Plus icon */}
+        <TouchableOpacity style={styles.iconContainer} activeOpacity={1} disabled={true}>
+          <IconSymbol name="plus" size={24} color={Colors[colorScheme!].icon} />
         </TouchableOpacity>
 
         {isLoading && (
@@ -80,18 +77,11 @@ export const TaskInputHeader: React.FC<TaskInputHeaderProps> = () => {
 };
 
 const styles = StyleSheet.create({
-  checkbox: {
+  iconContainer: {
     alignItems: 'center',
-    borderRadius: 0,
-    borderWidth: 2,
     height: 24,
     justifyContent: 'center',
     marginRight: 20,
-    width: 24,
-  },
-  checkboxInner: {
-    borderRadius: 0,
-    height: 24,
     width: 24,
   },
   input: {

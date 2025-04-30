@@ -305,14 +305,32 @@ export default function TodayTasksList() {
 
   // Get tasks due today and sort them appropriately
   const getTodayTasks = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
     // Get all incomplete tasks
-    const incompleteTasks = tasks
-      .filter(
-        task =>
-          !tasksBeingDeleted[task.id] &&
-          // Check if task is incomplete (considering transition state)
-          !(tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done),
-      )
+    const incompleteTasks = tasks.filter(
+      task =>
+        !tasksBeingDeleted[task.id] &&
+        // Check if task is incomplete (considering transition state)
+        !(tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done),
+    );
+
+    // Get tasks that were completed today
+    const completedTodayTasks = tasks.filter(
+      task =>
+        !tasksBeingDeleted[task.id] &&
+        // Check if task is complete (considering transition state)
+        (tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done) &&
+        // Check if task was updated today
+        new Date(task.updated_at) >= today &&
+        new Date(task.updated_at) < tomorrow,
+    );
+
+    // Combine both lists and sort them
+    return [...incompleteTasks, ...completedTodayTasks]
       .sort((a, b) => {
         // Sort by creation date
         return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
@@ -321,8 +339,6 @@ export default function TodayTasksList() {
         ...task,
         task_name: displayedTaskNames[task.id] || task.task_name,
       }));
-
-    return incompleteTasks;
   };
 
   // Render the delete action when swiping a task to the right
