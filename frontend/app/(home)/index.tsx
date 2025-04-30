@@ -129,6 +129,9 @@ export default function TodayTasksList() {
       const taskToUpdate = tasks.find(t => t.id === taskId);
       if (!taskToUpdate) return;
 
+      // Store original state in case we need to revert
+      const originalState = taskToUpdate.is_done;
+
       // Optimistically update the UI first
       setDisplayedTaskStates(prev => ({
         ...prev,
@@ -146,11 +149,36 @@ export default function TodayTasksList() {
         clearTimeout(timeoutsRef.current[taskId]);
       }
 
+      // Set a timeout to revert if the request takes too long
+      const timeoutId = setTimeout(() => {
+        // Revert to original state after timeout
+        setDisplayedTaskStates(prev => ({
+          ...prev,
+          [taskId]: originalState,
+        }));
+        
+        setTasksInTransition(prev => {
+          const updated = { ...prev };
+          delete updated[taskId];
+          return updated;
+        });
+        
+        Alert.alert(
+          'Request Timeout',
+          'The task update is taking longer than expected. Please try again.',
+        );
+      }, 10000); // 10 second timeout
+      
+      timeoutsRef.current[taskId] = timeoutId;
+
       try {
         // Make the actual API request
         await updateTask(taskId, { is_done: isDone });
 
-        // Success: clear the transition state
+        // Success: clear the timeout and transition state
+        clearTimeout(timeoutsRef.current[taskId]);
+        delete timeoutsRef.current[taskId];
+        
         setTasksInTransition(prev => {
           const updated = { ...prev };
           delete updated[taskId];
@@ -163,10 +191,14 @@ export default function TodayTasksList() {
           return updated;
         });
       } catch (error) {
-        // On error, revert the optimistic update
+        // On error, clear the timeout
+        clearTimeout(timeoutsRef.current[taskId]);
+        delete timeoutsRef.current[taskId];
+        
+        // Revert the optimistic update
         setDisplayedTaskStates(prev => ({
           ...prev,
-          [taskId]: !isDone, // Revert to the original state
+          [taskId]: originalState,
         }));
 
         // Clear the transition state
@@ -181,6 +213,13 @@ export default function TodayTasksList() {
         console.error('Failed to update task:', error);
       }
     } catch (error) {
+      // Handle any unexpected errors in the outer try block
+      setTasksInTransition(prev => {
+        const updated = { ...prev };
+        delete updated[taskId];
+        return updated;
+      });
+      
       Alert.alert('Error', 'Failed to update task');
       console.error('Failed to update task:', error);
     }
@@ -314,16 +353,16 @@ export default function TodayTasksList() {
     const incompleteTasks = tasks.filter(
       task =>
         !tasksBeingDeleted[task.id] &&
-        // Check if task is incomplete (considering transition state)
-        !(tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done),
+        // Check if task is incomplete, using displayedTaskStates if available
+        !(displayedTaskStates[task.id] !== undefined ? displayedTaskStates[task.id] : task.is_done),
     );
 
     // Get tasks that were completed today
     const completedTodayTasks = tasks.filter(
       task =>
         !tasksBeingDeleted[task.id] &&
-        // Check if task is complete (considering transition state)
-        (tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done) &&
+        // Check if task is complete, using displayedTaskStates if available
+        (displayedTaskStates[task.id] !== undefined ? displayedTaskStates[task.id] : task.is_done) &&
         // Check if task was updated today
         new Date(task.updated_at) >= today &&
         new Date(task.updated_at) < tomorrow,
@@ -338,6 +377,7 @@ export default function TodayTasksList() {
       .map(task => ({
         ...task,
         task_name: displayedTaskNames[task.id] || task.task_name,
+        is_done: displayedTaskStates[task.id] !== undefined ? displayedTaskStates[task.id] : task.is_done,
       }));
   };
 

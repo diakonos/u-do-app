@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   taskInTransition: {
-    opacity: 0.7,
+    // opacity: 0.7, // Removing opacity change during loading
   },
   taskInput: {
     fontSize: 16,
