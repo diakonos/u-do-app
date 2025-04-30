@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   TouchableOpacity,
   useColorScheme,
@@ -20,6 +21,7 @@ interface TaskItemProps {
   isInTransition?: boolean;
   readOnly?: boolean;
   hideDueDate?: boolean;
+  onUpdateTaskName?: (id: number, newTaskName: string) => void;
 }
 
 export const TaskItem: React.FC<TaskItemProps> = ({
@@ -32,8 +34,12 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   isInTransition = false,
   readOnly = false,
   hideDueDate = false,
+  onUpdateTaskName,
 }) => {
   const colorScheme = useColorScheme();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(taskName);
+  const inputRef = useRef<TextInput>(null);
 
   const formatDate = (date: string | null) => {
     if (!date) return '';
@@ -56,6 +62,24 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     const taskDate = new Date(date);
     taskDate.setHours(0, 0, 0, 0);
     return taskDate < today;
+  };
+
+  const handleStartEditing = () => {
+    if (readOnly || isInTransition || !onUpdateTaskName) return;
+    setIsEditing(true);
+    setEditValue(taskName);
+    // Focus the input after rendering
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 10);
+  };
+
+  const handleSaveEdit = () => {
+    if (!onUpdateTaskName || editValue.trim() === '') return;
+    setIsEditing(false);
+    if (editValue !== taskName) {
+      onUpdateTaskName(id, editValue.trim());
+    }
   };
 
   return (
@@ -97,16 +121,36 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           )}
         </TouchableOpacity>
         <View style={styles.taskContent}>
-          <Text
-            style={[
-              styles.taskText,
-              { color: Colors[colorScheme ?? 'light'].text },
-              isDone && styles.taskTextDone,
-              isDone && { textDecorationColor: Colors[colorScheme ?? 'light'].doneLine },
-            ]}
-          >
-            {taskName}
-          </Text>
+          {isEditing ? (
+            <TextInput
+              ref={inputRef}
+              style={[styles.taskInput, { color: Colors[colorScheme ?? 'light'].text }]}
+              value={editValue}
+              onChangeText={setEditValue}
+              onBlur={handleSaveEdit}
+              onSubmitEditing={handleSaveEdit}
+              selectTextOnFocus={false}
+              autoFocus
+            />
+          ) : (
+            <TouchableOpacity
+              onPress={handleStartEditing}
+              disabled={readOnly || isInTransition || !onUpdateTaskName}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.taskText,
+                  { color: Colors[colorScheme ?? 'light'].text },
+                  isDone && styles.taskTextDone,
+                  isDone && { textDecorationColor: Colors[colorScheme ?? 'light'].doneLine },
+                  !readOnly && onUpdateTaskName && styles.taskTextEditable,
+                ]}
+              >
+                {taskName}
+              </Text>
+            </TouchableOpacity>
+          )}
           {!hideDueDate && (dueDate || !readOnly) ? (
             <View style={styles.dueDateContainer}>
               {dueDate ? (
@@ -209,8 +253,6 @@ const styles = StyleSheet.create({
   },
   taskContainer: {
     paddingHorizontal: 16, // Increased from 12 to add more left padding
-    paddingVertical: 8,
-    // backgroundColor and borderBottomColor will be set dynamically
   },
   taskContent: {
     flex: 1,
@@ -219,11 +261,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
   },
+  taskInput: {
+    fontSize: 16,
+    height: 40,
+    lineHeight: 40,
+    margin: 0,
+    // @ts-expect-error Property is valid
+    outlineStyle: 'none',
+    padding: 0,
+  },
   taskText: {
     fontSize: 16,
-    // color will be set dynamically in the component
+    height: 40,
+    lineHeight: 40,
   },
   taskTextDone: {
     textDecorationLine: 'line-through',
+  },
+  taskTextEditable: {
+    // Visual indication that the task name is editable
   },
 });

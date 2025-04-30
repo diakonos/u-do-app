@@ -31,6 +31,8 @@ export default function TodoList() {
   const [tasksInTransition, setTasksInTransition] = useState<Record<number, boolean>>({});
   // Keep track of the displayed completion state (for visual purposes only)
   const [displayedTaskStates, setDisplayedTaskStates] = useState<Record<number, boolean>>({});
+  // Track task names during editing
+  const [displayedTaskNames, setDisplayedTaskNames] = useState<Record<number, string>>({});
   // Add state for tracking collapsed sections - Done section starts collapsed by default
   const [isDoneSectionCollapsed, setIsDoneSectionCollapsed] = useState(true);
   const { tasks, fetchTasks, updateTask, deleteTask } = useTask();
@@ -124,6 +126,73 @@ export default function TodoList() {
     }
   };
 
+  const handleUpdateTaskName = async (taskId: number, newTaskName: string) => {
+    try {
+      // Find the task that's being updated
+      const taskToUpdate = tasks.find(t => t.id === taskId);
+      if (!taskToUpdate) return;
+
+      // Don't update if the name is the same
+      if (taskToUpdate.task_name === newTaskName) return;
+
+      // Optimistically update the UI first
+      setDisplayedTaskNames(prev => ({
+        ...prev,
+        [taskId]: newTaskName,
+      }));
+
+      // Set task as in transition state
+      setTasksInTransition(prev => ({
+        ...prev,
+        [taskId]: true,
+      }));
+
+      // Clear any existing timeout for this task
+      if (timeoutsRef.current[taskId]) {
+        clearTimeout(timeoutsRef.current[taskId]);
+      }
+
+      try {
+        // Make the actual API request
+        await updateTask(taskId, { task_name: newTaskName });
+
+        // Success: clear the transition state
+        setTasksInTransition(prev => {
+          const updated = { ...prev };
+          delete updated[taskId];
+          return updated;
+        });
+
+        setDisplayedTaskNames(prev => {
+          const updated = { ...prev };
+          delete updated[taskId];
+          return updated;
+        });
+      } catch (error) {
+        // On error, revert the optimistic update
+        setDisplayedTaskNames(prev => {
+          const updated = { ...prev };
+          delete updated[taskId];
+          return updated;
+        });
+
+        // Clear the transition state
+        setTasksInTransition(prev => {
+          const updated = { ...prev };
+          delete updated[taskId];
+          return updated;
+        });
+
+        // Alert the user about the error
+        Alert.alert('Error', 'Failed to update task name. Please try again.');
+        console.error('Failed to update task name:', error);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update task name');
+      console.error('Failed to update task name:', error);
+    }
+  };
+
   const handleDeleteTask = async (taskId: number) => {
     try {
       await deleteTask(taskId);
@@ -154,6 +223,7 @@ export default function TodoList() {
     return filteredTasks.map(task => ({
       ...task,
       displayed_is_done: tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done,
+      task_name: displayedTaskNames[task.id] || task.task_name,
     }));
   };
 
@@ -193,6 +263,7 @@ export default function TodoList() {
           dueDate={item.due_date}
           isInTransition={tasksInTransition[item.id]}
           onToggleComplete={toggleTaskCompletion}
+          onUpdateTaskName={handleUpdateTaskName}
           hideDueDate={true}
         />
       </Swipeable>

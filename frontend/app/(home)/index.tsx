@@ -60,6 +60,8 @@ export default function TodayTasksList() {
   const [refreshing, setRefreshing] = useState(false);
   const [tasksInTransition, setTasksInTransition] = useState<Record<number, boolean>>({});
   const [displayedTaskStates, setDisplayedTaskStates] = useState<Record<number, boolean>>({});
+  // Track task names during editing
+  const [displayedTaskNames, setDisplayedTaskNames] = useState<Record<number, string>>({});
   const { tasks, fetchTasks, updateTask, deleteTask } = useTask();
   const timeoutsRef = useRef<Record<number, NodeJS.Timeout>>({});
   const { isLoading: isLoadingAuth, session } = useAuth();
@@ -182,6 +184,73 @@ export default function TodayTasksList() {
     }
   };
 
+  const handleUpdateTaskName = async (taskId: number, newTaskName: string) => {
+    try {
+      // Find the task that's being updated
+      const taskToUpdate = tasks.find(t => t.id === taskId);
+      if (!taskToUpdate) return;
+
+      // Don't update if the name is the same
+      if (taskToUpdate.task_name === newTaskName) return;
+
+      // Optimistically update the UI first
+      setDisplayedTaskNames(prev => ({
+        ...prev,
+        [taskId]: newTaskName,
+      }));
+
+      // Set task as in transition state
+      setTasksInTransition(prev => ({
+        ...prev,
+        [taskId]: true,
+      }));
+
+      // Clear any existing timeout for this task
+      if (timeoutsRef.current[taskId]) {
+        clearTimeout(timeoutsRef.current[taskId]);
+      }
+
+      try {
+        // Make the actual API request
+        await updateTask(taskId, { task_name: newTaskName });
+
+        // Success: clear the transition state
+        setTasksInTransition(prev => {
+          const updated = { ...prev };
+          delete updated[taskId];
+          return updated;
+        });
+
+        setDisplayedTaskNames(prev => {
+          const updated = { ...prev };
+          delete updated[taskId];
+          return updated;
+        });
+      } catch (error) {
+        // On error, revert the optimistic update
+        setDisplayedTaskNames(prev => {
+          const updated = { ...prev };
+          delete updated[taskId];
+          return updated;
+        });
+
+        // Clear the transition state
+        setTasksInTransition(prev => {
+          const updated = { ...prev };
+          delete updated[taskId];
+          return updated;
+        });
+
+        // Alert the user about the error
+        Alert.alert('Error', 'Failed to update task name. Please try again.');
+        console.error('Failed to update task name:', error);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update task name');
+      console.error('Failed to update task name:', error);
+    }
+  };
+
   const handleDeleteTask = async (taskId: number) => {
     try {
       await deleteTask(taskId);
@@ -207,23 +276,28 @@ export default function TodayTasksList() {
     const todayTasks = tasks.filter(isTaskDueToday);
 
     // Sort tasks: incomplete first, then by creation date
-    return todayTasks.sort((a, b) => {
-      // First, group by completion status (incomplete first)
-      const aIsDone = tasksInTransition[a.id] ? displayedTaskStates[a.id] : a.is_done;
-      const bIsDone = tasksInTransition[b.id] ? displayedTaskStates[b.id] : b.is_done;
+    return todayTasks
+      .sort((a, b) => {
+        // First, group by completion status (incomplete first)
+        const aIsDone = tasksInTransition[a.id] ? displayedTaskStates[a.id] : a.is_done;
+        const bIsDone = tasksInTransition[b.id] ? displayedTaskStates[b.id] : b.is_done;
 
-      if (aIsDone !== bIsDone) {
-        return aIsDone ? 1 : -1;
-      }
+        if (aIsDone !== bIsDone) {
+          return aIsDone ? 1 : -1;
+        }
 
-      // For incomplete tasks, sort by creation date
-      if (!aIsDone) {
-        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-      }
+        // For incomplete tasks, sort by creation date
+        if (!aIsDone) {
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        }
 
-      // For completed tasks, sort by updated_at
-      return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
-    });
+        // For completed tasks, sort by updated_at
+        return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+      })
+      .map(task => ({
+        ...task,
+        task_name: displayedTaskNames[task.id] || task.task_name,
+      }));
   };
 
   // Render the delete action when swiping a task to the right
@@ -375,6 +449,7 @@ export default function TodayTasksList() {
               dueDate={item.due_date}
               isInTransition={tasksInTransition[item.id]}
               onToggleComplete={toggleTaskCompletion}
+              onUpdateTaskName={handleUpdateTaskName}
               readOnly={false}
               hideDueDate={true}
             />
