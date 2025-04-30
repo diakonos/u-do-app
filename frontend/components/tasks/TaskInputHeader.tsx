@@ -83,16 +83,16 @@ export const TaskInputHeader: React.FC<TaskInputHeaderProps> = () => {
 const styles = StyleSheet.create({
   iconAreaContainer: {
     alignItems: 'center',
-    height: 24,
+    height: 20,
     justifyContent: 'center',
-    marginRight: 20,
-    width: 24,
+    marginRight: 15,
+    width: 20,
   },
   iconContainer: {
     alignItems: 'center',
-    height: 24,
+    height: 20,
     justifyContent: 'center',
-    width: 24,
+    width: 20,
   },
   input: {
     flex: 1,
