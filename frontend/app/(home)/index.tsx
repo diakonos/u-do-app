@@ -413,10 +413,7 @@ export default function TodayTasksList() {
                 isDone={task.is_done}
                 dueDate={task.due_date}
                 isInTransition={tasksInTransition[task.id]}
-                onToggleComplete={toggleTaskCompletion}
-                onUpdateTaskName={handleUpdateTaskName}
-                onDeleteTask={handleDeleteTask}
-                readOnly={false}
+                readOnly={true}
                 hideDueDate={true}
               />
             ))}
@@ -495,7 +492,6 @@ export default function TodayTasksList() {
         style={styles.tasksList}
         contentContainerStyle={[
           todayTasks.length === 0 && pinnedFriendsTasks.length === 0 && styles.emptyListContent,
-          { paddingTop: 16 }, // Add margin below the navigation bar
         ]}
         refreshControl={
           <RefreshControl
@@ -516,7 +512,7 @@ export default function TodayTasksList() {
         ListFooterComponent={
           <View>
             <TaskInputHeader />
-            <View style={{ marginTop: 24 }}>
+            <View style={styles.friendTasksContainer}>
               {pinnedFriendsTasks.map(renderFriendTasksSection)}
             </View>
           </View>
@@ -571,6 +567,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  friendTasksContainer: { marginTop: 16 },
   friendTasksSection: {
     marginBottom: 24,
   },
@@ -599,5 +596,6 @@ const styles = StyleSheet.create({
   },
   tasksList: {
     flex: 1,
+    paddingTop: 8,
   },
 });

@@ -25,8 +25,8 @@ export const TaskInputHeader: React.FC<TaskInputHeaderProps> = () => {
     if (taskName.trim()) {
       setIsLoading(true);
       try {
-        const dueDate = new Date().toISOString();
-        await createTask(taskName, dueDate);
+        // No due date by default
+        await createTask(taskName);
         setTaskName('');
         input.current?.clear();
       } catch (error) {

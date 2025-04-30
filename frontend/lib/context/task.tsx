@@ -13,7 +13,7 @@ export type Task = {
 
 type TaskContextType = {
   tasks: Task[];
-  createTask: (taskName: string, dueDate: string) => Promise<Task>;
+  createTask: (taskName: string, dueDate?: string) => Promise<Task>;
   fetchTasks: () => Promise<Task[]>;
   updateTask: (taskId: number, updates: Partial<Task>) => Promise<Task>;
   deleteTask: (taskId: number) => Promise<void>;
@@ -23,7 +23,7 @@ const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
 export function TaskProvider({ children }: { children: React.ReactNode }) {
   const [tasksCache, setTasksCache] = useState<Task[]>([]);
-  const createTask = async (taskName: string, dueDate: string): Promise<Task> => {
+  const createTask = async (taskName: string, dueDate?: string): Promise<Task> => {
     const {
       data: { session },
     } = await supabase.auth.getSession();

@@ -35,8 +35,8 @@ export default function TodoList() {
   const [displayedTaskNames, setDisplayedTaskNames] = useState<Record<number, string>>({});
   // Track tasks being deleted optimistically
   const [tasksBeingDeleted, setTasksBeingDeleted] = useState<Record<number, boolean>>({});
-  // Add state for tracking collapsed sections - Done section starts collapsed by default
-  const [isDoneSectionCollapsed, setIsDoneSectionCollapsed] = useState(true);
+  // Add state for tracking collapsed sections - Archive section starts collapsed by default
+  const [isArchiveSectionCollapsed, setIsArchiveSectionCollapsed] = useState(true);
   const { tasks, fetchTasks, updateTask, deleteTask } = useTask();
   const timeoutsRef = useRef<Record<number, NodeJS.Timeout>>({});
   const { isLoading: isLoadingAuth, session } = useAuth();
@@ -266,7 +266,25 @@ export default function TodoList() {
   // Get incomplete tasks
   const getIncompleteTasks = () => {
     const processedTasks = processFilteredTasks();
-    const incompleteTasks = processedTasks.filter(task => !task.displayed_is_done);
+
+    // Get current date without time for date comparison
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Include tasks that are:
+    // 1. Not done, OR
+    // 2. Done AND (due today OR has no due date)
+    const incompleteTasks = processedTasks.filter(task => {
+      if (!task.displayed_is_done) return true;
+
+      // If task is done, check if it's due today or has no due date
+      if (!task.due_date) return true; // Keep tasks with no due date
+
+      const taskDueDate = new Date(task.due_date);
+      taskDueDate.setHours(0, 0, 0, 0);
+
+      return taskDueDate.getTime() === today.getTime(); // Keep tasks due today
+    });
 
     // Sort incomplete tasks by creation date (oldest to newest)
     return [...incompleteTasks].sort(
@@ -274,10 +292,27 @@ export default function TodoList() {
     );
   };
 
-  // Get complete tasks
+  // Get complete tasks to archive
   const getCompleteTasks = () => {
     const processedTasks = processFilteredTasks();
-    const completeTasks = processedTasks.filter(task => task.displayed_is_done);
+
+    // Get current date without time for date comparison
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Only include tasks that are:
+    // 1. Done AND
+    // 2. Have a due date AND
+    // 3. Not due today
+    const completeTasks = processedTasks.filter(task => {
+      if (!task.displayed_is_done) return false;
+      if (!task.due_date) return false; // Exclude tasks with no due date
+
+      const taskDueDate = new Date(task.due_date);
+      taskDueDate.setHours(0, 0, 0, 0);
+
+      return taskDueDate.getTime() !== today.getTime(); // Exclude tasks due today
+    });
 
     // Sort complete tasks by updated_at (newest to oldest)
     return [...completeTasks].sort(
@@ -365,26 +400,25 @@ export default function TodoList() {
         renderItem={({ item }) => renderTaskItem(item)}
         keyExtractor={item => item.id.toString()}
         style={styles.tasksList}
-        contentContainerStyle={{ paddingTop: 16 }} // Add margin below the navigation bar
       />
 
       {/* Task Input - placed between incomplete tasks and completed tasks */}
       <TaskInputHeader />
 
-      {/* Done section with collapsible header */}
+      {/* Archive section with collapsible header */}
       {completeTasks.length > 0 && (
         <View style={styles.doneSection}>
           <TouchableOpacity
             style={styles.sectionHeader}
-            onPress={() => setIsDoneSectionCollapsed(!isDoneSectionCollapsed)}
+            onPress={() => setIsArchiveSectionCollapsed(!isArchiveSectionCollapsed)}
             activeOpacity={0.7}
           >
             <View style={styles.sectionHeaderContent}>
               <ThemedText style={styles.sectionHeaderText}>
-                {`Done (${completeTasks.length})`}
+                {`Archive (${completeTasks.length})`}
               </ThemedText>
               <Ionicons
-                name={isDoneSectionCollapsed ? 'chevron-down' : 'chevron-up'}
+                name={isArchiveSectionCollapsed ? 'chevron-down' : 'chevron-up'}
                 size={18}
                 color={Colors[colorScheme ?? 'light'].text}
                 style={styles.sectionHeaderIcon}
@@ -392,8 +426,8 @@ export default function TodoList() {
             </View>
           </TouchableOpacity>
 
-          {/* Completed tasks list - only shown when not collapsed */}
-          {!isDoneSectionCollapsed && (
+          {/* Archived tasks list - only shown when not collapsed */}
+          {!isArchiveSectionCollapsed && (
             <FlatList
               data={completeTasks}
               renderItem={({ item }) => renderTaskItem(item)}
@@ -426,9 +460,6 @@ const styles = StyleSheet.create({
   doneSection: {
     marginTop: 8,
   },
-  headerPadding: {
-    padding: 10, // Adjust the value as needed
-  },
   loadingContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -454,5 +485,6 @@ const styles = StyleSheet.create({
   },
   tasksList: {
     flexGrow: 0,
+    paddingTop: 16,
   },
 });
