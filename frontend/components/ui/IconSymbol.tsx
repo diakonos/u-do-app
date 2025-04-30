@@ -19,6 +19,7 @@ const MAPPING = {
   gear: 'settings',
   checkmark: 'check',
   plus: 'add',
+  'pin.fill': 'push-pin',
 } as Partial<
   Record<
     import('expo-symbols').SymbolViewProps['name'],

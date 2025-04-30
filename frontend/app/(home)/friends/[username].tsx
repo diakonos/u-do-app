@@ -152,14 +152,12 @@ export default function FriendTasksScreen() {
             isDone={item.is_done}
             dueDate={item.due_date}
             readOnly={true}
+            hideDueDate={true}
           />
         )}
         keyExtractor={item => item.id.toString()}
         style={styles.tasksList}
-        contentContainerStyle={[
-          styles.tasksContent,
-          todayTasks.length === 0 && styles.emptyListContent,
-        ]}
+        contentContainerStyle={todayTasks.length === 0 && styles.emptyListContent}
         refreshing={isRefreshing}
         onRefresh={onRefresh}
         ListEmptyComponent={
@@ -182,7 +180,6 @@ export default function FriendTasksScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
   },
   emptyListContent: {
     flex: 1,
@@ -206,11 +203,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  tasksContent: {
-    gap: 12,
-    paddingTop: 8,
-  },
   tasksList: {
     flex: 1,
+    paddingTop: 8,
   },
 });
