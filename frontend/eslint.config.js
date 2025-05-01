@@ -1,11 +1,12 @@
-import reactPlugin from 'eslint-plugin-react';
-import reactHooksPlugin from 'eslint-plugin-react-hooks';
-import reactNativePlugin from 'eslint-plugin-react-native';
-import tsPlugin from '@typescript-eslint/eslint-plugin';
-import prettierPlugin from 'eslint-plugin-prettier';
-import tsParser from '@typescript-eslint/parser';
+/* eslint @typescript-eslint/no-require-imports: off */
+const reactPlugin = require('eslint-plugin-react');
+const reactHooksPlugin = require('eslint-plugin-react-hooks');
+const reactNativePlugin = require('eslint-plugin-react-native');
+const tsPlugin = require('@typescript-eslint/eslint-plugin');
+const prettierPlugin = require('eslint-plugin-prettier');
+const tsParser = require('@typescript-eslint/parser');
 
-export default [
+module.exports = [
   {
     ignores: ['node_modules/**', 'ios/**', 'android/**', 'dist/**', '.expo/**', '*.lock', '*.log'],
   },
