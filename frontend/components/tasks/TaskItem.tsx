@@ -1,5 +1,13 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, useColorScheme } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  TouchableOpacity,
+  useColorScheme,
+  LayoutChangeEvent,
+} from 'react-native';
 import { Colors } from '@/constants/Colors';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 
@@ -33,6 +41,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   const colorScheme = useColorScheme();
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(taskName);
+  const [inputHeight, setInputHeight] = useState(22); // Initial height based on the line height
   const inputRef = useRef<TextInput>(null);
 
   const formatDate = (date: string | null) => {
@@ -48,14 +57,6 @@ export const TaskItem: React.FC<TaskItemProps> = ({
       taskDate.getMonth() === today.getMonth() &&
       taskDate.getFullYear() === today.getFullYear()
     );
-  };
-
-  const isOverdue = (date: string) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const taskDate = new Date(date);
-    taskDate.setHours(0, 0, 0, 0);
-    return taskDate < today;
   };
 
   const handleStartEditing = () => {
@@ -91,6 +92,10 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     onUpdateTaskName(id, trimmedValue);
   };
 
+  const handleContentSizeChange = (e: LayoutChangeEvent) => {
+    setInputHeight(Math.max(22, e.nativeEvent.layout.height + 8));
+  };
+
   return (
     <View
       style={[
@@ -99,7 +104,6 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           backgroundColor: Colors[colorScheme ?? 'light'].background,
           borderBottomColor: Colors[colorScheme ?? 'light'].icon + '40',
         },
-        isInTransition && styles.taskInTransition,
       ]}
     >
       <View style={styles.taskHeader}>
@@ -120,16 +124,35 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         </TouchableOpacity>
         <View style={styles.taskContent}>
           {isEditing ? (
-            <TextInput
-              ref={inputRef}
-              style={[styles.taskInput, { color: Colors[colorScheme ?? 'light'].text }]}
-              value={editValue}
-              onChangeText={setEditValue}
-              onBlur={handleSaveEdit}
-              onSubmitEditing={handleSaveEdit}
-              selectTextOnFocus={false}
-              autoFocus
-            />
+            <View style={styles.taskInputContainer}>
+              <TextInput
+                ref={inputRef}
+                autoFocus
+                multiline
+                onBlur={handleSaveEdit}
+                onChangeText={setEditValue}
+                onKeyPress={e => {
+                  if (e.nativeEvent.key === 'Enter') {
+                    handleSaveEdit();
+                  }
+                }}
+                returnKeyType="done"
+                scrollEnabled={false}
+                selectTextOnFocus={false}
+                style={[
+                  styles.taskInput,
+                  { color: Colors[colorScheme ?? 'light'].text, height: inputHeight },
+                ]}
+                submitBehavior="blurAndSubmit"
+                value={editValue}
+              />
+              <Text
+                style={[styles.taskInput, styles.measureInput]}
+                onLayout={handleContentSizeChange}
+              >
+                {editValue}
+              </Text>
+            </View>
           ) : (
             <TouchableOpacity
               onPress={handleStartEditing}
@@ -142,7 +165,6 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                   { color: Colors[colorScheme ?? 'light'].text },
                   isDone && styles.taskTextDone,
                   isDone && { textDecorationColor: Colors[colorScheme ?? 'light'].doneLine },
-                  !readOnly && onUpdateTaskName && styles.taskTextEditable,
                 ]}
               >
                 {taskName}
@@ -157,7 +179,6 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                     styles.dueDate,
                     { color: Colors[colorScheme ?? 'light'].icon },
                     isToday(dueDate) && { color: Colors[colorScheme ?? 'light'].todayBlue },
-                    isOverdue(dueDate) && !isDone && styles.overdueDate,
                   ]}
                 >
                   Due: {formatDate(dueDate)}
@@ -208,6 +229,7 @@ const styles = StyleSheet.create({
     height: 20,
     justifyContent: 'center',
     marginRight: 15,
+    marginTop: 5,
     width: 20,
     // borderColor will be set dynamically in the component
   },
@@ -235,47 +257,50 @@ const styles = StyleSheet.create({
   dueDateContainer: {
     alignItems: 'center',
     flexDirection: 'row',
+    marginTop: 4,
   },
   dueDateLoading: { opacity: 0.5 },
+  measureInput: {
+    left: 0,
+    opacity: 0,
+    paddingVertical: 0,
+    pointerEvents: 'none',
+    position: 'absolute',
+    top: 0,
+    width: '100%',
+  },
   noDueDate: {
     fontSize: 12,
     marginTop: 4,
     // color will be set dynamically in the component
   },
-  overdueDate: {
-    // color will be set to error color dynamically
-  },
   taskContainer: {
     paddingHorizontal: 16, // Increased from 12 to add more left padding
+    paddingVertical: 5,
   },
   taskContent: {
     flex: 1,
   },
   taskHeader: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     flexDirection: 'row',
-  },
-  taskInTransition: {
-    // opacity: 0.7, // Removing opacity change during loading
   },
   taskInput: {
     fontSize: 16,
-    height: 40,
-    lineHeight: 40,
+    lineHeight: 22,
     margin: 0,
     // @ts-expect-error Property is valid
     outlineStyle: 'none',
-    padding: 0,
+    paddingVertical: 4,
+    textAlignVertical: 'top',
   },
+  taskInputContainer: { position: 'relative' },
   taskText: {
     fontSize: 16,
-    height: 40,
-    lineHeight: 40,
+    lineHeight: 22,
+    paddingVertical: 4,
   },
   taskTextDone: {
     textDecorationLine: 'line-through',
-  },
-  taskTextEditable: {
-    // Visual indication that the task name is editable
   },
 });
