@@ -64,15 +64,9 @@ export const TaskInputHeader: React.FC<TaskInputHeaderProps> = () => {
           placeholder="New task"
           placeholderTextColor={Colors[colorScheme!].icon}
           defaultValue={taskName}
-          onChangeText={text => {
-            setTaskName(text);
-          }}
-          onSubmitEditing={addTask}
-          onBlur={() => {
-            if (taskName.trim()) {
-              addTask();
-            }
-          }}
+          onChangeText={setTaskName}
+          onBlur={addTask}
+          submitBehavior="blurAndSubmit"
           key="task-input"
         />
       </View>
