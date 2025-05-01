@@ -302,26 +302,32 @@ export class FriendsService {
 
   /**
    * Fetch tasks for a friend directly from the database
-   * Gets only tasks due today for the specified friend
+   * Gets tasks not scheduled for the future (due_date <= today or with no due date) for the specified friend
    */
   static async getFriendTasks(username: string): Promise<FriendTask[]> {
     return ApiService.authenticatedQuery(async () => {
       // Get today's date in YYYY-MM-DD format
       const today = new Date();
       const todayStr = today.toISOString().split('T')[0];
+      // Calculate tomorrow's date in YYYY-MM-DD format
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
-      // Single query that joins user_profiles with tasks
+      // Query for tasks not scheduled for the future (due_date <= today OR due_date is null)
       const { data, error } = await supabase
-        .from('user_profiles')
+        .from('tasks')
         .select(
           `
-          user_id,
-          tasks:tasks(*)
+          *,
+          user_profiles!inner(user_id,username)
         `,
         )
-        .eq('username', username)
-        .eq('tasks.due_date', todayStr)
-        .single();
+        .eq('user_profiles.username', username)
+        // Get all friend's current tasks which are not done or those that were completed today
+        .or(
+          `and(is_done.eq.false,or(due_date.lte.${todayStr},due_date.is.null)),and(updated_at.gte.${todayStr},updated_at.lte.${tomorrowStr})`,
+        );
 
       if (error) {
         console.error('Error fetching friend tasks:', error);
@@ -329,7 +335,7 @@ export class FriendsService {
       }
 
       // Return the tasks array from the nested structure
-      return data?.tasks || [];
+      return data || [];
     });
   }
 }

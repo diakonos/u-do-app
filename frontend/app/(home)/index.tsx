@@ -332,16 +332,6 @@ export default function TodayTasksList() {
     }
   };
 
-  // Filter for tasks due today
-  const isTaskDueToday = (task: Task) => {
-    if (!task.due_date) return false;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const taskDate = new Date(task.due_date);
-    taskDate.setHours(0, 0, 0, 0);
-    return taskDate.getTime() === today.getTime();
-  };
-
   // Get tasks due today and sort them appropriately
   const getTodayTasks = () => {
     const today = new Date();
@@ -411,15 +401,11 @@ export default function TodayTasksList() {
   const renderFriendTasksSection = (friendData: { username: string; tasks: Task[] }) => {
     if (!friendData.tasks || friendData.tasks.length === 0) return null;
 
-    // Filter for tasks that are due today (both complete and incomplete)
-    const filteredTasks = friendData.tasks.filter(isTaskDueToday);
-    if (filteredTasks.length === 0) return null;
-
     // Count completed tasks
-    const completedTasksCount = filteredTasks.filter(task => task.is_done).length;
+    const completedTasksCount = friendData.tasks.filter(task => task.is_done).length;
 
     // Sort tasks: incomplete first, then completed
-    const sortedTasks = [...filteredTasks].sort((a, b) => {
+    const sortedTasks = [...friendData.tasks].sort((a, b) => {
       if (a.is_done !== b.is_done) {
         return a.is_done ? 1 : -1; // Incomplete tasks first
       }
@@ -445,7 +431,7 @@ export default function TodayTasksList() {
             {friendData.username}&apos;s Tasks
           </ThemedText>
           <ThemedText style={styles.taskCount}>
-            {completedTasksCount} / {filteredTasks.length}
+            {completedTasksCount} / {friendData.tasks.length}
           </ThemedText>
           <Ionicons
             name={isCollapsed ? 'chevron-down' : 'chevron-up'}
