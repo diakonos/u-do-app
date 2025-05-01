@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { TaskItem } from '@/components/tasks/TaskItem';
-import { TaskInputHeader } from '@/components/tasks/TaskInputHeader';
 import { useTask } from '@/lib/context/task';
 import { useDashboard } from '@/lib/context/dashboard';
 import { useFriends } from '@/lib/context/friends';
@@ -64,9 +63,10 @@ export default function TodayTasksList() {
   const [displayedTaskNames, setDisplayedTaskNames] = useState<Record<number, string>>({});
   // Track tasks being deleted optimistically
   const [tasksBeingDeleted, setTasksBeingDeleted] = useState<Record<number, boolean>>({});
-  const { tasks, fetchTasks, updateTask, deleteTask } = useTask();
+  const { tasks, fetchTasks, updateTask, deleteTask, createTask } = useTask();
   const timeoutsRef = useRef<Record<number, NodeJS.Timeout>>({});
   const { isLoading: isLoadingAuth, session } = useAuth();
+  const [isCreatingTask, setIsCreatingTask] = useState(false);
 
   // Define loadTasks as a useCallback to fix the dependencies issue
   const loadTasks = useCallback(async () => {
@@ -562,7 +562,21 @@ export default function TodayTasksList() {
         }
         ListFooterComponent={
           <View>
-            <TaskInputHeader />
+            <TaskItem
+              isNewTask
+              onCreateTask={async taskName => {
+                setIsCreatingTask(true);
+                try {
+                  await createTask(taskName);
+                } catch (error) {
+                  Alert.alert('Error', 'Failed to create task. Please try again.');
+                  console.error('Failed to create task:', error);
+                } finally {
+                  setIsCreatingTask(false);
+                }
+              }}
+              isLoading={isCreatingTask}
+            />
             <View style={styles.friendTasksContainer}>
               {pinnedFriendsTasks.map(renderFriendTasksSection)}
             </View>

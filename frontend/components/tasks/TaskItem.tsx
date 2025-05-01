@@ -7,29 +7,34 @@ import {
   TouchableOpacity,
   useColorScheme,
   LayoutChangeEvent,
+  ActivityIndicator,
 } from 'react-native';
 import { Colors } from '@/constants/Colors';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 
 interface TaskItemProps {
-  id: number;
-  taskName: string;
-  isDone: boolean;
-  dueDate: string | null;
+  id?: number; // id is optional for new task mode
+  taskName?: string;
+  isDone?: boolean;
+  dueDate?: string | null;
   onToggleComplete?: (id: number, isDone: boolean) => void;
   onPressDate?: (id: number) => void;
   isInTransition?: boolean;
   readOnly?: boolean;
   hideDueDate?: boolean;
   onUpdateTaskName?: (id: number, newTaskName: string) => void;
-  onDeleteTask?: (id: number) => void; // Add new prop for deleting tasks
+  onDeleteTask?: (id: number) => void;
+  // New props for new task mode
+  isNewTask?: boolean;
+  onCreateTask?: (taskName: string) => Promise<void>;
+  isLoading?: boolean;
 }
 
 export const TaskItem: React.FC<TaskItemProps> = ({
   id,
-  taskName,
-  isDone,
-  dueDate,
+  taskName = '',
+  isDone = false,
+  dueDate = null,
   onToggleComplete,
   onPressDate,
   isInTransition = false,
@@ -37,9 +42,13 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   hideDueDate = false,
   onUpdateTaskName,
   onDeleteTask,
+  // New task mode props
+  isNewTask = false,
+  onCreateTask,
+  isLoading = false,
 }) => {
   const colorScheme = useColorScheme();
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(isNewTask);
   const [editValue, setEditValue] = useState(taskName);
   const [inputHeight, setInputHeight] = useState(22); // Initial height based on the line height
   const inputRef = useRef<TextInput>(null);
@@ -81,7 +90,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
 
     // If the value is empty and we have a delete handler, delete the task
     if (trimmedValue === '' && onDeleteTask) {
-      onDeleteTask(id);
+      onDeleteTask(id!);
       return;
     }
 
@@ -89,12 +98,79 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     if (trimmedValue === '' || trimmedValue === taskName) return;
 
     // Update the task name
-    onUpdateTaskName(id, trimmedValue);
+    onUpdateTaskName(id!, trimmedValue);
   };
 
   const handleContentSizeChange = (e: LayoutChangeEvent) => {
     setInputHeight(Math.max(22, e.nativeEvent.layout.height + 8));
   };
+
+  // For new task mode: handle submit
+  const handleCreateTask = async () => {
+    const trimmedValue = editValue.trim();
+    if (!trimmedValue || !onCreateTask) return;
+    await onCreateTask(trimmedValue);
+    setEditValue('');
+    setInputHeight(22);
+    inputRef.current?.clear();
+  };
+
+  if (isNewTask) {
+    return (
+      <View
+        style={[
+          styles.taskContainer,
+          { backgroundColor: Colors[colorScheme ?? 'light'].background },
+        ]}
+      >
+        <View style={[styles.taskHeader, styles.newTaskHeader]}>
+          <View style={styles.plusIconContainer}>
+            {isLoading ? (
+              <ActivityIndicator size="small" color={Colors[colorScheme ?? 'light'].icon} />
+            ) : (
+              <IconSymbol name="plus" size={24} color={Colors[colorScheme ?? 'light'].icon} />
+            )}
+          </View>
+          <View style={styles.newTaskContent}>
+            <View style={styles.taskInputContainer}>
+              <TextInput
+                ref={inputRef}
+                multiline
+                placeholder="New task"
+                placeholderTextColor={Colors[colorScheme ?? 'light'].icon}
+                style={[
+                  styles.taskInput,
+                  styles.newTaskInput,
+                  { color: Colors[colorScheme ?? 'light'].text, height: inputHeight },
+                ]}
+                value={editValue}
+                onChangeText={setEditValue}
+                onBlur={handleCreateTask}
+                editable={!isLoading}
+                returnKeyType="done"
+                scrollEnabled={false}
+                selectTextOnFocus={false}
+                submitBehavior="blurAndSubmit"
+                key="new-task-input"
+                onKeyPress={e => {
+                  if (e.nativeEvent.key === 'Enter') {
+                    e.preventDefault();
+                    handleCreateTask();
+                  }
+                }}
+              />
+              <Text
+                style={[styles.taskInput, styles.measureInput, styles.newTaskInput]}
+                onLayout={e => setInputHeight(Math.max(22, e.nativeEvent.layout.height + 8))}
+              >
+                {editValue || ' '}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View
@@ -109,7 +185,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
       <View style={styles.taskHeader}>
         <TouchableOpacity
           style={[styles.checkbox, { borderColor: Colors[colorScheme ?? 'light'].icon }]}
-          onPress={() => !isInTransition && onToggleComplete && onToggleComplete(id, !isDone)}
+          onPress={() => !isInTransition && onToggleComplete && onToggleComplete(id!, !isDone)}
           activeOpacity={readOnly || isInTransition ? 1 : 0.2}
           disabled={isInTransition || readOnly}
         >
@@ -199,7 +275,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                           : Colors.dark.inputBackground,
                     },
                   ]}
-                  onPress={() => onPressDate(id)}
+                  onPress={() => onPressDate(id!)}
                   disabled={isInTransition}
                 >
                   <Text
@@ -269,10 +345,31 @@ const styles = StyleSheet.create({
     top: 0,
     width: '100%',
   },
+  newTaskContent: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  newTaskHeader: {
+    alignItems: 'flex-start',
+  },
+  newTaskInput: {
+    paddingBottom: 0,
+    paddingTop: 0,
+    textAlignVertical: 'top',
+  },
   noDueDate: {
     fontSize: 12,
     marginTop: 4,
     // color will be set dynamically in the component
+  },
+  plusIconContainer: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    display: 'flex',
+    height: 20,
+    justifyContent: 'center',
+    marginRight: 15,
+    width: 20,
   },
   taskContainer: {
     paddingHorizontal: 16, // Increased from 12 to add more left padding

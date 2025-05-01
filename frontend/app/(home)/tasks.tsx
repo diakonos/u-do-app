@@ -12,7 +12,6 @@ import {
   RefreshControl,
 } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
-import { TaskInputHeader } from '@/components/tasks/TaskInputHeader';
 import { TaskItem } from '@/components/tasks/TaskItem';
 import { Task, useTask } from '@/lib/context/task';
 import { Colors } from '@/constants/Colors';
@@ -29,21 +28,17 @@ export default function TodoList() {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tasksInTransition, setTasksInTransition] = useState<Record<number, boolean>>({});
-  // Keep track of the displayed completion state (for visual purposes only)
   const [displayedTaskStates, setDisplayedTaskStates] = useState<Record<number, boolean>>({});
-  // Track task names during editing
   const [displayedTaskNames, setDisplayedTaskNames] = useState<Record<number, string>>({});
-  // Track tasks being deleted optimistically
   const [tasksBeingDeleted, setTasksBeingDeleted] = useState<Record<number, boolean>>({});
-  // Add state for tracking collapsed sections - Archive section starts collapsed by default
   const [isArchiveSectionCollapsed, setIsArchiveSectionCollapsed] = useState(true);
-  const { tasks, fetchTasks, updateTask, deleteTask } = useTask();
+  const { tasks, fetchTasks, updateTask, deleteTask, createTask } = useTask();
   const timeoutsRef = useRef<Record<number, NodeJS.Timeout>>({});
   const { isLoading: isLoadingAuth, session } = useAuth();
+  const [isCreatingTask, setIsCreatingTask] = useState(false);
 
-  // Define loadTasks as a useCallback to fix the dependencies issue
   const loadTasks = useCallback(async () => {
-    if (isLoadingAuth || !session) return; // Prevent loading tasks if auth is still loading
+    if (isLoadingAuth || !session) return;
     try {
       setIsLoading(true);
       await fetchTasks();
@@ -57,43 +52,36 @@ export default function TodoList() {
 
   useEffect(() => {
     loadTasks();
-  }, [loadTasks]); // Now loadTasks is properly memoized
+  }, [loadTasks]);
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
     await loadTasks();
     setRefreshing(false);
-  }, [loadTasks]); // Added loadTasks dependency
+  }, [loadTasks]);
 
   const toggleTaskCompletion = async (taskId: number, isDone: boolean) => {
     try {
-      // Find the task that's being toggled
       const taskToUpdate = tasks.find(t => t.id === taskId);
       if (!taskToUpdate) return;
 
-      // Store original state in case we need to revert
       const originalState = taskToUpdate.is_done;
 
-      // Optimistically update the UI first
       setDisplayedTaskStates(prev => ({
         ...prev,
         [taskId]: isDone,
       }));
 
-      // Set task as in transition state
       setTasksInTransition(prev => ({
         ...prev,
         [taskId]: true,
       }));
 
-      // Clear any existing timeout for this task
       if (timeoutsRef.current[taskId]) {
         clearTimeout(timeoutsRef.current[taskId]);
       }
 
-      // Set a timeout to revert if the request takes too long
       const timeoutId = setTimeout(() => {
-        // Revert to original state after timeout
         setDisplayedTaskStates(prev => ({
           ...prev,
           [taskId]: originalState,
@@ -109,15 +97,13 @@ export default function TodoList() {
           'Request Timeout',
           'The task update is taking longer than expected. Please try again.',
         );
-      }, 10000); // 10 second timeout
+      }, 10000);
 
       timeoutsRef.current[taskId] = timeoutId;
 
       try {
-        // Make the actual API request
         await updateTask(taskId, { is_done: isDone });
 
-        // Success: clear the timeout and transition state
         clearTimeout(timeoutsRef.current[taskId]);
         delete timeoutsRef.current[taskId];
 
@@ -133,29 +119,24 @@ export default function TodoList() {
           return updated;
         });
       } catch (error) {
-        // On error, clear the timeout
         clearTimeout(timeoutsRef.current[taskId]);
         delete timeoutsRef.current[taskId];
 
-        // Revert the optimistic update
         setDisplayedTaskStates(prev => ({
           ...prev,
           [taskId]: originalState,
         }));
 
-        // Clear the transition state
         setTasksInTransition(prev => {
           const updated = { ...prev };
           delete updated[taskId];
           return updated;
         });
 
-        // Alert the user about the error
         Alert.alert('Error', 'Failed to update task. Please try again.');
         console.error('Failed to update task:', error);
       }
     } catch (error) {
-      // Handle any unexpected errors in the outer try block
       setTasksInTransition(prev => {
         const updated = { ...prev };
         delete updated[taskId];
@@ -169,35 +150,28 @@ export default function TodoList() {
 
   const handleUpdateTaskName = async (taskId: number, newTaskName: string) => {
     try {
-      // Find the task that's being updated
       const taskToUpdate = tasks.find(t => t.id === taskId);
       if (!taskToUpdate) return;
 
-      // Don't update if the name is the same
       if (taskToUpdate.task_name === newTaskName) return;
 
-      // Optimistically update the UI first
       setDisplayedTaskNames(prev => ({
         ...prev,
         [taskId]: newTaskName,
       }));
 
-      // Set task as in transition state
       setTasksInTransition(prev => ({
         ...prev,
         [taskId]: true,
       }));
 
-      // Clear any existing timeout for this task
       if (timeoutsRef.current[taskId]) {
         clearTimeout(timeoutsRef.current[taskId]);
       }
 
       try {
-        // Make the actual API request
         await updateTask(taskId, { task_name: newTaskName });
 
-        // Success: clear the transition state
         setTasksInTransition(prev => {
           const updated = { ...prev };
           delete updated[taskId];
@@ -210,21 +184,18 @@ export default function TodoList() {
           return updated;
         });
       } catch (error) {
-        // On error, revert the optimistic update
         setDisplayedTaskNames(prev => {
           const updated = { ...prev };
           delete updated[taskId];
           return updated;
         });
 
-        // Clear the transition state
         setTasksInTransition(prev => {
           const updated = { ...prev };
           delete updated[taskId];
           return updated;
         });
 
-        // Alert the user about the error
         Alert.alert('Error', 'Failed to update task name. Please try again.');
         console.error('Failed to update task name:', error);
       }
@@ -236,35 +207,29 @@ export default function TodoList() {
 
   const handleDeleteTask = async (taskId: number) => {
     try {
-      // Find the task being deleted
       const taskToDelete = tasks.find(t => t.id === taskId);
       if (!taskToDelete) return;
 
-      // Mark the task as being deleted optimistically
       setTasksBeingDeleted(prev => ({
         ...prev,
         [taskId]: true,
       }));
 
       try {
-        // Make the actual API request
         await deleteTask(taskId);
 
-        // Success: remove from the deleted tasks tracking
         setTasksBeingDeleted(prev => {
           const updated = { ...prev };
           delete updated[taskId];
           return updated;
         });
       } catch (error) {
-        // On error, revert the optimistic deletion
         setTasksBeingDeleted(prev => {
           const updated = { ...prev };
           delete updated[taskId];
           return updated;
         });
 
-        // Alert the user about the error
         Alert.alert('Error', 'Failed to delete task. Please try again.');
         console.error('Failed to delete task:', error);
       }
@@ -274,18 +239,25 @@ export default function TodoList() {
     }
   };
 
-  // Process and filter tasks
+  const handleCreateTask = async (taskName: string) => {
+    setIsCreatingTask(true);
+    try {
+      await createTask(taskName);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to create task. Please try again.');
+      console.error('Failed to create task:', error);
+    } finally {
+      setIsCreatingTask(false);
+    }
+  };
+
   const processFilteredTasks = () => {
-    // Get current date without time for date comparison
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Filter out tasks with future due dates first
     const filteredTasks = tasks.filter(task => {
-      // Skip tasks being deleted optimistically
       if (tasksBeingDeleted[task.id]) return false;
 
-      // Include tasks with no due date or due date today or in the past
       if (!task.due_date) return true;
 
       const taskDueDate = new Date(task.due_date);
@@ -294,7 +266,6 @@ export default function TodoList() {
       return taskDueDate <= today;
     });
 
-    // Process tasks with their displayed state during transitions
     return filteredTasks.map(task => ({
       ...task,
       displayed_is_done: tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done,
@@ -302,77 +273,57 @@ export default function TodoList() {
     }));
   };
 
-  // Get incomplete tasks and tasks completed today
   const getIncompleteTasks = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Get all incomplete tasks
     const incompleteTasks = tasks.filter(
       task =>
         !tasksBeingDeleted[task.id] &&
-        // Check if task is incomplete (considering transition state)
         !(tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done),
     );
 
-    // Get tasks that were completed today
     const completedTodayTasks = tasks.filter(
       task =>
         !tasksBeingDeleted[task.id] &&
-        // Check if task is complete (considering transition state)
         (tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done) &&
-        // Check if task was updated today
         new Date(task.updated_at) >= today &&
         new Date(task.updated_at) < tomorrow,
     );
 
-    // Combine both lists and sort them
-    return (
-      [...incompleteTasks, ...completedTodayTasks]
-        .map(task => ({
-          ...task,
-          displayed_is_done: tasksInTransition[task.id]
-            ? displayedTaskStates[task.id]
-            : task.is_done,
-          task_name: displayedTaskNames[task.id] || task.task_name,
-        }))
-        // Sort by creation date (oldest to newest)
-        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-    );
+    return [...incompleteTasks, ...completedTodayTasks]
+      .map(task => ({
+        ...task,
+        displayed_is_done: tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done,
+        task_name: displayedTaskNames[task.id] || task.task_name,
+      }))
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
   };
 
-  // Get complete tasks to archive
   const getCompleteTasks = () => {
     const processedTasks = processFilteredTasks();
 
-    // Get current date without time for date comparison
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Only include tasks that are:
-    // 1. Done AND
-    // 2. Have a due date AND
-    // 3. Not due today
     const completeTasks = processedTasks.filter(task => {
       if (!task.displayed_is_done) return false;
-      if (!task.due_date) return false; // Exclude tasks with no due date
+      if (!task.due_date) return false;
 
       const taskDueDate = new Date(task.due_date);
       taskDueDate.setHours(0, 0, 0, 0);
 
-      return taskDueDate.getTime() !== today.getTime(); // Exclude tasks due today
+      return taskDueDate.getTime() !== today.getTime();
     });
 
-    // Sort complete tasks by updated_at (newest to oldest)
     return [...completeTasks].sort(
       (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
     );
   };
 
   const renderTaskItem = (item: Task) => {
-    // Use the optimistic state if available, otherwise use the actual state
     const isDone =
       displayedTaskStates[item.id] !== undefined ? displayedTaskStates[item.id] : item.is_done;
 
@@ -428,28 +379,22 @@ export default function TodoList() {
               <TouchableOpacity
                 onPress={onRefresh}
                 style={styles.refreshButton}
-                disabled={refreshing} // Disable button while refreshing
+                disabled={refreshing}
               >
                 {refreshing ? (
                   <ActivityIndicator size="small" color="#ffffff" />
                 ) : (
-                  <Ionicons
-                    name="refresh"
-                    size={24}
-                    color="#ffffff" // Set color to white
-                  />
+                  <Ionicons name="refresh" size={24} color="#ffffff" />
                 )}
               </TouchableOpacity>
             ) : null,
         }}
       />
 
-      {/* Use RefreshControl for pull-to-refresh */}
       <RefreshControl refreshing={refreshing} onRefresh={onRefresh}>
         <View />
       </RefreshControl>
 
-      {/* Active Tasks section */}
       <FlatList
         data={incompleteTasks}
         renderItem={({ item }) => renderTaskItem(item)}
@@ -457,10 +402,8 @@ export default function TodoList() {
         style={styles.tasksList}
       />
 
-      {/* Task Input - placed between incomplete tasks and completed tasks */}
-      <TaskInputHeader />
+      <TaskItem isNewTask onCreateTask={handleCreateTask} isLoading={isCreatingTask} />
 
-      {/* Archive section with collapsible header */}
       {completeTasks.length > 0 && (
         <View style={styles.doneSection}>
           <TouchableOpacity
@@ -481,7 +424,6 @@ export default function TodoList() {
             </View>
           </TouchableOpacity>
 
-          {/* Archived tasks list - only shown when not collapsed */}
           {!isArchiveSectionCollapsed && (
             <FlatList
               data={completeTasks}
