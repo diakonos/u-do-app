@@ -61,6 +61,13 @@ export default function TodayTasksList() {
   const { tasks, fetchTasks, deleteTask } = useTask();
   const { isLoading: isLoadingAuth, session } = useAuth();
 
+  const today = new Date();
+  const longDate = today.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
   // Define loadTasks as a useCallback to fix the dependencies issue
   const loadTasks = useCallback(async () => {
     const loadPinnedFriendsTasks = async (configs: DashboardConfig[]) => {
@@ -248,7 +255,7 @@ export default function TodayTasksList() {
       <HTMLTitle>Today</HTMLTitle>
       <Stack.Screen
         options={{
-          headerTitle: 'Today',
+          headerTitle: `Today - ${longDate}`,
           headerRight: () => (
             <View style={styles.headerRightRow}>
               <TouchableOpacity
