@@ -145,45 +145,47 @@ export default function ScheduleTasksScreen() {
       const portalRoot = getPortalRoot();
       if (portalRoot) {
         datePickerModal = createPortal(
-          <Animated.View style={[styles.modalOverlay, { opacity: overlayAnim }]}>
-            <Animated.View
-              style={[
-                styles.modalSheet,
-                {
-                  transform: [
-                    {
-                      translateY: sheetAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [Dimensions.get('window').height, 0],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            >
-              <DatePicker
-                date={tempDate}
-                onChange={e => {
-                  setTempDate(new Date(e.date!.toString()));
-                }}
-                mode="single"
-                minDate={new Date()}
-                styles={{
-                  today: { backgroundColor: Colors[colorScheme].inputBackground },
-                  selected: { backgroundColor: Colors[colorScheme].brand },
-                  selected_label: { color: Colors[colorScheme].white },
-                }}
-              />
-              <View style={styles.modalActions}>
-                <Pressable style={styles.modalButton} onPress={closePicker}>
-                  <ThemedText>Cancel</ThemedText>
-                </Pressable>
-                <Pressable style={styles.modalButton} onPress={confirmPicker}>
-                  <ThemedText style={{ color: Colors[colorScheme].brand }}>Confirm</ThemedText>
-                </Pressable>
-              </View>
+          <Pressable style={styles.modalTouch} onPress={closePicker}>
+            <Animated.View style={[styles.modalOverlay, { opacity: overlayAnim }]}>
+              <Animated.View
+                style={[
+                  styles.modalSheet,
+                  {
+                    transform: [
+                      {
+                        translateY: sheetAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [Dimensions.get('window').height, 0],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                <DatePicker
+                  date={tempDate}
+                  onChange={e => {
+                    setTempDate(new Date(e.date!.toString()));
+                  }}
+                  mode="single"
+                  minDate={new Date()}
+                  styles={{
+                    today: { backgroundColor: Colors[colorScheme].inputBackground },
+                    selected: { backgroundColor: Colors[colorScheme].brand },
+                    selected_label: { color: Colors[colorScheme].white },
+                  }}
+                />
+                <View style={styles.modalActions}>
+                  <Pressable style={styles.modalButton} onPress={closePicker}>
+                    <ThemedText>Cancel</ThemedText>
+                  </Pressable>
+                  <Pressable style={styles.modalButton} onPress={confirmPicker}>
+                    <ThemedText style={{ color: Colors[colorScheme].brand }}>Confirm</ThemedText>
+                  </Pressable>
+                </View>
+              </Animated.View>
             </Animated.View>
-          </Animated.View>,
+          </Pressable>,
           portalRoot,
         );
       }
@@ -493,6 +495,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     width: '100%',
+  },
+  modalTouch: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
   },
   nativeDateInfoRow: {
     flexDirection: 'row',
