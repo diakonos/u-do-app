@@ -52,6 +52,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   const [editValue, setEditValue] = useState(taskName);
   const [inputHeight, setInputHeight] = useState(22); // Initial height based on the line height
   const inputRef = useRef<TextInput>(null);
+  const [selection, setSelection] = useState<{ start: number; end: number } | undefined>(undefined);
 
   const formatDate = (date: string | null) => {
     if (!date) return '';
@@ -72,6 +73,8 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     if (readOnly || isInTransition || !onUpdateTaskName) return;
     setIsEditing(true);
     setEditValue(taskName);
+    // Set selection to end of text
+    setSelection({ start: taskName.length, end: taskName.length });
     // Focus the input after rendering
     setTimeout(() => {
       inputRef.current?.focus();
@@ -201,7 +204,11 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 autoFocus
                 multiline
                 onBlur={handleSaveEdit}
-                onChangeText={setEditValue}
+                onChangeText={text => {
+                  setEditValue(text);
+                  // Keep selection at end if user types
+                  setSelection({ start: text.length, end: text.length });
+                }}
                 onKeyPress={e => {
                   if (e.nativeEvent.key === 'Enter') {
                     handleSaveEdit();
@@ -213,6 +220,8 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 style={[styles.taskInput, { color: Colors[colorScheme].text, height: inputHeight }]}
                 submitBehavior="blurAndSubmit"
                 value={editValue}
+                selection={selection}
+                onSelectionChange={e => setSelection(e.nativeEvent.selection)}
               />
               <Text
                 style={[styles.taskInput, styles.measureInput]}
