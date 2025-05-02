@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { FriendsService } from '../services/friends-service';
+import { PersistentCache } from '../persistentCache';
 
 // Types for friends data management
 export interface Friend {
@@ -73,19 +74,49 @@ export function FriendsProvider({ children }: { children: React.ReactNode }) {
   const [hasLoadedFriends, setHasLoadedFriends] = useState(false);
   const [hasLoadedPendingRequests, setHasLoadedPendingRequests] = useState(false);
 
-  // Fetch friends data
+  const FRIENDS_CACHE_KEY = 'friends-cache';
+  const FRIENDS_REVALIDATE_MS = 60 * 1000;
+  const PENDING_REQUESTS_CACHE_KEY = 'pending-requests-cache';
+  const PENDING_REQUESTS_REVALIDATE_MS = 60 * 1000;
+
+  // Load friends from persistent cache on mount
+  useEffect(() => {
+    (async () => {
+      const cached = await PersistentCache.get(FRIENDS_CACHE_KEY);
+      if (cached && cached.value) {
+        setFriends(cached.value);
+        setHasLoadedFriends(true);
+      }
+      const cachedPending = await PersistentCache.get(PENDING_REQUESTS_CACHE_KEY);
+      if (cachedPending && cachedPending.value) {
+        setPendingRequests(cachedPending.value);
+        setHasLoadedPendingRequests(true);
+      }
+    })();
+  }, []);
+
+  // Fetch friends data with persistent cache and revalidation
   const fetchFriends = useCallback(
     async (forceRefresh = false) => {
-      // Skip fetching if data is already loaded and not forcing refresh
-      if (hasLoadedFriends && !forceRefresh) {
+      const now = Date.now();
+      const cached = await PersistentCache.get(FRIENDS_CACHE_KEY);
+      if (
+        !forceRefresh &&
+        cached &&
+        cached.value &&
+        cached.updatedAt &&
+        now - cached.updatedAt < FRIENDS_REVALIDATE_MS
+      ) {
+        setFriends(cached.value);
+        setHasLoadedFriends(true);
         return;
       }
-
       try {
         setIsLoading(true);
         const friendsList = await FriendsService.getFriends();
         setFriends(friendsList);
         setHasLoadedFriends(true);
+        PersistentCache.set(FRIENDS_CACHE_KEY, friendsList);
       } catch (error) {
         console.error('Failed to fetch friends:', error);
       } finally {
@@ -96,24 +127,32 @@ export function FriendsProvider({ children }: { children: React.ReactNode }) {
     [hasLoadedFriends],
   );
 
-  // Fetch pending friend requests
+  // Fetch pending friend requests with persistent cache and revalidation
   const fetchPendingRequests = useCallback(
     async (forceRefresh = false) => {
-      // Skip fetching if data is already loaded and not forcing refresh
-      if (hasLoadedPendingRequests && !forceRefresh) {
+      const now = Date.now();
+      const cached = await PersistentCache.get(PENDING_REQUESTS_CACHE_KEY);
+      if (
+        !forceRefresh &&
+        cached &&
+        cached.value &&
+        cached.updatedAt &&
+        now - cached.updatedAt < PENDING_REQUESTS_REVALIDATE_MS
+      ) {
+        setPendingRequests(cached.value);
+        setHasLoadedPendingRequests(true);
         return;
       }
-
       try {
         if (forceRefresh) {
           setIsPendingRequestsRefreshing(true);
         } else if (!hasLoadedPendingRequests) {
           setIsLoading(true);
         }
-
         const pendingRequests = await FriendsService.getPendingRequests();
         setPendingRequests(pendingRequests);
         setHasLoadedPendingRequests(true);
+        PersistentCache.set(PENDING_REQUESTS_CACHE_KEY, pendingRequests);
       } catch (error) {
         console.error('Failed to fetch friend requests:', error);
       } finally {
@@ -128,6 +167,8 @@ export function FriendsProvider({ children }: { children: React.ReactNode }) {
   const sendFriendRequest = async (emailOrUserId: string) => {
     try {
       await FriendsService.sendFriendRequest(emailOrUserId);
+      // After sending, refresh both friends and pending requests from API and update cache
+      await Promise.all([fetchFriends(true), fetchPendingRequests(true)]);
     } catch (error: unknown) {
       console.error('Failed to send friend request:', error);
       const apiError = error as { message?: string };
@@ -141,7 +182,11 @@ export function FriendsProvider({ children }: { children: React.ReactNode }) {
       await FriendsService.acceptFriendRequest(requestId);
 
       // Update the local state optimistically
-      setPendingRequests(prev => prev.filter(request => request.id !== requestId));
+      setPendingRequests(prev => {
+        const updatedRequests = prev.filter(request => request.id !== requestId);
+        PersistentCache.set(PENDING_REQUESTS_CACHE_KEY, updatedRequests);
+        return updatedRequests;
+      });
 
       // Refresh friends list to include the new friend
       fetchFriends(true);
@@ -157,7 +202,11 @@ export function FriendsProvider({ children }: { children: React.ReactNode }) {
       await FriendsService.rejectFriendRequest(requestId);
 
       // Update the local state optimistically
-      setPendingRequests(prev => prev.filter(request => request.id !== requestId));
+      setPendingRequests(prev => {
+        const updatedRequests = prev.filter(request => request.id !== requestId);
+        PersistentCache.set(PENDING_REQUESTS_CACHE_KEY, updatedRequests);
+        return updatedRequests;
+      });
     } catch (error) {
       console.error('Failed to reject friend request:', error);
       throw error;
@@ -170,7 +219,11 @@ export function FriendsProvider({ children }: { children: React.ReactNode }) {
       await FriendsService.removeFriend(requestId);
 
       // Update the local state optimistically
-      setFriends(prev => prev.filter(friend => friend.request_id !== requestId));
+      setFriends(prev => {
+        const updatedFriends = prev.filter(friend => friend.request_id !== requestId);
+        PersistentCache.set(FRIENDS_CACHE_KEY, updatedFriends);
+        return updatedFriends;
+      });
     } catch (error) {
       console.error('Failed to remove friend:', error);
       throw error;
@@ -187,15 +240,33 @@ export function FriendsProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Get a friend's tasks
-  const getFriendTasks = useCallback(async (username: string): Promise<FriendTask[]> => {
-    try {
-      return await FriendsService.getFriendTasks(username);
-    } catch (error) {
-      console.error('Failed to fetch friend tasks:', error);
-      throw error;
-    }
-  }, []);
+  // Get a friend's tasks with persistent cache and revalidation
+  const getFriendTasksWithCache = useCallback(
+    async (username: string, forceRefresh = false): Promise<FriendTask[]> => {
+      const CACHE_KEY = `friend-tasks-cache-${username}`;
+      const REVALIDATE_MS = 60 * 1000;
+      const now = Date.now();
+      const cached = await PersistentCache.get(CACHE_KEY);
+      if (
+        !forceRefresh &&
+        cached &&
+        cached.value &&
+        cached.updatedAt &&
+        now - cached.updatedAt < REVALIDATE_MS
+      ) {
+        return cached.value;
+      }
+      try {
+        const tasks = await FriendsService.getFriendTasks(username);
+        PersistentCache.set(CACHE_KEY, tasks);
+        return tasks;
+      } catch (error) {
+        if (cached && cached.value) return cached.value;
+        throw error;
+      }
+    },
+    [],
+  );
 
   return (
     <FriendsContext.Provider
@@ -212,7 +283,7 @@ export function FriendsProvider({ children }: { children: React.ReactNode }) {
         fetchPendingRequests,
         isPendingRequestsRefreshing,
         searchUsers,
-        getFriendTasks,
+        getFriendTasks: getFriendTasksWithCache,
       }}
     >
       {children}

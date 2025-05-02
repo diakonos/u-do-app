@@ -1,5 +1,6 @@
-import { createContext, useContext, useCallback, useState } from 'react';
+import { createContext, useContext, useCallback, useState, useEffect } from 'react';
 import { supabase } from '../supabase';
+import { PersistentCache } from '../persistentCache';
 
 // Define the type for a dashboard configuration item
 type DashboardConfig = {
@@ -13,7 +14,7 @@ type DashboardConfig = {
 // Define the dashboard context type
 type DashboardContextType = {
   dashboardConfigs: DashboardConfig[];
-  loadDashboardConfig: () => Promise<DashboardConfig[]>;
+  loadDashboardConfig: (forceRefresh?: boolean) => Promise<DashboardConfig[]>;
   isLoading: boolean;
   checkIfConfigExists: (blockType: string, value: string) => boolean;
   createDashboardConfig: (blockType: string, value: string) => Promise<DashboardConfig>;
@@ -27,37 +28,66 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const [dashboardConfigs, setDashboardConfigs] = useState<DashboardConfig[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Function to load dashboard configuration for the current user
-  const loadDashboardConfig = useCallback(async (): Promise<DashboardConfig[]> => {
-    try {
-      setIsLoading(true);
+  const DASHBOARD_CACHE_KEY = 'dashboard-configs-cache';
+  const DASHBOARD_REVALIDATE_MS = 60 * 1000;
 
-      // Get the current session
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session) throw new Error('User not authenticated');
-
-      // Query the dashboard_configs table for the current user
-      const { data, error } = await supabase
-        .from('dashboard_configs')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('order', { ascending: true });
-
-      if (error) throw error;
-
-      // Update the state with the fetched configurations
-      setDashboardConfigs(data || []);
-      return data || [];
-    } catch (error) {
-      console.error('Error loading dashboard config:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
+  // Load dashboard configs from persistent cache on mount
+  useEffect(() => {
+    (async () => {
+      const cached = await PersistentCache.get(DASHBOARD_CACHE_KEY);
+      if (cached && cached.value) {
+        setDashboardConfigs(cached.value);
+      }
+    })();
   }, []);
+
+  // Function to load dashboard configuration for the current user, with cache and revalidation
+  const loadDashboardConfig = useCallback(
+    async (forceRefresh = false): Promise<DashboardConfig[]> => {
+      const now = Date.now();
+      const cached = await PersistentCache.get(DASHBOARD_CACHE_KEY);
+      if (
+        !forceRefresh &&
+        cached &&
+        cached.value &&
+        cached.updatedAt &&
+        now - cached.updatedAt < DASHBOARD_REVALIDATE_MS
+      ) {
+        setDashboardConfigs(cached.value);
+        return cached.value;
+      }
+      try {
+        setIsLoading(true);
+
+        // Get the current session
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session) throw new Error('User not authenticated');
+
+        // Query the dashboard_configs table for the current user
+        const { data, error } = await supabase
+          .from('dashboard_configs')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .order('order', { ascending: true });
+
+        if (error) throw error;
+
+        // Update the state with the fetched configurations
+        setDashboardConfigs(data || []);
+        PersistentCache.set(DASHBOARD_CACHE_KEY, data || []);
+        return data || [];
+      } catch (error) {
+        console.error('Error loading dashboard config:', error);
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [],
+  );
 
   // Function to check if a specific configuration already exists
   const checkIfConfigExists = useCallback(
@@ -103,7 +133,11 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         if (!data || data.length === 0) throw new Error('Failed to create dashboard configuration');
 
         // Update the local state
-        setDashboardConfigs(prev => [...prev, data[0]]);
+        setDashboardConfigs(prev => {
+          const updated = [...prev, data[0]];
+          PersistentCache.set(DASHBOARD_CACHE_KEY, updated);
+          return updated;
+        });
         return data[0];
       } catch (error) {
         console.error('Error creating dashboard config:', error);
@@ -135,9 +169,13 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         if (error) throw error;
 
         // Update the local state
-        setDashboardConfigs(prev =>
-          prev.filter(config => !(config.block_type === blockType && config.value === value)),
-        );
+        setDashboardConfigs(prev => {
+          const updated = prev.filter(
+            config => !(config.block_type === blockType && config.value === value),
+          );
+          PersistentCache.set(DASHBOARD_CACHE_KEY, updated);
+          return updated;
+        });
       } catch (error) {
         console.error('Error deleting dashboard config:', error);
         throw error;

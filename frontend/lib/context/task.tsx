@@ -1,5 +1,6 @@
-import { createContext, useContext, useCallback, useState } from 'react';
+import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
 import { supabase } from '../supabase';
+import { PersistentCache } from '../persistentCache';
 
 export type Task = {
   id: number;
@@ -14,7 +15,7 @@ export type Task = {
 type TaskContextType = {
   tasks: Task[];
   createTask: (taskName: string, dueDate?: string) => Promise<Task>;
-  fetchTasks: () => Promise<Task[]>;
+  fetchTasks: (forceRefresh?: boolean) => Promise<Task[]>;
   updateTask: (taskId: number, updates: Partial<Task>) => Promise<Task>;
   deleteTask: (taskId: number) => Promise<void>;
 };
@@ -23,6 +24,21 @@ const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
 export function TaskProvider({ children }: { children: React.ReactNode }) {
   const [tasksCache, setTasksCache] = useState<Task[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const CACHE_KEY = 'tasks-cache';
+  const REVALIDATE_MS = 60 * 1000; // 1 minute
+
+  // Load from persistent cache on mount
+  useEffect(() => {
+    (async () => {
+      const cached = await PersistentCache.get(CACHE_KEY);
+      if (cached && cached.value) {
+        setTasksCache(cached.value);
+        setLastUpdated(cached.updatedAt);
+      }
+    })();
+  }, []);
+
   const createTask = async (taskName: string, dueDate?: string): Promise<Task> => {
     const {
       data: { session },
@@ -44,26 +60,52 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       throw new Error('Failed to create task');
     }
 
-    setTasksCache(prevTasks => [data[0], ...prevTasks]);
+    setTasksCache(prevTasks => {
+      const updated = [data[0], ...prevTasks];
+      PersistentCache.set(CACHE_KEY, updated);
+      setLastUpdated(Date.now());
+      return updated;
+    });
     return data[0];
   };
 
-  const fetchTasks = useCallback(async (): Promise<Task[]> => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session) throw new Error('User not authenticated');
+  // fetchTasks now supports forceRefresh and revalidation
+  const fetchTasks = useCallback(
+    async (forceRefresh = false): Promise<Task[]> => {
+      const now = Date.now();
+      const cached = await PersistentCache.get(CACHE_KEY);
+      if (
+        !forceRefresh &&
+        cached &&
+        cached.value &&
+        cached.updatedAt &&
+        now - cached.updatedAt < REVALIDATE_MS
+      ) {
+        setTasksCache(cached.value);
+        setLastUpdated(cached.updatedAt);
+        return cached.value;
+      }
 
-    const { data: tasks, error } = await supabase
-      .from('tasks')
-      .select('*')
-      .eq('user_id', session.user.id) // Filter by the current user's ID
-      .order('created_at', { ascending: false });
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error('User not authenticated');
 
-    if (error) throw error;
-    setTasksCache(tasks);
-    return tasks;
-  }, []);
+      const { data: tasks, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setTasksCache(tasks);
+      setLastUpdated(Date.now());
+      PersistentCache.set(CACHE_KEY, tasks);
+      return tasks;
+    },
+    [REVALIDATE_MS],
+  );
 
   const updateTask = async (taskId: number, updates: Partial<Task>): Promise<Task> => {
     const {
@@ -71,7 +113,6 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     } = await supabase.auth.getSession();
     if (!session) throw new Error('User not authenticated');
 
-    // Prepare the updates object, formatting the due_date if present
     const updatesToSend: Partial<Task> & { updated_at: string } = {
       ...updates,
       updated_at: new Date().toISOString(),
@@ -79,19 +120,13 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
     if (updates.due_date) {
       try {
-        // Convert to Date object first to handle various input string formats
         const date = new Date(updates.due_date);
-        // Check if the date is valid
         if (!isNaN(date.getTime())) {
-          // Format to YYYY-MM-DD using local time methods
           const year = date.getFullYear();
-          // Months are 0-indexed, add 1 and pad with '0' if needed
           const month = (date.getMonth() + 1).toString().padStart(2, '0');
-          // Pad day with '0' if needed
           const day = date.getDate().toString().padStart(2, '0');
           updatesToSend.due_date = `${year}-${month}-${day}`;
         } else {
-          // Handle invalid date string - log warning and remove from update
           console.warn('Invalid due_date received, removing from update:', updates.due_date);
           delete updatesToSend.due_date;
         }
@@ -103,17 +138,21 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
     const { data, error } = await supabase
       .from('tasks')
-      .update(updatesToSend) // Use the potentially modified updatesToSend object
+      .update(updatesToSend)
       .eq('id', taskId)
       .select()
       .single();
 
     if (error) throw error;
 
-    // Update local cache using the data returned from Supabase for consistency
-    setTasksCache(prevTasks => prevTasks.map(task => (task.id === taskId ? data : task)));
+    setTasksCache(prevTasks => {
+      const updated = prevTasks.map(task => (task.id === taskId ? data : task));
+      PersistentCache.set(CACHE_KEY, updated);
+      setLastUpdated(Date.now());
+      return updated;
+    });
 
-    return data; // Ensure the function returns the updated task data
+    return data;
   };
 
   const deleteTask = async (taskId: number): Promise<void> => {
@@ -126,7 +165,12 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
     if (error) throw error;
 
-    setTasksCache(prevTasks => prevTasks.filter(task => task.id !== taskId));
+    setTasksCache(prevTasks => {
+      const updated = prevTasks.filter(task => task.id !== taskId);
+      PersistentCache.set(CACHE_KEY, updated);
+      setLastUpdated(Date.now());
+      return updated;
+    });
   };
 
   return (
