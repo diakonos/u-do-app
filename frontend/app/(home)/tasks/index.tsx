@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Platform,
   FlatList,
   Alert,
   ActivityIndicator,
@@ -385,19 +384,6 @@ export default function TodoList() {
           title: 'Tasks',
           headerRight: () => (
             <View style={styles.headerRightRow}>
-              {Platform.OS === 'web' && (
-                <TouchableOpacity
-                  onPress={onRefresh}
-                  style={styles.refreshButton}
-                  disabled={refreshing}
-                >
-                  {refreshing ? (
-                    <ActivityIndicator size="small" color="#ffffff" />
-                  ) : (
-                    <Ionicons name="refresh" size={24} color="#ffffff" />
-                  )}
-                </TouchableOpacity>
-              )}
               <Link href="/tasks/schedule" style={styles.calendarLink}>
                 <Ionicons name="calendar" size={24} color="#ffffff" style={styles.calendarIcon} />
               </Link>
@@ -489,7 +475,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  refreshButton: { marginRight: 15 },
   sectionHeader: {
     borderColor: Colors.light.border,
     paddingHorizontal: 16,
