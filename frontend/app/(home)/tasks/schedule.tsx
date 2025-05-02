@@ -566,7 +566,7 @@ const styles = StyleSheet.create({
   nativeTodayText: {
     fontSize: 12,
   },
-  newTaskMargin: { marginBottom: 16 },
+  newTaskMargin: { marginBottom: 8 },
   pickerContainer: { marginBottom: 12 },
   pickerRow: {
     alignItems: 'center',

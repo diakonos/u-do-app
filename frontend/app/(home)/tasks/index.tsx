@@ -280,19 +280,29 @@ export default function TodoList() {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const incompleteTasks = tasks.filter(
-      task =>
-        !tasksBeingDeleted[task.id] &&
-        !(tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done),
-    );
+    const incompleteTasks = tasks.filter(task => {
+      if (tasksBeingDeleted[task.id]) return false;
+      if (tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done) return false;
+      if (task.due_date) {
+        const taskDueDate = new Date(task.due_date);
+        taskDueDate.setHours(0, 0, 0, 0);
+        if (taskDueDate > today) return false; // Exclude future tasks
+      }
+      return true;
+    });
 
-    const completedTodayTasks = tasks.filter(
-      task =>
-        !tasksBeingDeleted[task.id] &&
-        (tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done) &&
-        new Date(task.updated_at) >= today &&
-        new Date(task.updated_at) < tomorrow,
-    );
+    const completedTodayTasks = tasks.filter(task => {
+      if (tasksBeingDeleted[task.id]) return false;
+      if (!(tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done)) return false;
+      const updatedAt = new Date(task.updated_at);
+      if (updatedAt < today || updatedAt >= tomorrow) return false;
+      if (task.due_date) {
+        const taskDueDate = new Date(task.due_date);
+        taskDueDate.setHours(0, 0, 0, 0);
+        if (taskDueDate > today) return false; // Exclude future tasks
+      }
+      return true;
+    });
 
     return [...incompleteTasks, ...completedTodayTasks]
       .map(task => ({
@@ -500,6 +510,6 @@ const styles = StyleSheet.create({
   },
   tasksList: {
     flexGrow: 0,
-    paddingTop: 16,
+    paddingTop: 8,
   },
 });

@@ -338,35 +338,41 @@ export default function TodayTasksList() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setDate(today.getDate() + 1);
 
-    // Get all incomplete tasks
-    const incompleteTasks = tasks.filter(
-      task =>
-        !tasksBeingDeleted[task.id] &&
-        // Check if task is incomplete, using displayedTaskStates if available
-        !(displayedTaskStates[task.id] !== undefined ? displayedTaskStates[task.id] : task.is_done),
-    );
+    // Get all incomplete tasks due today or earlier (not in the future)
+    const incompleteTasks = tasks.filter(task => {
+      if (tasksBeingDeleted[task.id]) return false;
+      const isDone =
+        displayedTaskStates[task.id] !== undefined ? displayedTaskStates[task.id] : task.is_done;
+      if (isDone) return false;
+      if (task.due_date) {
+        const taskDueDate = new Date(task.due_date);
+        taskDueDate.setHours(0, 0, 0, 0);
+        if (taskDueDate > today) return false; // Exclude future tasks
+      }
+      return true;
+    });
 
-    // Get tasks that were completed today
-    const completedTodayTasks = tasks.filter(
-      task =>
-        !tasksBeingDeleted[task.id] &&
-        // Check if task is complete, using displayedTaskStates if available
-        (displayedTaskStates[task.id] !== undefined
-          ? displayedTaskStates[task.id]
-          : task.is_done) &&
-        // Check if task was updated today
-        new Date(task.updated_at) >= today &&
-        new Date(task.updated_at) < tomorrow,
-    );
+    // Get tasks that were completed today (not in the future)
+    const completedTodayTasks = tasks.filter(task => {
+      if (tasksBeingDeleted[task.id]) return false;
+      const isDone =
+        displayedTaskStates[task.id] !== undefined ? displayedTaskStates[task.id] : task.is_done;
+      if (!isDone) return false;
+      const updatedAt = new Date(task.updated_at);
+      if (updatedAt < today || updatedAt >= tomorrow) return false;
+      if (task.due_date) {
+        const taskDueDate = new Date(task.due_date);
+        taskDueDate.setHours(0, 0, 0, 0);
+        if (taskDueDate > today) return false; // Exclude future tasks
+      }
+      return true;
+    });
 
     // Combine both lists and sort them
     return [...incompleteTasks, ...completedTodayTasks]
-      .sort((a, b) => {
-        // Sort by creation date
-        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-      })
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
       .map(task => ({
         ...task,
         task_name: displayedTaskNames[task.id] || task.task_name,
