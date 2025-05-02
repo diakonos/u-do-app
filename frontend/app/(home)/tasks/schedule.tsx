@@ -141,8 +141,23 @@ export default function ScheduleTasksScreen() {
   const futureTasks = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
     return tasks
-      .filter(t => t.due_date && new Date(t.due_date) > today && !tasksBeingDeleted[t.id])
+      .filter(t => {
+        if (!t.due_date || tasksBeingDeleted[t.id]) return false;
+        const dueDate = new Date(t.due_date);
+        dueDate.setHours(0, 0, 0, 0);
+        if (dueDate <= today) return false;
+        if (!t.is_done) {
+          // Incomplete, scheduled for future
+          return true;
+        } else {
+          // Completed: only show if updated today
+          const updatedAt = new Date(t.updated_at);
+          return updatedAt >= today && updatedAt < tomorrow;
+        }
+      })
       .sort((a, b) => {
         const dueA = new Date(a.due_date!).getTime();
         const dueB = new Date(b.due_date!).getTime();
@@ -160,6 +175,246 @@ export default function ScheduleTasksScreen() {
     day: 'numeric',
   });
 
+  // Modal content for date picker (web and native)
+  let datePickerModal: React.ReactNode = null;
+  if (showPicker) {
+    if (Platform.OS === 'web') {
+      const portalRoot = getPortalRoot();
+      if (portalRoot) {
+        datePickerModal = createPortal(
+          <Animated.View style={[styles.modalOverlay, { opacity: overlayAnim }]}>
+            <Animated.View
+              style={[
+                styles.modalSheet,
+                {
+                  transform: [
+                    {
+                      translateY: sheetAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [Dimensions.get('window').height, 0],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <DatePicker
+                date={tempDate}
+                onChange={e => {
+                  setTempDate(new Date(e.date!.toString()));
+                }}
+                mode="single"
+                minDate={new Date()}
+                styles={{
+                  today: { backgroundColor: Colors[colorScheme].inputBackground },
+                  selected: { backgroundColor: Colors[colorScheme].brand },
+                  selected_label: { color: Colors[colorScheme].white },
+                }}
+              />
+              <View style={styles.modalActions}>
+                <Pressable style={styles.modalButton} onPress={closePicker}>
+                  <ThemedText>Cancel</ThemedText>
+                </Pressable>
+                <Pressable style={styles.modalButton} onPress={confirmPicker}>
+                  <ThemedText style={{ color: Colors[colorScheme].brand }}>Confirm</ThemedText>
+                </Pressable>
+              </View>
+            </Animated.View>
+          </Animated.View>,
+          portalRoot,
+        );
+      }
+    } else {
+      datePickerModal = (
+        <Animated.View style={[styles.modalOverlay, { opacity: overlayAnim }]}>
+          <Animated.View
+            style={[
+              styles.modalSheet,
+              {
+                transform: [
+                  {
+                    translateY: sheetAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [Dimensions.get('window').height, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <DateTimePicker
+              value={tempDate}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'inline' : 'default'}
+              minimumDate={new Date()}
+              onChange={(e, d) => d && setTempDate(d)}
+            />
+            <View style={styles.nativeDateInfoRow}>
+              <ThemedText style={styles.nativeSelectedText}>
+                <Text>
+                  Selected:{' '}
+                  {tempDate.toLocaleDateString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </Text>
+              </ThemedText>
+              <ThemedText style={styles.nativeTodayText}>
+                <Text>
+                  Today:{' '}
+                  {new Date().toLocaleDateString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </Text>
+              </ThemedText>
+            </View>
+            <View style={styles.modalActions}>
+              <Pressable style={styles.modalButton} onPress={closePicker}>
+                <ThemedText>Cancel</ThemedText>
+              </Pressable>
+              <Pressable style={styles.modalButton} onPress={confirmPicker}>
+                <ThemedText style={{ color: Colors[colorScheme].brand }}>Confirm</ThemedText>
+              </Pressable>
+            </View>
+          </Animated.View>
+        </Animated.View>
+      );
+    }
+  }
+
+  // Modal for editing a task's due date
+  let editTaskDateModal: React.ReactNode = null;
+  if (editingTaskId && showPicker) {
+    if (Platform.OS === 'web') {
+      const portalRoot = getPortalRoot();
+      if (portalRoot) {
+        editTaskDateModal = createPortal(
+          <Animated.View style={[styles.modalOverlay, { opacity: overlayAnim }]}>
+            <Animated.View
+              style={[
+                styles.modalSheet,
+                {
+                  transform: [
+                    {
+                      translateY: sheetAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [Dimensions.get('window').height, 0],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <DatePicker
+                date={editingTaskDate}
+                onChange={e => {
+                  setEditingTaskDate(new Date(e.date!.toString()));
+                }}
+                mode="single"
+                minDate={new Date()}
+                styles={{
+                  today: { backgroundColor: Colors[colorScheme].inputBackground },
+                  selected: { backgroundColor: Colors[colorScheme].brand },
+                  selected_label: { color: Colors[colorScheme].white },
+                }}
+              />
+              <View style={styles.modalActions}>
+                <Pressable
+                  style={styles.modalButton}
+                  onPress={closePicker}
+                  disabled={isUpdatingDueDate}
+                >
+                  <ThemedText>Cancel</ThemedText>
+                </Pressable>
+                <Pressable
+                  style={styles.modalButton}
+                  onPress={confirmTaskDueDate}
+                  disabled={isUpdatingDueDate}
+                >
+                  <ThemedText style={{ color: Colors[colorScheme].brand }}>
+                    {isUpdatingDueDate ? 'Saving...' : 'Confirm'}
+                  </ThemedText>
+                </Pressable>
+              </View>
+            </Animated.View>
+          </Animated.View>,
+          portalRoot,
+        );
+      }
+    } else {
+      editTaskDateModal = (
+        <Animated.View style={[styles.modalOverlay, { opacity: overlayAnim }]}>
+          <Animated.View
+            style={[
+              styles.modalSheet,
+              {
+                transform: [
+                  {
+                    translateY: sheetAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [Dimensions.get('window').height, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <DateTimePicker
+              value={editingTaskDate}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'inline' : 'default'}
+              minimumDate={new Date()}
+              onChange={(e, d) => d && setEditingTaskDate(d)}
+            />
+            <View style={styles.nativeDateInfoRow}>
+              <ThemedText style={styles.nativeSelectedText}>
+                <Text>
+                  Selected:{' '}
+                  {editingTaskDate.toLocaleDateString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </Text>
+              </ThemedText>
+              <ThemedText style={styles.nativeTodayText}>
+                <Text>
+                  Today:{' '}
+                  {new Date().toLocaleDateString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </Text>
+              </ThemedText>
+            </View>
+            <View style={styles.modalActions}>
+              <Pressable
+                style={styles.modalButton}
+                onPress={closePicker}
+                disabled={isUpdatingDueDate}
+              >
+                <ThemedText>Cancel</ThemedText>
+              </Pressable>
+              <Pressable
+                style={styles.modalButton}
+                onPress={confirmTaskDueDate}
+                disabled={isUpdatingDueDate}
+              >
+                <ThemedText style={{ color: Colors[colorScheme].brand }}>
+                  {isUpdatingDueDate ? 'Saving...' : 'Confirm'}
+                </ThemedText>
+              </Pressable>
+            </View>
+          </Animated.View>
+        </Animated.View>
+      );
+    }
+  }
+
   return (
     <ThemedView style={styles.container}>
       {/* eslint-disable-next-line react-native/no-raw-text */}
@@ -172,114 +427,7 @@ export default function ScheduleTasksScreen() {
             Change
           </ThemedText>
         </View>
-        {showPicker &&
-          (Platform.OS === 'web' ? (
-            (() => {
-              const portalRoot = getPortalRoot();
-              return portalRoot
-                ? createPortal(
-                    <Animated.View style={[styles.modalOverlay, { opacity: overlayAnim }]}>
-                      <Animated.View
-                        style={[
-                          styles.modalSheet,
-                          {
-                            transform: [
-                              {
-                                translateY: sheetAnim.interpolate({
-                                  inputRange: [0, 1],
-                                  outputRange: [Dimensions.get('window').height, 0],
-                                }),
-                              },
-                            ],
-                          },
-                        ]}
-                      >
-                        <DatePicker
-                          date={tempDate}
-                          onChange={e => {
-                            setTempDate(new Date(e.date!.toString()));
-                          }}
-                          mode="single"
-                          minDate={new Date()}
-                          styles={{
-                            today: { backgroundColor: Colors[colorScheme].inputBackground },
-                            selected: { backgroundColor: Colors[colorScheme].brand },
-                            selected_label: { color: Colors[colorScheme].white },
-                          }}
-                        />
-                        <View style={styles.modalActions}>
-                          <Pressable style={styles.modalButton} onPress={closePicker}>
-                            <ThemedText>Cancel</ThemedText>
-                          </Pressable>
-                          <Pressable style={styles.modalButton} onPress={confirmPicker}>
-                            <ThemedText style={{ color: Colors[colorScheme].brand }}>
-                              Confirm
-                            </ThemedText>
-                          </Pressable>
-                        </View>
-                      </Animated.View>
-                    </Animated.View>,
-                    portalRoot,
-                  )
-                : null;
-            })()
-          ) : (
-            <Animated.View style={[styles.modalOverlay, { opacity: overlayAnim }]}>
-              <Animated.View
-                style={[
-                  styles.modalSheet,
-                  {
-                    transform: [
-                      {
-                        translateY: sheetAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [Dimensions.get('window').height, 0],
-                        }),
-                      },
-                    ],
-                  },
-                ]}
-              >
-                <DateTimePicker
-                  value={tempDate}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                  minimumDate={new Date()}
-                  onChange={(e, d) => d && setTempDate(d)}
-                />
-                <View style={styles.nativeDateInfoRow}>
-                  <ThemedText style={styles.nativeSelectedText}>
-                    <Text>
-                      Selected:{' '}
-                      {tempDate.toLocaleDateString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </Text>
-                  </ThemedText>
-                  <ThemedText style={styles.nativeTodayText}>
-                    <Text>
-                      Today:{' '}
-                      {new Date().toLocaleDateString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </Text>
-                  </ThemedText>
-                </View>
-                <View style={styles.modalActions}>
-                  <Pressable style={styles.modalButton} onPress={closePicker}>
-                    <ThemedText>Cancel</ThemedText>
-                  </Pressable>
-                  <Pressable style={styles.modalButton} onPress={confirmPicker}>
-                    <ThemedText style={{ color: Colors[colorScheme].brand }}>Confirm</ThemedText>
-                  </Pressable>
-                </View>
-              </Animated.View>
-            </Animated.View>
-          ))}
+        {datePickerModal}
       </View>
       <View style={styles.newTaskMargin}>
         <TaskItem isNewTask dueDate={formatLocalDate(selectedDate)} />
@@ -307,133 +455,7 @@ export default function ScheduleTasksScreen() {
           </Swipeable>
         )}
       />
-      {/* Date picker for editing a task's due date */}
-      {editingTaskId &&
-        showPicker &&
-        (Platform.OS === 'web' ? (
-          (() => {
-            const portalRoot = getPortalRoot();
-            if (!portalRoot) return null;
-            return createPortal(
-              <Animated.View style={[styles.modalOverlay, { opacity: overlayAnim }]}>
-                <Animated.View
-                  style={[
-                    styles.modalSheet,
-                    {
-                      transform: [
-                        {
-                          translateY: sheetAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [Dimensions.get('window').height, 0],
-                          }),
-                        },
-                      ],
-                    },
-                  ]}
-                >
-                  <DatePicker
-                    date={editingTaskDate}
-                    onChange={e => {
-                      setEditingTaskDate(new Date(e.date!.toString()));
-                    }}
-                    mode="single"
-                    minDate={new Date()}
-                    styles={{
-                      today: { backgroundColor: Colors[colorScheme].inputBackground },
-                      selected: { backgroundColor: Colors[colorScheme].brand },
-                      selected_label: { color: Colors[colorScheme].white },
-                    }}
-                  />
-                  <View style={styles.modalActions}>
-                    <Pressable
-                      style={styles.modalButton}
-                      onPress={closePicker}
-                      disabled={isUpdatingDueDate}
-                    >
-                      <ThemedText>Cancel</ThemedText>
-                    </Pressable>
-                    <Pressable
-                      style={styles.modalButton}
-                      onPress={confirmTaskDueDate}
-                      disabled={isUpdatingDueDate}
-                    >
-                      <ThemedText style={{ color: Colors[colorScheme].brand }}>
-                        {isUpdatingDueDate ? 'Saving...' : 'Confirm'}
-                      </ThemedText>
-                    </Pressable>
-                  </View>
-                </Animated.View>
-              </Animated.View>,
-              portalRoot,
-            );
-          })()
-        ) : (
-          <Animated.View style={[styles.modalOverlay, { opacity: overlayAnim }]}>
-            <Animated.View
-              style={[
-                styles.modalSheet,
-                {
-                  transform: [
-                    {
-                      translateY: sheetAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [Dimensions.get('window').height, 0],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            >
-              <DateTimePicker
-                value={editingTaskDate}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                minimumDate={new Date()}
-                onChange={(e, d) => d && setEditingTaskDate(d)}
-              />
-              <View style={styles.nativeDateInfoRow}>
-                <ThemedText style={styles.nativeSelectedText}>
-                  <Text>
-                    Selected:{' '}
-                    {editingTaskDate.toLocaleDateString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </Text>
-                </ThemedText>
-                <ThemedText style={styles.nativeTodayText}>
-                  <Text>
-                    Today:{' '}
-                    {new Date().toLocaleDateString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </Text>
-                </ThemedText>
-              </View>
-              <View style={styles.modalActions}>
-                <Pressable
-                  style={styles.modalButton}
-                  onPress={closePicker}
-                  disabled={isUpdatingDueDate}
-                >
-                  <ThemedText>Cancel</ThemedText>
-                </Pressable>
-                <Pressable
-                  style={styles.modalButton}
-                  onPress={confirmTaskDueDate}
-                  disabled={isUpdatingDueDate}
-                >
-                  <ThemedText style={{ color: Colors[colorScheme].brand }}>
-                    {isUpdatingDueDate ? 'Saving...' : 'Confirm'}
-                  </ThemedText>
-                </Pressable>
-              </View>
-            </Animated.View>
-          </Animated.View>
-        ))}
+      {editTaskDateModal}
     </ThemedView>
   );
 }

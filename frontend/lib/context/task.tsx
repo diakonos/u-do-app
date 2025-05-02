@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useCallback, useEffect, useMemo } from 'react';
 import { supabase } from '../supabase';
 import { ApiService, RealtimePayload } from '../services/api';
 import useCache from '@/hooks/useCache';
@@ -19,6 +19,8 @@ type TaskContextType = {
   fetchTasks: (forceRefresh?: boolean) => void;
   updateTask: (taskId: number, updates: Partial<Task>) => Promise<Task>;
   deleteTask: (taskId: number) => Promise<void>;
+  archivedTasks: Task[];
+  scheduledTasks: Task[];
 };
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
@@ -186,9 +188,55 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  // Compute archived tasks (completed, not updated today)
+  const archivedTasks = useMemo(() => {
+    const today = new Date('2025-05-02T00:00:00');
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    return tasksCache
+      .filter(task => {
+        if (!task.is_done) return false;
+        const updatedAt = new Date(task.updated_at);
+        return updatedAt < today || updatedAt >= tomorrow;
+      })
+      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+  }, [tasksCache]);
+
+  // Compute scheduled tasks (incomplete, due in the future)
+  const scheduledTasks = useMemo(() => {
+    const today = new Date('2025-05-02T00:00:00');
+    today.setHours(0, 0, 0, 0);
+    return tasksCache
+      .filter(task => {
+        if (task.is_done) return false;
+        if (!task.due_date) return false;
+        const dueDate = new Date(task.due_date);
+        dueDate.setHours(0, 0, 0, 0);
+        return dueDate > today;
+      })
+      .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+  }, [tasksCache]);
+
+  // Filter out archived and scheduled tasks from tasks value
+  const nonArchivedNonScheduledTasks = useMemo(() => {
+    const excludeIds = new Set([...archivedTasks.map(t => t.id), ...scheduledTasks.map(t => t.id)]);
+    return tasksCache
+      .filter(task => !excludeIds.has(task.id))
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  }, [tasksCache, archivedTasks, scheduledTasks]);
+
   return (
     <TaskContext.Provider
-      value={{ tasks: tasksCache, createTask, fetchTasks, updateTask, deleteTask }}
+      value={{
+        tasks: nonArchivedNonScheduledTasks,
+        createTask,
+        fetchTasks,
+        updateTask,
+        deleteTask,
+        archivedTasks,
+        scheduledTasks,
+      }}
     >
       {children}
     </TaskContext.Provider>

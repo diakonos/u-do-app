@@ -157,45 +157,6 @@ export default function TodayTasksList() {
     }
   };
 
-  // Get tasks due today and sort them appropriately
-  const getTodayTasks = () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-
-    // Get all incomplete tasks due today or earlier (not in the future)
-    const incompleteTasks = tasks.filter(task => {
-      if (tasksBeingDeleted[task.id]) return false;
-      if (task.is_done) return false;
-      if (task.due_date) {
-        const taskDueDate = new Date(task.due_date);
-        taskDueDate.setHours(0, 0, 0, 0);
-        if (taskDueDate > today) return false; // Exclude future tasks
-      }
-      return true;
-    });
-
-    // Get tasks that were completed today (not in the future)
-    const completedTodayTasks = tasks.filter(task => {
-      if (tasksBeingDeleted[task.id]) return false;
-      if (!task.is_done) return false;
-      const updatedAt = new Date(task.updated_at);
-      if (updatedAt < today || updatedAt >= tomorrow) return false;
-      if (task.due_date) {
-        const taskDueDate = new Date(task.due_date);
-        taskDueDate.setHours(0, 0, 0, 0);
-        if (taskDueDate > today) return false; // Exclude future tasks
-      }
-      return true;
-    });
-
-    // Combine both lists and sort them
-    return [...incompleteTasks, ...completedTodayTasks].sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-    );
-  };
-
   // Render the delete action when swiping a task to the right
   const renderRightActions = (taskId: number) => (
     <TouchableOpacity onPress={() => handleDeleteTask(taskId)} style={styles.deleteButton}>
@@ -300,7 +261,7 @@ export default function TodayTasksList() {
     );
   }
 
-  const todayTasks = getTodayTasks();
+  const todayTasks = tasks;
 
   return (
     <ThemedView style={[styles.container, { backgroundColor: Colors[colorScheme].background }]}>

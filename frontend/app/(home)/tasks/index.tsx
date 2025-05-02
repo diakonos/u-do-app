@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { TaskItem } from '@/components/tasks/TaskItem';
-import { Task, useTask } from '@/lib/context/task';
+import { useTask } from '@/lib/context/task';
 import { Colors } from '@/constants/Colors';
 import { HTMLTitle } from '@/components/HTMLTitle';
 import { useAuth } from '@/lib/context/auth';
@@ -29,7 +29,7 @@ export default function TodoList() {
   const [refreshing, setRefreshing] = useState(false);
   const [tasksBeingDeleted, setTasksBeingDeleted] = useState<Record<number, boolean>>({});
   const [isArchiveSectionCollapsed, setIsArchiveSectionCollapsed] = useState(true);
-  const { tasks, fetchTasks, deleteTask } = useTask();
+  const { tasks, archivedTasks, fetchTasks, deleteTask } = useTask();
   const { isLoading: isLoadingAuth, session } = useAuth();
 
   const loadTasks = useCallback(async () => {
@@ -89,84 +89,6 @@ export default function TodoList() {
     }
   };
 
-  const processFilteredTasks = () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const filteredTasks = tasks.filter(task => {
-      if (tasksBeingDeleted[task.id]) return false;
-
-      if (!task.due_date) return true;
-
-      const taskDueDate = new Date(task.due_date);
-      taskDueDate.setHours(0, 0, 0, 0);
-
-      return taskDueDate <= today;
-    });
-
-    return filteredTasks.map(task => ({
-      ...task,
-    }));
-  };
-
-  const getIncompleteTasks = () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const incompleteTasks = tasks.filter(task => {
-      if (tasksBeingDeleted[task.id]) return false;
-      if (task.is_done) return false;
-      if (task.due_date) {
-        const taskDueDate = new Date(task.due_date);
-        taskDueDate.setHours(0, 0, 0, 0);
-        if (taskDueDate > today) return false; // Exclude future tasks
-      }
-      return true;
-    });
-
-    const completedTodayTasks = tasks.filter(task => {
-      if (tasksBeingDeleted[task.id]) return false;
-      if (!task.is_done) return false;
-      const updatedAt = new Date(task.updated_at);
-      if (updatedAt < today || updatedAt >= tomorrow) return false;
-      if (task.due_date) {
-        const taskDueDate = new Date(task.due_date);
-        taskDueDate.setHours(0, 0, 0, 0);
-        if (taskDueDate > today) return false; // Exclude future tasks
-      }
-      return true;
-    });
-
-    return [...incompleteTasks, ...completedTodayTasks]
-      .map(task => ({
-        ...task,
-      }))
-      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-  };
-
-  const getCompleteTasks = () => {
-    const processedTasks = processFilteredTasks();
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const completeTasks = processedTasks.filter(task => {
-      if (!task.is_done) return false;
-      if (!task.due_date) return false;
-
-      const taskDueDate = new Date(task.due_date);
-      taskDueDate.setHours(0, 0, 0, 0);
-
-      return taskDueDate.getTime() !== today.getTime();
-    });
-
-    return [...completeTasks].sort(
-      (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
-    );
-  };
-
   const renderTaskItem = (item: Task) => {
     return (
       <Swipeable
@@ -199,8 +121,8 @@ export default function TodoList() {
     );
   }
 
-  const incompleteTasks = getIncompleteTasks();
-  const completeTasks = getCompleteTasks();
+  const incompleteTasks = tasks;
+  const completeTasks = archivedTasks;
 
   return (
     <ThemedView style={[styles.container, { backgroundColor: Colors[colorScheme].background }]}>
