@@ -1,6 +1,7 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter, useSegments } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
@@ -9,13 +10,22 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { TaskProvider } from '@/lib/context/task';
 import { useThemeColor } from '@/hooks/useThemeColor';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const tintColor = useThemeColor({}, 'brand');
   const whiteColor = useThemeColor({}, 'white');
   const safeArea = useSafeAreaInsets();
+  const router = useRouter();
+  const segments = useSegments();
+
+  function isOnTasksTab() {
+    return segments[0] === '(home)' && segments[1] === 'tasks';
+  }
+
+  function isOnFriendsTab() {
+    return segments[0] === '(home)' && segments[1] === 'friends';
+  }
 
   return (
     <TaskProvider>
@@ -57,6 +67,18 @@ export default function TabLayout() {
             title: 'Tasks',
             tabBarIcon: ({ color }) => <IconSymbol size={28} name="list.bullet" color={color} />,
           }}
+          listeners={{
+            tabPress: e => {
+              if (isOnTasksTab()) {
+                e.preventDefault();
+                if (router.canDismiss()) {
+                  router.dismissAll();
+                } else {
+                  router.replace('/tasks');
+                }
+              }
+            },
+          }}
         />
         <Tabs.Screen
           name="tasks/schedule"
@@ -70,6 +92,18 @@ export default function TabLayout() {
             headerShown: false,
             title: 'Friends',
             tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.2.fill" color={color} />,
+          }}
+          listeners={{
+            tabPress: e => {
+              if (isOnFriendsTab()) {
+                e.preventDefault();
+                if (router.canDismiss()) {
+                  router.dismissAll();
+                } else {
+                  router.replace('/friends');
+                }
+              }
+            },
           }}
         />
         <Tabs.Screen
