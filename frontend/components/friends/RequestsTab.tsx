@@ -25,7 +25,6 @@ export default function RequestsTab() {
   // Fetch pending requests when screen is focused
   useFocusEffect(
     useCallback(() => {
-      console.log('FOCUS');
       fetchPendingRequests();
     }, [fetchPendingRequests]),
   );

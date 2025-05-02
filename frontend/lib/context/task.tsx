@@ -51,7 +51,6 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
               }
               return prevTasks;
             } else if (payload.eventType === 'UPDATE') {
-              console.log('Update payload:', payload);
               const updated = prevTasks.map(t =>
                 t.id === payload.new.id ? { ...(payload.new as Task) } : t,
               );

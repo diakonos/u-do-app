@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -27,15 +27,10 @@ export default function TodoList() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [tasksInTransition, setTasksInTransition] = useState<Record<number, boolean>>({});
-  const [displayedTaskStates, setDisplayedTaskStates] = useState<Record<number, boolean>>({});
-  const [displayedTaskNames, setDisplayedTaskNames] = useState<Record<number, string>>({});
   const [tasksBeingDeleted, setTasksBeingDeleted] = useState<Record<number, boolean>>({});
   const [isArchiveSectionCollapsed, setIsArchiveSectionCollapsed] = useState(true);
-  const { tasks, fetchTasks, updateTask, deleteTask, createTask } = useTask();
-  const timeoutsRef = useRef<Record<number, NodeJS.Timeout>>({});
+  const { tasks, fetchTasks, deleteTask } = useTask();
   const { isLoading: isLoadingAuth, session } = useAuth();
-  const [isCreatingTask, setIsCreatingTask] = useState(false);
 
   const loadTasks = useCallback(async () => {
     if (isLoadingAuth || !session) return;
@@ -59,151 +54,6 @@ export default function TodoList() {
     await loadTasks();
     setRefreshing(false);
   }, [loadTasks]);
-
-  const toggleTaskCompletion = async (taskId: number, isDone: boolean) => {
-    try {
-      const taskToUpdate = tasks.find(t => t.id === taskId);
-      if (!taskToUpdate) return;
-
-      const originalState = taskToUpdate.is_done;
-
-      setDisplayedTaskStates(prev => ({
-        ...prev,
-        [taskId]: isDone,
-      }));
-
-      setTasksInTransition(prev => ({
-        ...prev,
-        [taskId]: true,
-      }));
-
-      if (timeoutsRef.current[taskId]) {
-        clearTimeout(timeoutsRef.current[taskId]);
-      }
-
-      const timeoutId = setTimeout(() => {
-        setDisplayedTaskStates(prev => ({
-          ...prev,
-          [taskId]: originalState,
-        }));
-
-        setTasksInTransition(prev => {
-          const updated = { ...prev };
-          delete updated[taskId];
-          return updated;
-        });
-
-        Alert.alert(
-          'Request Timeout',
-          'The task update is taking longer than expected. Please try again.',
-        );
-      }, 10000);
-
-      timeoutsRef.current[taskId] = timeoutId;
-
-      try {
-        await updateTask(taskId, { is_done: isDone });
-
-        clearTimeout(timeoutsRef.current[taskId]);
-        delete timeoutsRef.current[taskId];
-
-        setTasksInTransition(prev => {
-          const updated = { ...prev };
-          delete updated[taskId];
-          return updated;
-        });
-
-        setDisplayedTaskStates(prev => {
-          const updated = { ...prev };
-          delete updated[taskId];
-          return updated;
-        });
-      } catch (error) {
-        clearTimeout(timeoutsRef.current[taskId]);
-        delete timeoutsRef.current[taskId];
-
-        setDisplayedTaskStates(prev => ({
-          ...prev,
-          [taskId]: originalState,
-        }));
-
-        setTasksInTransition(prev => {
-          const updated = { ...prev };
-          delete updated[taskId];
-          return updated;
-        });
-
-        Alert.alert('Error', 'Failed to update task. Please try again.');
-        console.error('Failed to update task:', error);
-      }
-    } catch (error) {
-      setTasksInTransition(prev => {
-        const updated = { ...prev };
-        delete updated[taskId];
-        return updated;
-      });
-
-      Alert.alert('Error', 'Failed to update task');
-      console.error('Failed to update task:', error);
-    }
-  };
-
-  const handleUpdateTaskName = async (taskId: number, newTaskName: string) => {
-    try {
-      const taskToUpdate = tasks.find(t => t.id === taskId);
-      if (!taskToUpdate) return;
-
-      if (taskToUpdate.task_name === newTaskName) return;
-
-      setDisplayedTaskNames(prev => ({
-        ...prev,
-        [taskId]: newTaskName,
-      }));
-
-      setTasksInTransition(prev => ({
-        ...prev,
-        [taskId]: true,
-      }));
-
-      if (timeoutsRef.current[taskId]) {
-        clearTimeout(timeoutsRef.current[taskId]);
-      }
-
-      try {
-        await updateTask(taskId, { task_name: newTaskName });
-
-        setTasksInTransition(prev => {
-          const updated = { ...prev };
-          delete updated[taskId];
-          return updated;
-        });
-
-        setDisplayedTaskNames(prev => {
-          const updated = { ...prev };
-          delete updated[taskId];
-          return updated;
-        });
-      } catch (error) {
-        setDisplayedTaskNames(prev => {
-          const updated = { ...prev };
-          delete updated[taskId];
-          return updated;
-        });
-
-        setTasksInTransition(prev => {
-          const updated = { ...prev };
-          delete updated[taskId];
-          return updated;
-        });
-
-        Alert.alert('Error', 'Failed to update task name. Please try again.');
-        console.error('Failed to update task name:', error);
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update task name');
-      console.error('Failed to update task name:', error);
-    }
-  };
 
   const handleDeleteTask = async (taskId: number) => {
     try {
@@ -239,18 +89,6 @@ export default function TodoList() {
     }
   };
 
-  const handleCreateTask = async (taskName: string) => {
-    setIsCreatingTask(true);
-    try {
-      await createTask(taskName);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to create task. Please try again.');
-      console.error('Failed to create task:', error);
-    } finally {
-      setIsCreatingTask(false);
-    }
-  };
-
   const processFilteredTasks = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -268,8 +106,6 @@ export default function TodoList() {
 
     return filteredTasks.map(task => ({
       ...task,
-      displayed_is_done: tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done,
-      task_name: displayedTaskNames[task.id] || task.task_name,
     }));
   };
 
@@ -281,7 +117,7 @@ export default function TodoList() {
 
     const incompleteTasks = tasks.filter(task => {
       if (tasksBeingDeleted[task.id]) return false;
-      if (tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done) return false;
+      if (task.is_done) return false;
       if (task.due_date) {
         const taskDueDate = new Date(task.due_date);
         taskDueDate.setHours(0, 0, 0, 0);
@@ -292,7 +128,7 @@ export default function TodoList() {
 
     const completedTodayTasks = tasks.filter(task => {
       if (tasksBeingDeleted[task.id]) return false;
-      if (!(tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done)) return false;
+      if (!task.is_done) return false;
       const updatedAt = new Date(task.updated_at);
       if (updatedAt < today || updatedAt >= tomorrow) return false;
       if (task.due_date) {
@@ -306,8 +142,6 @@ export default function TodoList() {
     return [...incompleteTasks, ...completedTodayTasks]
       .map(task => ({
         ...task,
-        displayed_is_done: tasksInTransition[task.id] ? displayedTaskStates[task.id] : task.is_done,
-        task_name: displayedTaskNames[task.id] || task.task_name,
       }))
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
   };
@@ -319,7 +153,7 @@ export default function TodoList() {
     today.setHours(0, 0, 0, 0);
 
     const completeTasks = processedTasks.filter(task => {
-      if (!task.displayed_is_done) return false;
+      if (!task.is_done) return false;
       if (!task.due_date) return false;
 
       const taskDueDate = new Date(task.due_date);
@@ -334,9 +168,6 @@ export default function TodoList() {
   };
 
   const renderTaskItem = (item: Task) => {
-    const isDone =
-      displayedTaskStates[item.id] !== undefined ? displayedTaskStates[item.id] : item.is_done;
-
     return (
       <Swipeable
         key={item.id}
@@ -346,12 +177,8 @@ export default function TodoList() {
         <TaskItem
           id={item.id}
           taskName={item.task_name}
-          isDone={isDone}
+          isDone={item.is_done}
           dueDate={item.due_date}
-          isInTransition={tasksInTransition[item.id]}
-          onToggleComplete={toggleTaskCompletion}
-          onUpdateTaskName={handleUpdateTaskName}
-          onDeleteTask={handleDeleteTask}
           hideDueDate={true}
         />
       </Swipeable>
@@ -406,7 +233,7 @@ export default function TodoList() {
         }
       />
 
-      <TaskItem isNewTask onCreateTask={handleCreateTask} isLoading={isCreatingTask} />
+      <TaskItem isNewTask />
 
       {completeTasks.length > 0 && (
         <View style={styles.doneSection}>

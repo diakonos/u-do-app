@@ -26,7 +26,7 @@ import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 export default function ScheduleTasksScreen() {
   const colorScheme = useColorScheme() ?? 'light';
-  const { tasks, createTask, updateTask, deleteTask } = useTask();
+  const { tasks, updateTask, deleteTask } = useTask();
   const [selectedDate, setSelectedDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 1);
@@ -35,7 +35,6 @@ export default function ScheduleTasksScreen() {
   });
   const [tempDate, setTempDate] = useState(selectedDate);
   const [showPicker, setShowPicker] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
   const [overlayAnim] = useState(() => new Animated.Value(0));
   const [sheetAnim] = useState(() => new Animated.Value(0));
   const [tasksBeingDeleted, setTasksBeingDeleted] = useState<Record<number, boolean>>({});
@@ -86,30 +85,6 @@ export default function ScheduleTasksScreen() {
   const confirmPicker = () => {
     setSelectedDate(tempDate);
     closePicker();
-  };
-
-  // Handler to open the date picker for a specific task
-  const handlePressDate = (taskId: number) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (task && task.due_date) {
-      setEditingTaskDate(new Date(task.due_date));
-    } else {
-      setEditingTaskDate(new Date());
-    }
-    setEditingTaskId(taskId);
-    setShowPicker(true);
-    Animated.timing(overlayAnim, {
-      toValue: 1,
-      duration: 120,
-      useNativeDriver: true,
-      easing: Easing.linear,
-    }).start();
-    Animated.timing(sheetAnim, {
-      toValue: 1,
-      duration: 250,
-      useNativeDriver: true,
-      easing: Easing.out(Easing.cubic),
-    }).start();
   };
 
   // Handler to confirm the new due date for a task
@@ -176,18 +151,6 @@ export default function ScheduleTasksScreen() {
         return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       });
   }, [tasks, tasksBeingDeleted]);
-
-  const handleCreateTask = async (taskName: string) => {
-    setIsCreating(true);
-    try {
-      await createTask(taskName, formatLocalDate(selectedDate));
-    } catch (error) {
-      Alert.alert('Error', 'Failed to create task. Please try again.');
-      console.error('Failed to create task:', error);
-    } finally {
-      setIsCreating(false);
-    }
-  };
 
   // Format date in long format, e.g., Friday, May 3, 2025
   const longDate = selectedDate.toLocaleDateString(undefined, {
@@ -319,7 +282,7 @@ export default function ScheduleTasksScreen() {
           ))}
       </View>
       <View style={styles.newTaskMargin}>
-        <TaskItem isNewTask onCreateTask={handleCreateTask} isLoading={isCreating} />
+        <TaskItem isNewTask dueDate={formatLocalDate(selectedDate)} />
       </View>
       <FlatList
         data={futureTasks}
@@ -339,16 +302,7 @@ export default function ScheduleTasksScreen() {
               dueDate={item.due_date}
               readOnly={false}
               hideDueDate={false}
-              onPressDate={handlePressDate}
               isInTransition={isUpdatingDueDate && editingTaskId === item.id}
-              onUpdateTaskName={async (taskId, newTaskName) => {
-                try {
-                  await updateTask(taskId, { task_name: newTaskName });
-                } catch (error) {
-                  Alert.alert('Error', 'Failed to update task name. Please try again.');
-                  console.error('Failed to update task name:', error);
-                }
-              }}
             />
           </Swipeable>
         )}

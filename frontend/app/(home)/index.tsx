@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Text,
   StyleSheet,
@@ -58,16 +58,9 @@ export default function TodayTasksList() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [tasksInTransition, setTasksInTransition] = useState<Record<number, boolean>>({});
-  const [displayedTaskStates, setDisplayedTaskStates] = useState<Record<number, boolean>>({});
-  // Track task names during editing
-  const [displayedTaskNames, setDisplayedTaskNames] = useState<Record<number, string>>({});
-  // Track tasks being deleted optimistically
   const [tasksBeingDeleted, setTasksBeingDeleted] = useState<Record<number, boolean>>({});
-  const { tasks, fetchTasks, updateTask, deleteTask, createTask } = useTask();
-  const timeoutsRef = useRef<Record<number, NodeJS.Timeout>>({});
+  const { tasks, fetchTasks, deleteTask } = useTask();
   const { isLoading: isLoadingAuth, session } = useAuth();
-  const [isCreatingTask, setIsCreatingTask] = useState(false);
 
   // Define loadTasks as a useCallback to fix the dependencies issue
   const loadTasks = useCallback(async () => {
@@ -124,175 +117,6 @@ export default function TodayTasksList() {
     setRefreshing(false);
   }, [loadTasks]);
 
-  const toggleTaskCompletion = async (taskId: number, isDone: boolean) => {
-    try {
-      // Find the task that's being toggled
-      const taskToUpdate = tasks.find(t => t.id === taskId);
-      if (!taskToUpdate) return;
-
-      // Store original state in case we need to revert
-      const originalState = taskToUpdate.is_done;
-
-      // Optimistically update the UI first
-      setDisplayedTaskStates(prev => ({
-        ...prev,
-        [taskId]: isDone,
-      }));
-
-      // Set task as in transition state
-      setTasksInTransition(prev => ({
-        ...prev,
-        [taskId]: true,
-      }));
-
-      // Clear any existing timeout for this task
-      if (timeoutsRef.current[taskId]) {
-        clearTimeout(timeoutsRef.current[taskId]);
-      }
-
-      // Set a timeout to revert if the request takes too long
-      const timeoutId = setTimeout(() => {
-        // Revert to original state after timeout
-        setDisplayedTaskStates(prev => ({
-          ...prev,
-          [taskId]: originalState,
-        }));
-
-        setTasksInTransition(prev => {
-          const updated = { ...prev };
-          delete updated[taskId];
-          return updated;
-        });
-
-        Alert.alert(
-          'Request Timeout',
-          'The task update is taking longer than expected. Please try again.',
-        );
-      }, 10000); // 10 second timeout
-
-      timeoutsRef.current[taskId] = timeoutId;
-
-      try {
-        // Make the actual API request
-        await updateTask(taskId, { is_done: isDone });
-
-        // Success: clear the timeout and transition state
-        clearTimeout(timeoutsRef.current[taskId]);
-        delete timeoutsRef.current[taskId];
-
-        setTasksInTransition(prev => {
-          const updated = { ...prev };
-          delete updated[taskId];
-          return updated;
-        });
-
-        setDisplayedTaskStates(prev => {
-          const updated = { ...prev };
-          delete updated[taskId];
-          return updated;
-        });
-      } catch (error) {
-        // On error, clear the timeout
-        clearTimeout(timeoutsRef.current[taskId]);
-        delete timeoutsRef.current[taskId];
-
-        // Revert the optimistic update
-        setDisplayedTaskStates(prev => ({
-          ...prev,
-          [taskId]: originalState,
-        }));
-
-        // Clear the transition state
-        setTasksInTransition(prev => {
-          const updated = { ...prev };
-          delete updated[taskId];
-          return updated;
-        });
-
-        // Alert the user about the error
-        Alert.alert('Error', 'Failed to update task. Please try again.');
-        console.error('Failed to update task:', error);
-      }
-    } catch (error) {
-      // Handle any unexpected errors in the outer try block
-      setTasksInTransition(prev => {
-        const updated = { ...prev };
-        delete updated[taskId];
-        return updated;
-      });
-
-      Alert.alert('Error', 'Failed to update task');
-      console.error('Failed to update task:', error);
-    }
-  };
-
-  const handleUpdateTaskName = async (taskId: number, newTaskName: string) => {
-    try {
-      // Find the task that's being updated
-      const taskToUpdate = tasks.find(t => t.id === taskId);
-      if (!taskToUpdate) return;
-
-      // Don't update if the name is the same
-      if (taskToUpdate.task_name === newTaskName) return;
-
-      // Optimistically update the UI first
-      setDisplayedTaskNames(prev => ({
-        ...prev,
-        [taskId]: newTaskName,
-      }));
-
-      // Set task as in transition state
-      setTasksInTransition(prev => ({
-        ...prev,
-        [taskId]: true,
-      }));
-
-      // Clear any existing timeout for this task
-      if (timeoutsRef.current[taskId]) {
-        clearTimeout(timeoutsRef.current[taskId]);
-      }
-
-      try {
-        // Make the actual API request
-        await updateTask(taskId, { task_name: newTaskName });
-
-        // Success: clear the transition state
-        setTasksInTransition(prev => {
-          const updated = { ...prev };
-          delete updated[taskId];
-          return updated;
-        });
-
-        setDisplayedTaskNames(prev => {
-          const updated = { ...prev };
-          delete updated[taskId];
-          return updated;
-        });
-      } catch (error) {
-        // On error, revert the optimistic update
-        setDisplayedTaskNames(prev => {
-          const updated = { ...prev };
-          delete updated[taskId];
-          return updated;
-        });
-
-        // Clear the transition state
-        setTasksInTransition(prev => {
-          const updated = { ...prev };
-          delete updated[taskId];
-          return updated;
-        });
-
-        // Alert the user about the error
-        Alert.alert('Error', 'Failed to update task name. Please try again.');
-        console.error('Failed to update task name:', error);
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update task name');
-      console.error('Failed to update task name:', error);
-    }
-  };
-
   const handleDeleteTask = async (taskId: number) => {
     try {
       // Find the task being deleted
@@ -343,9 +167,7 @@ export default function TodayTasksList() {
     // Get all incomplete tasks due today or earlier (not in the future)
     const incompleteTasks = tasks.filter(task => {
       if (tasksBeingDeleted[task.id]) return false;
-      const isDone =
-        displayedTaskStates[task.id] !== undefined ? displayedTaskStates[task.id] : task.is_done;
-      if (isDone) return false;
+      if (task.is_done) return false;
       if (task.due_date) {
         const taskDueDate = new Date(task.due_date);
         taskDueDate.setHours(0, 0, 0, 0);
@@ -357,9 +179,7 @@ export default function TodayTasksList() {
     // Get tasks that were completed today (not in the future)
     const completedTodayTasks = tasks.filter(task => {
       if (tasksBeingDeleted[task.id]) return false;
-      const isDone =
-        displayedTaskStates[task.id] !== undefined ? displayedTaskStates[task.id] : task.is_done;
-      if (!isDone) return false;
+      if (!task.is_done) return false;
       const updatedAt = new Date(task.updated_at);
       if (updatedAt < today || updatedAt >= tomorrow) return false;
       if (task.due_date) {
@@ -371,14 +191,9 @@ export default function TodayTasksList() {
     });
 
     // Combine both lists and sort them
-    return [...incompleteTasks, ...completedTodayTasks]
-      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-      .map(task => ({
-        ...task,
-        task_name: displayedTaskNames[task.id] || task.task_name,
-        is_done:
-          displayedTaskStates[task.id] !== undefined ? displayedTaskStates[task.id] : task.is_done,
-      }));
+    return [...incompleteTasks, ...completedTodayTasks].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    );
   };
 
   // Render the delete action when swiping a task to the right
@@ -456,7 +271,6 @@ export default function TodayTasksList() {
                 taskName={task.task_name}
                 isDone={task.is_done}
                 dueDate={task.due_date}
-                isInTransition={tasksInTransition[task.id]}
                 readOnly={true}
                 hideDueDate={true}
               />
@@ -518,10 +332,6 @@ export default function TodayTasksList() {
               taskName={item.task_name}
               isDone={item.is_done}
               dueDate={item.due_date}
-              isInTransition={tasksInTransition[item.id]}
-              onToggleComplete={toggleTaskCompletion}
-              onUpdateTaskName={handleUpdateTaskName}
-              onDeleteTask={handleDeleteTask}
               readOnly={false}
               hideDueDate={true}
             />
@@ -550,21 +360,7 @@ export default function TodayTasksList() {
         }
         ListFooterComponent={
           <View>
-            <TaskItem
-              isNewTask
-              onCreateTask={async taskName => {
-                setIsCreatingTask(true);
-                try {
-                  await createTask(taskName);
-                } catch (error) {
-                  Alert.alert('Error', 'Failed to create task. Please try again.');
-                  console.error('Failed to create task:', error);
-                } finally {
-                  setIsCreatingTask(false);
-                }
-              }}
-              isLoading={isCreatingTask}
-            />
+            <TaskItem isNewTask />
             <View style={styles.friendTasksContainer}>
               {pinnedFriendsTasks.map(renderFriendTasksSection)}
             </View>

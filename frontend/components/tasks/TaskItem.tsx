@@ -11,22 +11,17 @@ import {
 import { Colors } from '@/constants/Colors';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useTask } from '@/lib/context/task';
 
 interface TaskItemProps {
-  id?: number; // id is optional for new task mode
+  id?: number;
   taskName?: string;
   isDone?: boolean;
   dueDate?: string | null;
-  onToggleComplete?: (id: number, isDone: boolean) => void;
-  onPressDate?: (id: number) => void;
   isInTransition?: boolean;
   readOnly?: boolean;
   hideDueDate?: boolean;
-  onUpdateTaskName?: (id: number, newTaskName: string) => void;
-  onDeleteTask?: (id: number) => void;
-  // New props for new task mode
   isNewTask?: boolean;
-  onCreateTask?: (taskName: string) => Promise<void>;
   isLoading?: boolean;
 }
 
@@ -35,24 +30,22 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   taskName = '',
   isDone = false,
   dueDate = null,
-  onToggleComplete,
-  onPressDate,
   isInTransition = false,
   readOnly = false,
   hideDueDate = false,
-  onUpdateTaskName,
-  onDeleteTask,
-  // New task mode props
   isNewTask = false,
-  onCreateTask,
   isLoading = false,
 }) => {
   const colorScheme = useColorScheme();
+  const { createTask, updateTask, deleteTask } = useTask();
   const [isEditing, setIsEditing] = useState(isNewTask);
   const [editValue, setEditValue] = useState(taskName);
-  const [inputHeight, setInputHeight] = useState(22); // Initial height based on the line height
+  const [inputHeight, setInputHeight] = useState(22);
   const inputRef = useRef<TextInput>(null);
   const [selection, setSelection] = useState<{ start: number; end: number } | undefined>(undefined);
+  const [localIsDone, setLocalIsDone] = useState(isDone);
+  const [localDueDate, setLocalDueDate] = useState(dueDate);
+  const [loading, setLoading] = useState(false);
 
   const formatDate = (date: string | null) => {
     if (!date) return '';
@@ -70,52 +63,76 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   };
 
   const handleStartEditing = () => {
-    if (readOnly || isInTransition || !onUpdateTaskName) return;
+    if (readOnly || isInTransition) return;
     setIsEditing(true);
-    setEditValue(taskName);
-    // Set selection to end of text
-    setSelection({ start: taskName.length, end: taskName.length });
-    // Focus the input after rendering
+    setEditValue(editValue);
+    setSelection({ start: editValue.length, end: editValue.length });
     setTimeout(() => {
       inputRef.current?.focus();
     }, 10);
   };
 
-  const handleSaveEdit = () => {
-    // Exit editing mode
+  const handleSaveEdit = async () => {
     setIsEditing(false);
-
-    // If no handlers are available, just exit
-    if (!onUpdateTaskName) return;
-
-    // Get the trimmed value
     const trimmedValue = editValue.trim();
-
-    // If the value is empty and we have a delete handler, delete the task
-    if (trimmedValue === '' && onDeleteTask) {
-      onDeleteTask(id!);
+    if (!id) return;
+    if (trimmedValue === '') {
+      setLoading(true);
+      try {
+        await deleteTask(id);
+      } finally {
+        setLoading(false);
+      }
       return;
     }
-
-    // Don't do an update if the value is empty or unchanged
-    if (trimmedValue === '' || trimmedValue === taskName) return;
-
-    // Update the task name
-    onUpdateTaskName(id!, trimmedValue);
+    if (trimmedValue === taskName) return;
+    setLoading(true);
+    try {
+      await updateTask(id, { task_name: trimmedValue });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleContentSizeChange = (e: LayoutChangeEvent) => {
     setInputHeight(Math.max(22, e.nativeEvent.layout.height + 8));
   };
 
+  const handleToggleComplete = async () => {
+    if (!id || readOnly || isInTransition) return;
+    setLoading(true);
+    try {
+      await updateTask(id, { is_done: !localIsDone });
+      setLocalIsDone(!localIsDone);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDueDateChange = async (newDate: string) => {
+    if (!id || readOnly || isInTransition) return;
+    setLoading(true);
+    try {
+      await updateTask(id, { due_date: newDate });
+      setLocalDueDate(newDate);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // For new task mode: handle submit
   const handleCreateTask = async () => {
     const trimmedValue = editValue.trim();
-    if (!trimmedValue || !onCreateTask) return;
-    await onCreateTask(trimmedValue);
-    setEditValue('');
-    setInputHeight(22);
-    inputRef.current?.clear();
+    if (!trimmedValue) return;
+    setLoading(true);
+    try {
+      await createTask(trimmedValue, dueDate || undefined);
+      setEditValue('');
+      setInputHeight(22);
+      inputRef.current?.clear();
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (isNewTask) {
@@ -123,7 +140,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
       <View style={[styles.taskContainer, { backgroundColor: Colors[colorScheme].background }]}>
         <View style={[styles.taskHeader, styles.newTaskHeader]}>
           <View style={styles.plusIconContainer}>
-            {isLoading ? (
+            {loading || isLoading ? (
               <ActivityIndicator size="small" color={Colors[colorScheme].icon} />
             ) : (
               <IconSymbol name="plus" size={24} color={Colors[colorScheme].icon} />
@@ -144,7 +161,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 value={editValue}
                 onChangeText={setEditValue}
                 onBlur={handleCreateTask}
-                editable={!isLoading}
+                editable={!loading && !isLoading}
                 returnKeyType="done"
                 scrollEnabled={false}
                 selectTextOnFocus={false}
@@ -183,17 +200,17 @@ export const TaskItem: React.FC<TaskItemProps> = ({
       <View style={styles.taskHeader}>
         <TouchableOpacity
           style={[styles.checkbox, { borderColor: Colors[colorScheme].icon }]}
-          onPress={() => !isInTransition && onToggleComplete && onToggleComplete(id!, !isDone)}
+          onPress={handleToggleComplete}
           activeOpacity={readOnly || isInTransition ? 1 : 0.2}
-          disabled={isInTransition || readOnly}
+          disabled={isInTransition || readOnly || loading}
         >
           <View
             style={[
               styles.checkboxInner,
-              isDone && { backgroundColor: Colors[colorScheme].success },
+              (localIsDone || isDone) && { backgroundColor: Colors[colorScheme].success },
             ]}
           >
-            {isDone && <IconSymbol name="checkmark" size={20} color="white" />}
+            {(localIsDone || isDone) && <IconSymbol name="checkmark" size={20} color="white" />}
           </View>
         </TouchableOpacity>
         <View style={styles.taskContent}>
@@ -206,7 +223,6 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 onBlur={handleSaveEdit}
                 onChangeText={text => {
                   setEditValue(text);
-                  // Keep selection at end if user types
                   setSelection({ start: text.length, end: text.length });
                 }}
                 onKeyPress={e => {
@@ -233,39 +249,39 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           ) : (
             <TouchableOpacity
               onPress={handleStartEditing}
-              disabled={readOnly || isInTransition || !onUpdateTaskName}
+              disabled={readOnly || isInTransition}
               activeOpacity={0.7}
             >
               <Text
                 style={[
                   styles.taskText,
                   { color: Colors[colorScheme].text },
-                  isDone && styles.taskTextDone,
-                  isDone && { textDecorationColor: Colors[colorScheme].doneLine },
+                  (localIsDone || isDone) && styles.taskTextDone,
+                  (localIsDone || isDone) && { textDecorationColor: Colors[colorScheme].doneLine },
                 ]}
               >
-                {taskName}
+                {editValue}
               </Text>
             </TouchableOpacity>
           )}
-          {!hideDueDate && (dueDate || !readOnly) ? (
+          {!hideDueDate && (localDueDate || !readOnly) ? (
             <View style={styles.dueDateContainer}>
-              {dueDate ? (
+              {localDueDate ? (
                 <Text
                   style={[
                     styles.dueDate,
                     { color: Colors[colorScheme].icon },
-                    isToday(dueDate) && { color: Colors[colorScheme].todayBlue },
+                    isToday(localDueDate) && { color: Colors[colorScheme].todayBlue },
                   ]}
                 >
-                  {formatDate(dueDate)}
+                  {formatDate(localDueDate)}
                 </Text>
               ) : (
                 <Text style={[styles.noDueDate, { color: Colors[colorScheme].icon }]}>
                   No due date
                 </Text>
               )}
-              {!readOnly && onPressDate && (
+              {!readOnly && (
                 <TouchableOpacity
                   style={[
                     styles.dateButton,
@@ -276,17 +292,24 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                           : Colors.dark.inputBackground,
                     },
                   ]}
-                  onPress={() => onPressDate(id!)}
-                  disabled={isInTransition}
+                  onPress={() => {
+                    // For demo: set due date to today
+                    const today = new Date();
+                    const yyyy = today.getFullYear();
+                    const mm = String(today.getMonth() + 1).padStart(2, '0');
+                    const dd = String(today.getDate()).padStart(2, '0');
+                    handleDueDateChange(`${yyyy}-${mm}-${dd}`);
+                  }}
+                  disabled={isInTransition || loading}
                 >
                   <Text
                     style={[
                       styles.dateButtonText,
                       { color: Colors[colorScheme].icon },
-                      isInTransition && styles.dueDateLoading,
+                      (isInTransition || loading) && styles.dueDateLoading,
                     ]}
                   >
-                    {dueDate ? 'Change Date' : 'Add Due Date'}
+                    {localDueDate ? 'Change Date' : 'Add Due Date'}
                   </Text>
                 </TouchableOpacity>
               )}

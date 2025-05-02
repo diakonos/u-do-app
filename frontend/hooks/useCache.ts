@@ -40,6 +40,7 @@ export default function useCache<T>(
     };
 
     loadCache();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
   // Subscribe to updates
