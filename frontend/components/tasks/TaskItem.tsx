@@ -5,12 +5,12 @@ import {
   TextInput,
   StyleSheet,
   TouchableOpacity,
-  useColorScheme,
   LayoutChangeEvent,
   ActivityIndicator,
 } from 'react-native';
 import { Colors } from '@/constants/Colors';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { useColorScheme } from '@/hooks/useColorScheme';
 
 interface TaskItemProps {
   id?: number; // id is optional for new task mode
@@ -117,18 +117,13 @@ export const TaskItem: React.FC<TaskItemProps> = ({
 
   if (isNewTask) {
     return (
-      <View
-        style={[
-          styles.taskContainer,
-          { backgroundColor: Colors[colorScheme ?? 'light'].background },
-        ]}
-      >
+      <View style={[styles.taskContainer, { backgroundColor: Colors[colorScheme].background }]}>
         <View style={[styles.taskHeader, styles.newTaskHeader]}>
           <View style={styles.plusIconContainer}>
             {isLoading ? (
-              <ActivityIndicator size="small" color={Colors[colorScheme ?? 'light'].icon} />
+              <ActivityIndicator size="small" color={Colors[colorScheme].icon} />
             ) : (
-              <IconSymbol name="plus" size={24} color={Colors[colorScheme ?? 'light'].icon} />
+              <IconSymbol name="plus" size={24} color={Colors[colorScheme].icon} />
             )}
           </View>
           <View style={styles.newTaskContent}>
@@ -137,11 +132,11 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 ref={inputRef}
                 multiline
                 placeholder="New task"
-                placeholderTextColor={Colors[colorScheme ?? 'light'].icon}
+                placeholderTextColor={Colors[colorScheme].icon}
                 style={[
                   styles.taskInput,
                   styles.newTaskInput,
-                  { color: Colors[colorScheme ?? 'light'].text, height: inputHeight },
+                  { color: Colors[colorScheme].text, height: inputHeight },
                 ]}
                 value={editValue}
                 onChangeText={setEditValue}
@@ -177,14 +172,14 @@ export const TaskItem: React.FC<TaskItemProps> = ({
       style={[
         styles.taskContainer,
         {
-          backgroundColor: Colors[colorScheme ?? 'light'].background,
-          borderBottomColor: Colors[colorScheme ?? 'light'].icon + '40',
+          backgroundColor: Colors[colorScheme].background,
+          borderBottomColor: Colors[colorScheme].icon + '40',
         },
       ]}
     >
       <View style={styles.taskHeader}>
         <TouchableOpacity
-          style={[styles.checkbox, { borderColor: Colors[colorScheme ?? 'light'].icon }]}
+          style={[styles.checkbox, { borderColor: Colors[colorScheme].icon }]}
           onPress={() => !isInTransition && onToggleComplete && onToggleComplete(id!, !isDone)}
           activeOpacity={readOnly || isInTransition ? 1 : 0.2}
           disabled={isInTransition || readOnly}
@@ -192,7 +187,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           <View
             style={[
               styles.checkboxInner,
-              isDone && { backgroundColor: Colors[colorScheme ?? 'light'].success },
+              isDone && { backgroundColor: Colors[colorScheme].success },
             ]}
           >
             {isDone && <IconSymbol name="checkmark" size={20} color="white" />}
@@ -215,10 +210,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 returnKeyType="done"
                 scrollEnabled={false}
                 selectTextOnFocus={false}
-                style={[
-                  styles.taskInput,
-                  { color: Colors[colorScheme ?? 'light'].text, height: inputHeight },
-                ]}
+                style={[styles.taskInput, { color: Colors[colorScheme].text, height: inputHeight }]}
                 submitBehavior="blurAndSubmit"
                 value={editValue}
               />
@@ -238,9 +230,9 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               <Text
                 style={[
                   styles.taskText,
-                  { color: Colors[colorScheme ?? 'light'].text },
+                  { color: Colors[colorScheme].text },
                   isDone && styles.taskTextDone,
-                  isDone && { textDecorationColor: Colors[colorScheme ?? 'light'].doneLine },
+                  isDone && { textDecorationColor: Colors[colorScheme].doneLine },
                 ]}
               >
                 {taskName}
@@ -253,14 +245,14 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 <Text
                   style={[
                     styles.dueDate,
-                    { color: Colors[colorScheme ?? 'light'].icon },
-                    isToday(dueDate) && { color: Colors[colorScheme ?? 'light'].todayBlue },
+                    { color: Colors[colorScheme].icon },
+                    isToday(dueDate) && { color: Colors[colorScheme].todayBlue },
                   ]}
                 >
-                  Due: {formatDate(dueDate)}
+                  {formatDate(dueDate)}
                 </Text>
               ) : (
-                <Text style={[styles.noDueDate, { color: Colors[colorScheme ?? 'light'].icon }]}>
+                <Text style={[styles.noDueDate, { color: Colors[colorScheme].icon }]}>
                   No due date
                 </Text>
               )}
@@ -270,7 +262,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                     styles.dateButton,
                     {
                       backgroundColor:
-                        Colors[colorScheme ?? 'light'].background === '#fff'
+                        Colors[colorScheme].background === '#fff'
                           ? Colors.light.inputBackground
                           : Colors.dark.inputBackground,
                     },
@@ -281,7 +273,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                   <Text
                     style={[
                       styles.dateButtonText,
-                      { color: Colors[colorScheme ?? 'light'].icon },
+                      { color: Colors[colorScheme].icon },
                       isInTransition && styles.dueDateLoading,
                     ]}
                   >
@@ -351,6 +343,7 @@ const styles = StyleSheet.create({
   },
   newTaskHeader: {
     alignItems: 'flex-start',
+    paddingTop: 4,
   },
   newTaskInput: {
     paddingBottom: 0,
@@ -369,6 +362,7 @@ const styles = StyleSheet.create({
     height: 20,
     justifyContent: 'center',
     marginRight: 15,
+    paddingTop: 2,
     width: 20,
   },
   taskContainer: {

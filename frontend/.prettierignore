@@ -5,3 +5,4 @@ web-build/
 .expo/
 *.lock
 *.log
+expo-env.d.ts

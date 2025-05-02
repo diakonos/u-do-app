@@ -15,11 +15,12 @@ const MAPPING = {
   'chevron.right': 'chevron-right',
   'list.bullet': 'format-list-bulleted',
   'person.2.fill': 'people',
-  calendar: 'calendar-today',
+  calendar: 'calendar-month',
   gear: 'settings',
   checkmark: 'check',
   plus: 'add',
   'pin.fill': 'push-pin',
+  'sun.max.fill': 'sunny',
 } as Partial<
   Record<
     import('expo-symbols').SymbolViewProps['name'],

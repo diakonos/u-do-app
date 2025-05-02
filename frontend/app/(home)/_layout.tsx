@@ -21,7 +21,7 @@ export default function TabLayout() {
     <TaskProvider>
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+          tabBarActiveTintColor: Colors[colorScheme].tint,
           headerTintColor: whiteColor,
           headerStyle: {
             backgroundColor: tintColor,
@@ -53,8 +53,15 @@ export default function TabLayout() {
         <Tabs.Screen
           name="tasks"
           options={{
+            headerShown: false,
             title: 'Tasks',
             tabBarIcon: ({ color }) => <IconSymbol size={28} name="list.bullet" color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="tasks/schedule"
+          options={{
+            href: null,
           }}
         />
         <Tabs.Screen

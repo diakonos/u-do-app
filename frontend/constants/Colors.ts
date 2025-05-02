@@ -20,6 +20,7 @@ export const Colors = {
     todayBlue: '#007AFF',
     success: '#2CBD66',
     doneLine: 'rgba(0, 0, 0, 0.3)',
+    black: '#000000',
   },
   dark: {
     background: '#151718',
@@ -37,6 +38,7 @@ export const Colors = {
     todayBlue: '#0A84FF',
     success: '#2CBD66',
     doneLine: 'rgba(255, 255, 255, 0.7)',
+    black: '#000000',
   },
   common: {
     overlayBackground: 'rgba(0, 0, 0, 0.4)',

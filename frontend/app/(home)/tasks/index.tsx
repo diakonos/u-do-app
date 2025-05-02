@@ -8,7 +8,6 @@ import {
   FlatList,
   Alert,
   ActivityIndicator,
-  useColorScheme,
   RefreshControl,
 } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
@@ -21,9 +20,11 @@ import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
+import { Link } from 'expo-router';
+import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function TodoList() {
-  const colorScheme = useColorScheme() ?? 'light';
+  const colorScheme = useColorScheme();
 
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -366,40 +367,47 @@ export default function TodoList() {
   const completeTasks = getCompleteTasks();
 
   return (
-    <ThemedView
-      style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}
-    >
+    <ThemedView style={[styles.container, { backgroundColor: Colors[colorScheme].background }]}>
       {/* eslint-disable-next-line react-native/no-raw-text */}
       <HTMLTitle>Tasks</HTMLTitle>
       <Stack.Screen
         options={{
           title: 'Tasks',
-          headerRight: () =>
-            Platform.OS === 'web' ? (
-              <TouchableOpacity
-                onPress={onRefresh}
-                style={styles.refreshButton}
-                disabled={refreshing}
-              >
-                {refreshing ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
-                ) : (
-                  <Ionicons name="refresh" size={24} color="#ffffff" />
-                )}
-              </TouchableOpacity>
-            ) : null,
+          headerRight: () => (
+            <View style={styles.headerRightRow}>
+              {Platform.OS === 'web' && (
+                <TouchableOpacity
+                  onPress={onRefresh}
+                  style={styles.refreshButton}
+                  disabled={refreshing}
+                >
+                  {refreshing ? (
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  ) : (
+                    <Ionicons name="refresh" size={24} color="#ffffff" />
+                  )}
+                </TouchableOpacity>
+              )}
+              <Link href="/tasks/schedule" style={styles.calendarLink}>
+                <Ionicons name="calendar" size={24} color="#ffffff" style={styles.calendarIcon} />
+              </Link>
+            </View>
+          ),
         }}
       />
-
-      <RefreshControl refreshing={refreshing} onRefresh={onRefresh}>
-        <View />
-      </RefreshControl>
 
       <FlatList
         data={incompleteTasks}
         renderItem={({ item }) => renderTaskItem(item)}
         keyExtractor={item => item.id.toString()}
         style={styles.tasksList}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Colors[colorScheme].text}
+          />
+        }
       />
 
       <TaskItem isNewTask onCreateTask={handleCreateTask} isLoading={isCreatingTask} />
@@ -418,7 +426,7 @@ export default function TodoList() {
               <Ionicons
                 name={isArchiveSectionCollapsed ? 'chevron-down' : 'chevron-up'}
                 size={18}
-                color={Colors[colorScheme ?? 'light'].text}
+                color={Colors[colorScheme].text}
                 style={styles.sectionHeaderIcon}
               />
             </View>
@@ -438,6 +446,12 @@ export default function TodoList() {
 }
 
 const styles = StyleSheet.create({
+  calendarIcon: {
+    marginRight: 10,
+  },
+  calendarLink: {
+    height: 24,
+  },
   container: {
     flex: 1,
   },
@@ -456,6 +470,10 @@ const styles = StyleSheet.create({
   },
   doneSection: {
     marginTop: 8,
+  },
+  headerRightRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
   },
   loadingContainer: {
     alignItems: 'center',

@@ -19,7 +19,7 @@ import { useFriends } from '@/lib/context/friends';
 import { Colors } from '@/constants/Colors';
 import { HTMLTitle } from '@/components/HTMLTitle';
 import { useAuth } from '@/lib/context/auth';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { ThemedView } from '@/components/ThemedView';
@@ -47,6 +47,7 @@ export default function TodayTasksList() {
   const colorScheme = useColorScheme();
   const { loadDashboardConfig } = useDashboard();
   const { getFriendTasks } = useFriends();
+  const router = useRouter();
   const [pinnedFriendsTasks, setPinnedFriendsTasks] = useState<
     Array<{ username: string; tasks: Task[] }>
   >([]);
@@ -436,7 +437,7 @@ export default function TodayTasksList() {
           <Ionicons
             name={isCollapsed ? 'chevron-down' : 'chevron-up'}
             size={16}
-            color={Colors[colorScheme ?? 'light'].text}
+            color={Colors[colorScheme].text}
           />
         </TouchableOpacity>
 
@@ -482,28 +483,36 @@ export default function TodayTasksList() {
   const todayTasks = getTodayTasks();
 
   return (
-    <ThemedView
-      style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}
-    >
+    <ThemedView style={[styles.container, { backgroundColor: Colors[colorScheme].background }]}>
       {/* eslint-disable-next-line react-native/no-raw-text */}
       <HTMLTitle>Today</HTMLTitle>
       <Stack.Screen
         options={{
           headerTitle: 'Today',
-          headerRight: () =>
-            Platform.OS === 'web' ? (
+          headerRight: () => (
+            <View style={styles.headerRightRow}>
+              {Platform.OS === 'web' && (
+                <TouchableOpacity
+                  onPress={onRefresh}
+                  style={styles.refreshButton}
+                  disabled={refreshing}
+                >
+                  {refreshing ? (
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  ) : (
+                    <Ionicons name="refresh" size={24} color="#ffffff" />
+                  )}
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
-                onPress={onRefresh}
-                style={styles.refreshButton}
-                disabled={refreshing}
+                onPress={() => router.push('/(home)/tasks/schedule')}
+                style={styles.calendarButton}
+                accessibilityLabel="Schedule tasks"
               >
-                {refreshing ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
-                ) : (
-                  <Ionicons name="refresh" size={24} color="#ffffff" />
-                )}
+                <Ionicons name="calendar" size={24} color="#ffffff" />
               </TouchableOpacity>
-            ) : null,
+            </View>
+          ),
         }}
       />
 
@@ -534,7 +543,7 @@ export default function TodayTasksList() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={Colors[colorScheme ?? 'light'].text}
+            tintColor={Colors[colorScheme].text}
           />
         }
         ListEmptyComponent={
@@ -574,6 +583,10 @@ export default function TodayTasksList() {
 }
 
 const styles = StyleSheet.create({
+  calendarButton: {
+    marginLeft: Platform.OS === 'web' ? 0 : 15,
+    marginRight: 10,
+  },
   container: {
     flex: 1,
   },
@@ -621,6 +634,10 @@ const styles = StyleSheet.create({
   friendTasksContainer: { marginTop: 16 },
   friendTasksSection: {
     marginBottom: 24,
+  },
+  headerRightRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
   },
   loadingContainer: {
     alignItems: 'center',

@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 
-export function useColorScheme() {
+export function useColorScheme(): 'light' | 'dark' {
   const getScheme = () =>
     window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
       ? 'dark'
       : 'light';
 
-  const [colorScheme, setColorScheme] = useState(getScheme);
+  const [colorScheme, setColorScheme] = useState<'light' | 'dark'>(getScheme);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
