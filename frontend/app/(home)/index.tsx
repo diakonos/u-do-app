@@ -170,15 +170,37 @@ export default function TodayTasksList() {
   const renderFriendTasksSection = (friendData: { username: string; tasks: Task[] }) => {
     if (!friendData.tasks || friendData.tasks.length === 0) return null;
 
-    // Count completed tasks
-    const completedTasksCount = friendData.tasks.filter(task => task.is_done).length;
+    // Today's date at 00:00:00 for comparison
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    // Sort tasks: incomplete first, then completed
-    const sortedTasks = [...friendData.tasks].sort((a, b) => {
-      if (a.is_done !== b.is_done) {
-        return a.is_done ? 1 : -1; // Incomplete tasks first
+    // Filter tasks according to the rules:
+    // 1. Incomplete with no due date
+    // 2. Incomplete with due date before or equal to today
+    // 3. Complete with updated_at of today
+    const filteredTasks = friendData.tasks.filter(task => {
+      if (!task.is_done) {
+        if (!task.due_date) return true;
+        const dueDate = new Date(task.due_date);
+        dueDate.setHours(0, 0, 0, 0);
+        if (dueDate <= today) return true;
+      } else {
+        // Completed tasks with updated_at of today
+        const updatedDate = new Date(task.updated_at);
+        updatedDate.setHours(0, 0, 0, 0);
+        if (updatedDate.getTime() === today.getTime()) return true;
       }
-      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime(); // Then by creation date
+      return false;
+    });
+
+    if (filteredTasks.length === 0) return null;
+
+    // Count completed tasks (from filtered)
+    const completedTasksCount = filteredTasks.filter(task => task.is_done).length;
+
+    // Sort tasks: by creation date ascending
+    const sortedTasks = [...filteredTasks].sort((a, b) => {
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     });
 
     // Get the collapsed state for this section
@@ -200,7 +222,7 @@ export default function TodayTasksList() {
             {friendData.username}&apos;s Tasks
           </ThemedText>
           <ThemedText style={styles.taskCount}>
-            {completedTasksCount} / {friendData.tasks.length}
+            {completedTasksCount} / {filteredTasks.length}
           </ThemedText>
           <Ionicons
             name={isCollapsed ? 'chevron-down' : 'chevron-up'}
