@@ -37,7 +37,6 @@ export default function ScheduleTasksScreen() {
   const [showPicker, setShowPicker] = useState(false);
   const [overlayAnim] = useState(() => new Animated.Value(0));
   const [sheetAnim] = useState(() => new Animated.Value(0));
-  const [tasksBeingDeleted, setTasksBeingDeleted] = useState<Record<number, boolean>>({});
 
   // State for editing a task's due date
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
@@ -109,17 +108,11 @@ export default function ScheduleTasksScreen() {
   };
 
   const handleDeleteTask = async (taskId: number) => {
-    setTasksBeingDeleted(prev => ({ ...prev, [taskId]: true }));
     try {
       await deleteTask(taskId);
     } catch (error) {
       Alert.alert('Error', 'Failed to delete task. Please try again.');
       console.error('Failed to delete task:', error);
-      setTasksBeingDeleted(prev => {
-        const updated = { ...prev };
-        delete updated[taskId];
-        return updated;
-      });
     }
   };
 

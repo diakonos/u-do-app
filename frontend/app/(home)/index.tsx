@@ -58,7 +58,6 @@ export default function TodayTasksList() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [tasksBeingDeleted, setTasksBeingDeleted] = useState<Record<number, boolean>>({});
   const { tasks, fetchTasks, deleteTask } = useTask();
   const { isLoading: isLoadingAuth, session } = useAuth();
 
@@ -123,30 +122,10 @@ export default function TodayTasksList() {
       const taskToDelete = tasks.find(t => t.id === taskId);
       if (!taskToDelete) return;
 
-      // Mark the task as being deleted optimistically
-      setTasksBeingDeleted(prev => ({
-        ...prev,
-        [taskId]: true,
-      }));
-
       try {
         // Make the actual API request
         await deleteTask(taskId);
-
-        // Success: remove from the deleted tasks tracking
-        setTasksBeingDeleted(prev => {
-          const updated = { ...prev };
-          delete updated[taskId];
-          return updated;
-        });
       } catch (error) {
-        // On error, revert the optimistic deletion
-        setTasksBeingDeleted(prev => {
-          const updated = { ...prev };
-          delete updated[taskId];
-          return updated;
-        });
-
         // Alert the user about the error
         Alert.alert('Error', 'Failed to delete task. Please try again.');
         console.error('Failed to delete task:', error);

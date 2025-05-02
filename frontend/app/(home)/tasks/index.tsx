@@ -27,7 +27,6 @@ export default function TodoList() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [tasksBeingDeleted, setTasksBeingDeleted] = useState<Record<number, boolean>>({});
   const [isArchiveSectionCollapsed, setIsArchiveSectionCollapsed] = useState(true);
   const { tasks, archivedTasks, fetchTasks, deleteTask } = useTask();
   const { isLoading: isLoadingAuth, session } = useAuth();
@@ -60,26 +59,9 @@ export default function TodoList() {
       const taskToDelete = tasks.find(t => t.id === taskId);
       if (!taskToDelete) return;
 
-      setTasksBeingDeleted(prev => ({
-        ...prev,
-        [taskId]: true,
-      }));
-
       try {
         await deleteTask(taskId);
-
-        setTasksBeingDeleted(prev => {
-          const updated = { ...prev };
-          delete updated[taskId];
-          return updated;
-        });
       } catch (error) {
-        setTasksBeingDeleted(prev => {
-          const updated = { ...prev };
-          delete updated[taskId];
-          return updated;
-        });
-
         Alert.alert('Error', 'Failed to delete task. Please try again.');
         console.error('Failed to delete task:', error);
       }
