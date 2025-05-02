@@ -155,6 +155,13 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
+    // Optimistically update the cache
+    let previousTasks: Task[] = [];
+    setTasksCache(prevTasks => {
+      previousTasks = prevTasks;
+      return prevTasks.map(task => (task.id === taskId ? { ...task, ...updatesToSend } : task));
+    });
+
     const { data, error } = await supabase
       .from('tasks')
       .update(updatesToSend)
@@ -162,11 +169,15 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      // Roll back the optimistic update if there's an error
+      setTasksCache(() => previousTasks);
+      throw error;
+    }
 
+    // Ensure cache is in sync with server response
     setTasksCache(prevTasks => {
-      const updated = prevTasks.map(task => (task.id === taskId ? data : task));
-      return updated;
+      return prevTasks.map(task => (task.id === taskId ? data : task));
     });
 
     return data;
@@ -178,14 +189,20 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     } = await supabase.auth.getSession();
     if (!session) throw new Error('User not authenticated');
 
+    // Optimistically update the cache before making the API call
+    let previousTasks: Task[] = [];
+    setTasksCache(prevTasks => {
+      previousTasks = prevTasks;
+      return prevTasks.filter(task => task.id !== taskId);
+    });
+
     const { error } = await supabase.from('tasks').delete().eq('id', taskId);
 
-    if (error) throw error;
-
-    setTasksCache(prevTasks => {
-      const updated = prevTasks.filter(task => task.id !== taskId);
-      return updated;
-    });
+    if (error) {
+      // Roll back the optimistic update if there's an error
+      setTasksCache(() => previousTasks);
+      throw error;
+    }
   };
 
   // Compute archived tasks (completed, not updated today)
@@ -205,7 +222,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
   // Compute scheduled tasks (incomplete, due in the future)
   const scheduledTasks = useMemo(() => {
-    const today = new Date('2025-05-02T00:00:00');
+    const today = new Date();
     today.setHours(0, 0, 0, 0);
     return tasksCache
       .filter(task => {
@@ -213,9 +230,9 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         if (!task.due_date) return false;
         const dueDate = new Date(task.due_date);
         dueDate.setHours(0, 0, 0, 0);
-        return dueDate > today;
+        return dueDate >= today;
       })
-      .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+      .sort((a, b) => new Date(a.updated_at).getTime() - new Date(b.due_date).getTime());
   }, [tasksCache]);
 
   // Filter out archived and scheduled tasks from tasks value

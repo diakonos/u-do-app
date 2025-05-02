@@ -322,12 +322,12 @@ export default function TodayTasksList() {
         ListFooterComponent={
           <View>
             <TaskItem isNewTask />
-            <View style={styles.friendTasksContainer}>
-              {pinnedFriendsTasks.map(renderFriendTasksSection)}
-            </View>
           </View>
         }
       />
+      <View style={styles.friendTasksContainer}>
+        {pinnedFriendsTasks.map(renderFriendTasksSection)}
+      </View>
     </ThemedView>
   );
 }
@@ -339,6 +339,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+    overflowY: 'scroll',
   },
   deleteButton: {
     alignItems: 'center',
@@ -410,7 +411,8 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   tasksList: {
-    flex: 1,
+    flexGrow: 0,
+    flexShrink: 0,
     paddingTop: 8,
   },
 });

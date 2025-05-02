@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   View,
@@ -26,7 +26,7 @@ import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 export default function ScheduleTasksScreen() {
   const colorScheme = useColorScheme() ?? 'light';
-  const { tasks, updateTask, deleteTask } = useTask();
+  const { scheduledTasks, updateTask, deleteTask } = useTask();
   const [selectedDate, setSelectedDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 1);
@@ -136,36 +136,6 @@ export default function ScheduleTasksScreen() {
     }
     return null;
   };
-
-  // Only show tasks scheduled for a future date (due_date > today)
-  const futureTasks = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-    return tasks
-      .filter(t => {
-        if (!t.due_date || tasksBeingDeleted[t.id]) return false;
-        const dueDate = new Date(t.due_date);
-        dueDate.setHours(0, 0, 0, 0);
-        if (dueDate <= today) return false;
-        if (!t.is_done) {
-          // Incomplete, scheduled for future
-          return true;
-        } else {
-          // Completed: only show if updated today
-          const updatedAt = new Date(t.updated_at);
-          return updatedAt >= today && updatedAt < tomorrow;
-        }
-      })
-      .sort((a, b) => {
-        const dueA = new Date(a.due_date!).getTime();
-        const dueB = new Date(b.due_date!).getTime();
-        if (dueA !== dueB) return dueA - dueB;
-        // If due dates are equal, sort by creation date
-        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-      });
-  }, [tasks, tasksBeingDeleted]);
 
   // Format date in long format, e.g., Friday, May 3, 2025
   const longDate = selectedDate.toLocaleDateString(undefined, {
@@ -433,7 +403,7 @@ export default function ScheduleTasksScreen() {
         <TaskItem isNewTask dueDate={formatLocalDate(selectedDate)} />
       </View>
       <FlatList
-        data={futureTasks}
+        data={scheduledTasks}
         keyExtractor={item => item.id.toString()}
         renderItem={({ item }) => (
           <Swipeable
@@ -454,6 +424,7 @@ export default function ScheduleTasksScreen() {
             />
           </Swipeable>
         )}
+        style={styles.scheduledList}
       />
       {editTaskDateModal}
     </ThemedView>
@@ -461,7 +432,7 @@ export default function ScheduleTasksScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, overflowY: 'scroll' },
   dateButton: {
     backgroundColor: Colors.light.inputBackground,
     borderRadius: 6,
@@ -550,4 +521,5 @@ const styles = StyleSheet.create({
     marginLeft: 16,
     marginTop: 16,
   },
+  scheduledList: { flexGrow: 0, flexShrink: 0 },
 });

@@ -1,3 +1,4 @@
+import { Link } from 'expo-router';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -11,7 +12,7 @@ import {
 } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { TaskItem } from '@/components/tasks/TaskItem';
-import { useTask } from '@/lib/context/task';
+import { type Task, useTask } from '@/lib/context/task';
 import { Colors } from '@/constants/Colors';
 import { HTMLTitle } from '@/components/HTMLTitle';
 import { useAuth } from '@/lib/context/auth';
@@ -19,7 +20,6 @@ import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
-import { Link } from 'expo-router';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function TodoList() {
@@ -199,6 +199,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+    overflowY: 'scroll',
   },
   deleteButton: {
     alignItems: 'center',
@@ -244,6 +245,7 @@ const styles = StyleSheet.create({
   },
   tasksList: {
     flexGrow: 0,
+    flexShrink: 0,
     paddingTop: 8,
   },
 });
