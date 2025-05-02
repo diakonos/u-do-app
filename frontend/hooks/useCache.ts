@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { PersistentCache } from '@/lib/persistentCache';
 
 export default function useCache<T>(
@@ -8,20 +8,23 @@ export default function useCache<T>(
   const [cache, setCache] = useState<T>(defaultValue);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number>(0);
 
-  const updateCache = (update: T | ((prevValue: T) => T)) => {
-    let newValue: T;
-    if (typeof update === 'function') {
-      setCache(prevValue => {
-        newValue = (update as (prevValue: T) => T)(prevValue);
+  const updateCache = useCallback(
+    (update: T | ((prevValue: T) => T)) => {
+      let newValue: T;
+      if (typeof update === 'function') {
+        setCache(prevValue => {
+          newValue = (update as (prevValue: T) => T)(prevValue);
+          PersistentCache.set(key, newValue);
+          return newValue;
+        });
+      } else {
+        newValue = update;
+        setCache(update);
         PersistentCache.set(key, newValue);
-        return newValue;
-      });
-    } else {
-      newValue = update;
-      setCache(update);
-      PersistentCache.set(key, newValue);
-    }
-  };
+      }
+    },
+    [key],
+  );
 
   // Load from persistent cache on mount
   useEffect(() => {

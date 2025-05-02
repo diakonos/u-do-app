@@ -80,7 +80,6 @@ export function FriendsProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isPendingRequestsRefreshing, setIsPendingRequestsRefreshing] = useState(false);
-  const [hasLoadedPendingRequests, setHasLoadedPendingRequests] = useState(false);
 
   // Fetch friends data with persistent cache and revalidation
   const fetchFriends = useCallback(
@@ -115,23 +114,15 @@ export function FriendsProvider({ children }: { children: React.ReactNode }) {
       const now = Date.now();
       if (
         !forceRefresh &&
-        pendingRequests &&
-        pendingRequests.length > 0 &&
         pendingRequestsUpdatedAt &&
         now - pendingRequestsUpdatedAt < PENDING_REQUESTS_REVALIDATE_MS
       ) {
-        setHasLoadedPendingRequests(true);
         return;
       }
       try {
-        if (forceRefresh) {
-          setIsPendingRequestsRefreshing(true);
-        } else if (!hasLoadedPendingRequests) {
-          setIsLoading(true);
-        }
+        setIsPendingRequestsRefreshing(true);
         const pending = await FriendsService.getPendingRequests();
         setPendingRequests(pending);
-        setHasLoadedPendingRequests(true);
       } catch (error) {
         console.error('Failed to fetch friend requests:', error);
       } finally {
@@ -139,7 +130,7 @@ export function FriendsProvider({ children }: { children: React.ReactNode }) {
         setIsPendingRequestsRefreshing(false);
       }
     },
-    [pendingRequests, pendingRequestsUpdatedAt, hasLoadedPendingRequests, setPendingRequests],
+    [setPendingRequests, pendingRequestsUpdatedAt], // Only stable setters
   );
 
   // Send a friend request
