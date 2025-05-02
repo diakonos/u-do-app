@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
+import React, { createContext, useContext, useCallback, useEffect } from 'react';
 import { supabase } from '../supabase';
-import { PersistentCache } from '../persistentCache';
+import { ApiService, RealtimePayload } from '../services/api';
+import useCache from '@/hooks/useCache';
 
 export type Task = {
   id: number;
@@ -15,29 +16,59 @@ export type Task = {
 type TaskContextType = {
   tasks: Task[];
   createTask: (taskName: string, dueDate?: string) => Promise<Task>;
-  fetchTasks: (forceRefresh?: boolean) => Promise<Task[]>;
+  fetchTasks: (forceRefresh?: boolean) => void;
   updateTask: (taskId: number, updates: Partial<Task>) => Promise<Task>;
   deleteTask: (taskId: number) => Promise<void>;
 };
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
-
+const CACHE_KEY = 'tasks-cache';
+const REVALIDATE_MS = 60 * 1000; // 1 minute
 export function TaskProvider({ children }: { children: React.ReactNode }) {
-  const [tasksCache, setTasksCache] = useState<Task[]>([]);
-  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
-  const CACHE_KEY = 'tasks-cache';
-  const REVALIDATE_MS = 60 * 1000; // 1 minute
+  const [tasksCache, setTasksCache, lastUpdatedAt] = useCache<Task[]>(CACHE_KEY, []);
 
-  // Load from persistent cache on mount
+  // Realtime subscription for current user's tasks
   useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
     (async () => {
-      const cached = await PersistentCache.get(CACHE_KEY);
-      if (cached && cached.value) {
-        setTasksCache(cached.value);
-        setLastUpdated(cached.updatedAt);
-      }
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) return;
+      const userId = session.user.id;
+      // Listen for INSERT, UPDATE, DELETE on current user's tasks
+      unsubscribe = ApiService.subscribeToChanges(
+        'tasks',
+        '*',
+        `user_id=eq.${userId}`,
+        (payload: RealtimePayload) => {
+          setTasksCache((prevTasks: Task[]) => {
+            if (payload.eventType === 'INSERT') {
+              // Add new task if not already present
+              if (!prevTasks.some(t => t.id === payload.new.id)) {
+                const updated = [payload.new as Task, ...prevTasks];
+                return updated;
+              }
+              return prevTasks;
+            } else if (payload.eventType === 'UPDATE') {
+              console.log('Update payload:', payload);
+              const updated = prevTasks.map(t =>
+                t.id === payload.new.id ? { ...(payload.new as Task) } : t,
+              );
+              return updated;
+            } else if (payload.eventType === 'DELETE') {
+              const updated = prevTasks.filter(t => t.id !== payload.old?.id);
+              return updated;
+            }
+            return prevTasks;
+          });
+        },
+      );
     })();
-  }, []);
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [setTasksCache]);
 
   const createTask = async (taskName: string, dueDate?: string): Promise<Task> => {
     const {
@@ -62,8 +93,6 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
     setTasksCache(prevTasks => {
       const updated = [data[0], ...prevTasks];
-      PersistentCache.set(CACHE_KEY, updated);
-      setLastUpdated(Date.now());
       return updated;
     });
     return data[0];
@@ -71,19 +100,10 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
   // fetchTasks now supports forceRefresh and revalidation
   const fetchTasks = useCallback(
-    async (forceRefresh = false): Promise<Task[]> => {
+    async (forceRefresh = false): Promise<void> => {
       const now = Date.now();
-      const cached = await PersistentCache.get(CACHE_KEY);
-      if (
-        !forceRefresh &&
-        cached &&
-        cached.value &&
-        cached.updatedAt &&
-        now - cached.updatedAt < REVALIDATE_MS
-      ) {
-        setTasksCache(cached.value);
-        setLastUpdated(cached.updatedAt);
-        return cached.value;
+      if (!forceRefresh && tasksCache && lastUpdatedAt && now - lastUpdatedAt < REVALIDATE_MS) {
+        return;
       }
 
       const {
@@ -100,11 +120,9 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
 
       setTasksCache(tasks);
-      setLastUpdated(Date.now());
-      PersistentCache.set(CACHE_KEY, tasks);
-      return tasks;
+      return;
     },
-    [REVALIDATE_MS],
+    [lastUpdatedAt, setTasksCache, tasksCache],
   );
 
   const updateTask = async (taskId: number, updates: Partial<Task>): Promise<Task> => {
@@ -147,8 +165,6 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
     setTasksCache(prevTasks => {
       const updated = prevTasks.map(task => (task.id === taskId ? data : task));
-      PersistentCache.set(CACHE_KEY, updated);
-      setLastUpdated(Date.now());
       return updated;
     });
 
@@ -167,8 +183,6 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
     setTasksCache(prevTasks => {
       const updated = prevTasks.filter(task => task.id !== taskId);
-      PersistentCache.set(CACHE_KEY, updated);
-      setLastUpdated(Date.now());
       return updated;
     });
   };

@@ -1,6 +1,6 @@
-import { createContext, useContext, useCallback, useState, useEffect } from 'react';
+import { createContext, useContext, useCallback, useState } from 'react';
 import { supabase } from '../supabase';
-import { PersistentCache } from '../persistentCache';
+import useCache from '@/hooks/useCache';
 
 // Define the type for a dashboard configuration item
 type DashboardConfig = {
@@ -23,38 +23,27 @@ type DashboardContextType = {
 
 // Create the dashboard context
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
+const DASHBOARD_CACHE_KEY = 'dashboard-configs-cache';
+const DASHBOARD_REVALIDATE_MS = 60 * 1000;
 
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
-  const [dashboardConfigs, setDashboardConfigs] = useState<DashboardConfig[]>([]);
+  const [dashboardConfigs, setDashboardConfigs, dashboardConfigsUpdatedAt] = useCache<
+    DashboardConfig[]
+  >(DASHBOARD_CACHE_KEY, []);
   const [isLoading, setIsLoading] = useState(false);
-
-  const DASHBOARD_CACHE_KEY = 'dashboard-configs-cache';
-  const DASHBOARD_REVALIDATE_MS = 60 * 1000;
-
-  // Load dashboard configs from persistent cache on mount
-  useEffect(() => {
-    (async () => {
-      const cached = await PersistentCache.get(DASHBOARD_CACHE_KEY);
-      if (cached && cached.value) {
-        setDashboardConfigs(cached.value);
-      }
-    })();
-  }, []);
 
   // Function to load dashboard configuration for the current user, with cache and revalidation
   const loadDashboardConfig = useCallback(
     async (forceRefresh = false): Promise<DashboardConfig[]> => {
       const now = Date.now();
-      const cached = await PersistentCache.get(DASHBOARD_CACHE_KEY);
       if (
         !forceRefresh &&
-        cached &&
-        cached.value &&
-        cached.updatedAt &&
-        now - cached.updatedAt < DASHBOARD_REVALIDATE_MS
+        dashboardConfigs &&
+        dashboardConfigs.length > 0 &&
+        dashboardConfigsUpdatedAt &&
+        now - dashboardConfigsUpdatedAt < DASHBOARD_REVALIDATE_MS
       ) {
-        setDashboardConfigs(cached.value);
-        return cached.value;
+        return dashboardConfigs;
       }
       try {
         setIsLoading(true);
@@ -77,7 +66,6 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
         // Update the state with the fetched configurations
         setDashboardConfigs(data || []);
-        PersistentCache.set(DASHBOARD_CACHE_KEY, data || []);
         return data || [];
       } catch (error) {
         console.error('Error loading dashboard config:', error);
@@ -86,7 +74,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
       }
     },
-    [],
+    [dashboardConfigs, dashboardConfigsUpdatedAt, setDashboardConfigs],
   );
 
   // Function to check if a specific configuration already exists
@@ -133,18 +121,14 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         if (!data || data.length === 0) throw new Error('Failed to create dashboard configuration');
 
         // Update the local state
-        setDashboardConfigs(prev => {
-          const updated = [...prev, data[0]];
-          PersistentCache.set(DASHBOARD_CACHE_KEY, updated);
-          return updated;
-        });
+        setDashboardConfigs(prev => [...prev, data[0]]);
         return data[0];
       } catch (error) {
         console.error('Error creating dashboard config:', error);
         throw error;
       }
     },
-    [dashboardConfigs],
+    [dashboardConfigs, setDashboardConfigs],
   );
 
   // Function to delete a dashboard configuration
@@ -169,19 +153,15 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         if (error) throw error;
 
         // Update the local state
-        setDashboardConfigs(prev => {
-          const updated = prev.filter(
-            config => !(config.block_type === blockType && config.value === value),
-          );
-          PersistentCache.set(DASHBOARD_CACHE_KEY, updated);
-          return updated;
-        });
+        setDashboardConfigs(prev =>
+          prev.filter(config => !(config.block_type === blockType && config.value === value)),
+        );
       } catch (error) {
         console.error('Error deleting dashboard config:', error);
         throw error;
       }
     },
-    [],
+    [setDashboardConfigs],
   );
 
   return (
