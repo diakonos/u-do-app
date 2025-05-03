@@ -8,7 +8,7 @@ export default function TasksLayout() {
     <Stack
       screenOptions={{
         headerStyle: {
-          backgroundColor: Colors[colorScheme].tint,
+          backgroundColor: Colors[colorScheme].brand,
         },
         headerTintColor: Colors[colorScheme].white,
       }}
