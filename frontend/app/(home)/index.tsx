@@ -17,13 +17,13 @@ import { useTask } from '@/lib/context/task';
 import { useDashboard } from '@/lib/context/dashboard';
 import { useFriends } from '@/lib/context/friends';
 import { Colors } from '@/constants/Colors';
-import { HTMLTitle } from '@/components/HTMLTitle';
+import { HTMLTitle } from '@/components/ui/HTMLTitle';
 import { useAuth } from '@/lib/context/auth';
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ui/ThemedView';
+import { ThemedText } from '@/components/ui/ThemedText';
 
 interface Task {
   id: number;

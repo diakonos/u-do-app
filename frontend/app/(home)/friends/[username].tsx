@@ -8,12 +8,12 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { ThemedText } from '@/components/ui/ThemedText';
+import { ThemedView } from '@/components/ui/ThemedView';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { useFriends, FriendTask } from '@/lib/context/friends';
 import { useDashboard } from '@/lib/context/dashboard';
-import { HTMLTitle } from '@/components/HTMLTitle';
+import { HTMLTitle } from '@/components/ui/HTMLTitle';
 import { TaskItem } from '@/components/tasks/TaskItem';
 
 export default function FriendTasksScreen() {

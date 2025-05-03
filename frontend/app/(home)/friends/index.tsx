@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { StyleSheet, ActivityIndicator, TouchableOpacity, Platform } from 'react-native';
-import { ThemedView } from '@/components/ThemedView';
+import { ThemedView } from '@/components/ui/ThemedView';
 import SegmentedControl from '@react-native-segmented-control/segmented-control';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import FriendsTab from '@/components/friends/FriendsTab';
 import RequestsTab from '@/components/friends/RequestsTab';
 import SearchTab from '@/components/friends/SearchTab';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { HTMLTitle } from '@/components/HTMLTitle';
+import { HTMLTitle } from '@/components/ui/HTMLTitle';
 import { Stack, useNavigation } from 'expo-router';
 import { useFriends } from '@/lib/context/friends';
 import { Ionicons } from '@expo/vector-icons';

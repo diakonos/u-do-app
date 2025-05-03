@@ -12,8 +12,8 @@ import { Colors } from '@/constants/Colors';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useTask } from '@/lib/context/task';
-import { CalendarDatePicker } from '@/components/CalendarDatePicker';
-import { ModalSheet } from '@/components/ModalSheet';
+import { CalendarDatePicker } from '@/components/ui/CalendarDatePicker';
+import { ModalSheet } from '@/components/ui/ModalSheet';
 
 interface TaskItemProps {
   id?: number;

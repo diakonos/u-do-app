@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { StyleSheet, Alert, ActivityIndicator, FlatList, Text } from 'react-native';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedInput } from '@/components/ThemedInput';
+import { ThemedText } from '@/components/ui/ThemedText';
+import { ThemedView } from '@/components/ui/ThemedView';
+import { ThemedInput } from '@/components/ui/ThemedInput';
 import { useFriends, UserSearchResult } from '@/lib/context/friends';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';

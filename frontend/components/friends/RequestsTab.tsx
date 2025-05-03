@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { StyleSheet, FlatList, ActivityIndicator, Alert, RefreshControl, Text } from 'react-native';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { ThemedText } from '@/components/ui/ThemedText';
+import { ThemedView } from '@/components/ui/ThemedView';
 import { useFocusEffect } from 'expo-router';
 import { useFriends } from '@/lib/context/friends';
 import { useThemeColor } from '@/hooks/useThemeColor';

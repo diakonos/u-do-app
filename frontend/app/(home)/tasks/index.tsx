@@ -14,12 +14,12 @@ import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { TaskItem } from '@/components/tasks/TaskItem';
 import { type Task, useTask } from '@/lib/context/task';
 import { Colors } from '@/constants/Colors';
-import { HTMLTitle } from '@/components/HTMLTitle';
+import { HTMLTitle } from '@/components/ui/HTMLTitle';
 import { useAuth } from '@/lib/context/auth';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ui/ThemedView';
+import { ThemedText } from '@/components/ui/ThemedText';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function TodoList() {

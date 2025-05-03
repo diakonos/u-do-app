@@ -4,10 +4,10 @@ import { StyleSheet, ScrollView, Text } from 'react-native';
 import { User } from '@supabase/supabase-js';
 import { Colors } from '@/constants/Colors';
 
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { ThemedText } from '@/components/ui/ThemedText';
+import { ThemedView } from '@/components/ui/ThemedView';
 import { supabase } from '@/lib/supabase';
-import { HTMLTitle } from '@/components/HTMLTitle';
+import { HTMLTitle } from '@/components/ui/HTMLTitle';
 
 export default function SettingsScreen() {
   const handleLogout = async () => {

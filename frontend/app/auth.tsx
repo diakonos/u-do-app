@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { StyleSheet, Alert, ScrollView, Text } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useAuth } from '@/lib/context/auth';
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedInput } from '@/components/ThemedInput';
+import { ThemedView } from '@/components/ui/ThemedView';
+import { ThemedText } from '@/components/ui/ThemedText';
+import { ThemedInput } from '@/components/ui/ThemedInput';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { useThemeColor } from '@/hooks/useThemeColor';
 

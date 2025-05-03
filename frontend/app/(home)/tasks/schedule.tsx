@@ -2,15 +2,15 @@ import React, { useState } from 'react';
 import { View, StyleSheet, FlatList, Text, Alert, Pressable } from 'react-native';
 import { TaskItem } from '@/components/tasks/TaskItem';
 import { useTask } from '@/lib/context/task';
-import { HTMLTitle } from '@/components/HTMLTitle';
+import { HTMLTitle } from '@/components/ui/HTMLTitle';
 import { Stack } from 'expo-router';
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ui/ThemedView';
+import { ThemedText } from '@/components/ui/ThemedText';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
-import { ModalSheet } from '@/components/ModalSheet';
-import { CalendarDatePicker } from '@/components/CalendarDatePicker';
+import { ModalSheet } from '@/components/ui/ModalSheet';
+import { CalendarDatePicker } from '@/components/ui/CalendarDatePicker';
 
 export default function ScheduleTasksScreen() {
   const colorScheme = useColorScheme() ?? 'light';
