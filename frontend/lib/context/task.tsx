@@ -207,7 +207,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
   // Compute archived tasks (completed, not updated today)
   const archivedTasks = useMemo(() => {
-    const today = new Date('2025-05-02T00:00:00');
+    const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
