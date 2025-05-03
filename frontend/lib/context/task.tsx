@@ -222,17 +222,16 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
   // Compute scheduled tasks (incomplete, due in the future)
   const scheduledTasks = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
     return tasksCache
       .filter(task => {
         if (task.is_done) return false;
         if (!task.due_date) return false;
         const dueDate = new Date(task.due_date);
-        dueDate.setHours(0, 0, 0, 0);
-        return dueDate >= today;
+        return dueDate >= tomorrow;
       })
-      .sort((a, b) => new Date(a.updated_at).getTime() - new Date(b.due_date).getTime());
+      .sort((a, b) => new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime());
   }, [tasksCache]);
 
   // Filter out archived and scheduled tasks from tasks value
