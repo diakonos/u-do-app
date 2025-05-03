@@ -56,16 +56,6 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     return new Date(date).toLocaleDateString();
   };
 
-  const isToday = (date: string) => {
-    const today = new Date();
-    const taskDate = new Date(date);
-    return (
-      taskDate.getDate() === today.getDate() &&
-      taskDate.getMonth() === today.getMonth() &&
-      taskDate.getFullYear() === today.getFullYear()
-    );
-  };
-
   const handleStartEditing = () => {
     if (readOnly || isInTransition) return;
     setIsEditing(true);
@@ -286,13 +276,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           {!hideDueDate && (localDueDate || !readOnly) ? (
             <View style={styles.dueDateContainer}>
               {localDueDate ? (
-                <Text
-                  style={[
-                    styles.dueDate,
-                    { color: Colors[colorScheme].icon },
-                    isToday(localDueDate) && { color: Colors[colorScheme].todayBlue },
-                  ]}
-                >
+                <Text style={[styles.dueDate, { color: Colors[colorScheme].icon }]}>
                   {formatDate(localDueDate)}
                 </Text>
               ) : (

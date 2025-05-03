@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Dimensions, Pressable, StyleSheet } from 'react-native';
-import { Colors } from '@/constants/Colors';
 import { Portal } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Colors } from '@/constants/Colors';
 
 interface ModalSheetProps {
   visible: boolean;
@@ -23,6 +24,7 @@ export const ModalSheet: React.FC<ModalSheetProps> = ({
   const [showing, setShowing] = useState(visible);
   const overlayAnim = useRef(new Animated.Value(0)).current;
   const sheetAnim = useRef(new Animated.Value(0)).current;
+  const safeArea = useSafeAreaInsets();
 
   useEffect(() => {
     if (visible) {
@@ -61,6 +63,7 @@ export const ModalSheet: React.FC<ModalSheetProps> = ({
               styles.modalSheet,
               {
                 backgroundColor: backgroundColor || Colors.light.background,
+                paddingBottom: safeArea.bottom,
                 shadowColor: shadowColor || Colors.light.black,
                 transform: [
                   {
