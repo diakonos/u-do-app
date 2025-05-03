@@ -12,6 +12,8 @@ import { Colors } from '@/constants/Colors';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useTask } from '@/lib/context/task';
+import { CalendarDatePicker } from '@/components/CalendarDatePicker';
+import { ModalSheet } from '@/components/ModalSheet';
 
 interface TaskItemProps {
   id?: number;
@@ -46,6 +48,8 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   const [localIsDone, setLocalIsDone] = useState(isDone);
   const [localDueDate, setLocalDueDate] = useState(dueDate);
   const [loading, setLoading] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [tempDate, setTempDate] = useState<Date | null>(null);
 
   const formatDate = (date: string | null) => {
     if (!date) return '';
@@ -133,6 +137,21 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const openDatePicker = () => {
+    setTempDate(localDueDate ? new Date(localDueDate) : new Date());
+    setShowDatePicker(true);
+  };
+  const closeDatePicker = () => setShowDatePicker(false);
+  const confirmDatePicker = async () => {
+    if (tempDate) {
+      const yyyy = tempDate.getFullYear();
+      const mm = String(tempDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(tempDate.getDate()).padStart(2, '0');
+      await handleDueDateChange(`${yyyy}-${mm}-${dd}`);
+    }
+    setShowDatePicker(false);
   };
 
   if (isNewTask) {
@@ -281,42 +300,42 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                   No due date
                 </Text>
               )}
-              {!readOnly && (
-                <TouchableOpacity
-                  style={[
-                    styles.dateButton,
-                    {
-                      backgroundColor:
-                        Colors[colorScheme].background === '#fff'
-                          ? Colors.light.inputBackground
-                          : Colors.dark.inputBackground,
-                    },
-                  ]}
-                  onPress={() => {
-                    // For demo: set due date to today
-                    const today = new Date();
-                    const yyyy = today.getFullYear();
-                    const mm = String(today.getMonth() + 1).padStart(2, '0');
-                    const dd = String(today.getDate()).padStart(2, '0');
-                    handleDueDateChange(`${yyyy}-${mm}-${dd}`);
-                  }}
-                  disabled={isInTransition || loading}
-                >
-                  <Text
-                    style={[
-                      styles.dateButtonText,
-                      { color: Colors[colorScheme].icon },
-                      (isInTransition || loading) && styles.dueDateLoading,
-                    ]}
-                  >
-                    {localDueDate ? 'Change Date' : 'Add Due Date'}
-                  </Text>
-                </TouchableOpacity>
-              )}
             </View>
           ) : null}
         </View>
+        {/* Clock button on the right */}
+        {!readOnly && !(localIsDone || isDone) && (
+          <TouchableOpacity
+            style={styles.clockButton}
+            onPress={openDatePicker}
+            disabled={isInTransition || loading}
+            accessibilityLabel="Change due date"
+          >
+            <IconSymbol name="clock" size={22} color={Colors[colorScheme].icon} />
+          </TouchableOpacity>
+        )}
       </View>
+      {/* Date Picker ModalSheet */}
+      <ModalSheet
+        visible={showDatePicker}
+        onClose={closeDatePicker}
+        backgroundColor={Colors[colorScheme].background}
+      >
+        <CalendarDatePicker
+          date={tempDate || new Date()}
+          onChange={setTempDate}
+          minDate={new Date(2000, 0, 1)}
+          colorScheme={colorScheme}
+        />
+        <View style={styles.modalActions}>
+          <TouchableOpacity style={styles.modalButton} onPress={closeDatePicker}>
+            <Text>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.modalButton} onPress={confirmDatePicker}>
+            <Text style={{ color: Colors[colorScheme].brand }}>Confirm</Text>
+          </TouchableOpacity>
+        </View>
+      </ModalSheet>
     </View>
   );
 };
@@ -339,16 +358,10 @@ const styles = StyleSheet.create({
     width: 20,
     // backgroundColor will be set dynamically in the component
   },
-  dateButton: {
-    borderRadius: 4,
-    marginLeft: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    // backgroundColor will be set dynamically in the component
-  },
-  dateButtonText: {
-    fontSize: 12,
-    // color will be set dynamically in the component
+  clockButton: {
+    alignSelf: 'center',
+    marginLeft: 12,
+    padding: 4,
   },
   dueDate: {
     fontSize: 12,
@@ -359,7 +372,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginTop: 4,
   },
-  dueDateLoading: { opacity: 0.5 },
   measureInput: {
     left: 0,
     opacity: 0,
@@ -368,6 +380,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     width: '100%',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'flex-end',
+    marginTop: 8,
+    width: '100%',
+  },
+  modalButton: {
+    backgroundColor: Colors.light.inputBackground,
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
   newTaskContent: {
     flex: 1,

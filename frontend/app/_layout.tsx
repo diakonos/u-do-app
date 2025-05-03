@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet } from 'react-native';
+import { Provider as PaperProvider } from 'react-native-paper';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { AuthProvider, useAuth } from '@/lib/context/auth';
@@ -86,15 +87,17 @@ function InitialLayout() {
 export default Sentry.wrap(function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.rootContainer}>
-      <AuthProvider>
-        <TaskProvider>
-          <FriendsProvider>
-            <DashboardProvider>
-              <InitialLayout />
-            </DashboardProvider>
-          </FriendsProvider>
-        </TaskProvider>
-      </AuthProvider>
+      <PaperProvider>
+        <AuthProvider>
+          <TaskProvider>
+            <FriendsProvider>
+              <DashboardProvider>
+                <InitialLayout />
+              </DashboardProvider>
+            </FriendsProvider>
+          </TaskProvider>
+        </AuthProvider>
+      </PaperProvider>
     </GestureHandlerRootView>
   );
 });
