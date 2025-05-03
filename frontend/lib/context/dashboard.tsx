@@ -8,6 +8,7 @@ type DashboardConfig = {
   user_id: string;
   block_type: string;
   value: string;
+  position: number;
   order: number;
 };
 

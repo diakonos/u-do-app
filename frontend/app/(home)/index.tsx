@@ -56,7 +56,7 @@ export default function TodayTasksList() {
   // Track expanded task list state for each friend
   const [expandedTaskLists, setExpandedTaskLists] = useState<Record<string, boolean>>({});
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const { tasks, fetchTasks, deleteTask } = useTask();
   const { isLoading: isLoadingAuth, session } = useAuth();
@@ -68,60 +68,60 @@ export default function TodayTasksList() {
     day: 'numeric',
   });
 
-  // Define loadTasks as a useCallback to fix the dependencies issue
-  const loadTasks = useCallback(async () => {
-    const loadPinnedFriendsTasks = async (configs: DashboardConfig[]) => {
-      try {
-        const friendConfigs = configs.filter(
-          (config: DashboardConfig) => config.block_type === 'friend_tasks',
-        );
-        if (friendConfigs.length === 0) return;
-
-        const friendsTasksPromises = friendConfigs.map(async (config: DashboardConfig) => {
-          const username = config.value;
-          try {
-            const tasks = await getFriendTasks(username);
-            return { username, tasks };
-          } catch (error) {
-            console.error(`Error fetching tasks for friend ${username}:`, error);
-            return { username, tasks: [] };
-          }
-        });
-
-        const results = await Promise.all(friendsTasksPromises);
-        setPinnedFriendsTasks(results);
-      } catch (error) {
-        console.error("Error loading pinned friends' tasks:", error);
-      }
-    };
-
-    if (isLoadingAuth || !session) return; // Prevent loading tasks if auth is still loading
+  // Separate: load only user tasks
+  const loadUserTasks = useCallback(async () => {
+    if (isLoadingAuth || !session) return;
     try {
       setIsLoading(true);
       await fetchTasks();
-
-      // Load dashboard configuration
-      const configs = await loadDashboardConfig();
-
-      // Load pinned friends' tasks
-      await loadPinnedFriendsTasks(configs as unknown as DashboardConfig[]);
     } catch (error) {
-      Alert.alert('Error', 'Failed to load data');
-      console.error('Failed to load data:', error);
+      Alert.alert('Error', 'Failed to load tasks');
+      console.error('Failed to load tasks:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [isLoadingAuth, session, getFriendTasks, fetchTasks, loadDashboardConfig]);
+  }, [isLoadingAuth, session, fetchTasks]);
 
+  // Separate: load only pinned friends' tasks
+  const loadPinnedFriendsTasks = useCallback(async () => {
+    try {
+      const configs = await loadDashboardConfig();
+      const friendConfigs = configs.filter((config: DashboardConfig) => {
+        return config.block_type === 'friend_tasks';
+      });
+      if (friendConfigs.length === 0) {
+        setPinnedFriendsTasks([]);
+        return;
+      }
+      const friendsTasksPromises = friendConfigs.map(async (config: DashboardConfig) => {
+        const username = config.value;
+        try {
+          const tasks = await getFriendTasks(username);
+          return { username, tasks };
+        } catch (error) {
+          console.error(`Error fetching tasks for friend ${username}:`, error);
+          return { username, tasks: [] };
+        }
+      });
+      const results = await Promise.all(friendsTasksPromises);
+      setPinnedFriendsTasks(results);
+    } catch (error) {
+      console.error("Error loading pinned friends' tasks:", error);
+    }
+  }, [loadDashboardConfig, getFriendTasks]);
+
+  // Optionally, load both on mount
   useEffect(() => {
-    loadTasks();
-  }, [loadTasks]);
+    loadUserTasks();
+    loadPinnedFriendsTasks();
+  }, [loadUserTasks, loadPinnedFriendsTasks]);
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    await loadTasks();
+    await loadUserTasks();
+    await loadPinnedFriendsTasks();
     setRefreshing(false);
-  }, [loadTasks]);
+  }, [loadUserTasks, loadPinnedFriendsTasks]);
 
   const handleDeleteTask = async (taskId: number) => {
     try {

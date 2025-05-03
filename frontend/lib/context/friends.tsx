@@ -195,36 +195,36 @@ export function FriendsProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Get a friend's tasks with persistent cache and revalidation using useCache
-  const getFriendTasksWithCache = async (
-    username: string,
-    forceRefresh = false,
-  ): Promise<FriendTask[]> => {
-    const CACHE_KEY = `friend-tasks-cache-${username}`;
-    const REVALIDATE_MS = 60 * 1000;
-    // Use a fallback cache for SSR/initial call, but recommend using useCache in components
-    let cached: { value: FriendTask[]; updatedAt: number } | null = null;
-    try {
-      cached = await PersistentCache.get(CACHE_KEY);
-    } catch {}
-    const now = Date.now();
-    if (
-      !forceRefresh &&
-      cached &&
-      cached.value &&
-      cached.updatedAt &&
-      now - cached.updatedAt < REVALIDATE_MS
-    ) {
-      return cached.value;
-    }
-    try {
-      const freshTasks = await FriendsService.getFriendTasks(username);
-      await PersistentCache.set(CACHE_KEY, freshTasks);
-      return freshTasks;
-    } catch (error) {
-      if (cached && cached.value) return cached.value;
-      throw error;
-    }
-  };
+  const getFriendTasksWithCache = useCallback(
+    async (username: string, forceRefresh = false): Promise<FriendTask[]> => {
+      const CACHE_KEY = `friend-tasks-cache-${username}`;
+      const REVALIDATE_MS = 60 * 1000;
+      // Use a fallback cache for SSR/initial call, but recommend using useCache in components
+      let cached: { value: FriendTask[]; updatedAt: number } | null = null;
+      try {
+        cached = await PersistentCache.get(CACHE_KEY);
+      } catch {}
+      const now = Date.now();
+      if (
+        !forceRefresh &&
+        cached &&
+        cached.value &&
+        cached.updatedAt &&
+        now - cached.updatedAt < REVALIDATE_MS
+      ) {
+        return cached.value;
+      }
+      try {
+        const freshTasks = await FriendsService.getFriendTasks(username);
+        await PersistentCache.set(CACHE_KEY, freshTasks);
+        return freshTasks;
+      } catch (error) {
+        if (cached && cached.value) return cached.value;
+        throw error;
+      }
+    },
+    [],
+  );
 
   return (
     <FriendsContext.Provider
