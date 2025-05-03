@@ -151,6 +151,8 @@ export default function ScheduleTasksScreen() {
                 style={[
                   styles.modalSheet,
                   {
+                    backgroundColor: Colors[colorScheme].background,
+                    shadowColor: Colors[colorScheme].black,
                     transform: [
                       {
                         translateY: sheetAnim.interpolate({
@@ -169,10 +171,18 @@ export default function ScheduleTasksScreen() {
                   }}
                   mode="single"
                   minDate={new Date()}
+                  style={{ backgroundColor: Colors[colorScheme].background }}
                   styles={{
-                    today: { backgroundColor: Colors[colorScheme].inputBackground },
-                    selected: { backgroundColor: Colors[colorScheme].brand },
+                    day_label: { color: Colors[colorScheme].text },
+                    month_label: { color: Colors[colorScheme].text },
+                    month_selector_label: { color: Colors[colorScheme].text },
                     selected_label: { color: Colors[colorScheme].white },
+                    selected: { backgroundColor: Colors[colorScheme].brand },
+                    today_label: { color: Colors[colorScheme].text },
+                    today: { backgroundColor: Colors[colorScheme].inputBackground },
+                    weekday_label: { color: Colors[colorScheme].text },
+                    year_label: { color: Colors[colorScheme].text },
+                    year_selector_label: { color: Colors[colorScheme].text },
                   }}
                 />
                 <View style={styles.modalActions}>
@@ -483,14 +493,12 @@ const styles = StyleSheet.create({
   modalSheet: {
     alignItems: 'center',
     alignSelf: 'flex-end',
-    backgroundColor: Colors.light.background,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     elevation: 10,
     maxHeight: '80%',
     overflow: 'visible',
     padding: 12,
-    shadowColor: Colors.light.black,
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
