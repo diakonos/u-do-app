@@ -223,6 +223,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   // Compute scheduled tasks (incomplete, due in the future)
   const scheduledTasks = useMemo(() => {
     const tomorrow = new Date();
+    tomorrow.setHours(0, 0, 0, 0);
     tomorrow.setDate(tomorrow.getDate() + 1);
     return tasksCache
       .filter(task => {
