@@ -232,7 +232,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         const dueDate = new Date(task.due_date);
         return dueDate >= tomorrow;
       })
-      .sort((a, b) => new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime());
+      .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
   }, [tasksCache]);
 
   // Filter out archived and scheduled tasks from tasks value
