@@ -15,7 +15,7 @@ type DashboardConfig = {
 // Define the dashboard context type
 type DashboardContextType = {
   dashboardConfigs: DashboardConfig[];
-  loadDashboardConfig: (forceRefresh?: boolean) => Promise<DashboardConfig[]>;
+  loadDashboardConfig: (forceRefresh?: boolean) => Promise<void>;
   isLoading: boolean;
   checkIfConfigExists: (blockType: string, value: string) => boolean;
   createDashboardConfig: (blockType: string, value: string) => Promise<DashboardConfig>;
@@ -35,16 +35,14 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   // Function to load dashboard configuration for the current user, with cache and revalidation
   const loadDashboardConfig = useCallback(
-    async (forceRefresh = false): Promise<DashboardConfig[]> => {
+    async (forceRefresh = false): Promise<void> => {
       const now = Date.now();
       if (
         !forceRefresh &&
-        dashboardConfigs &&
-        dashboardConfigs.length > 0 &&
         dashboardConfigsUpdatedAt &&
         now - dashboardConfigsUpdatedAt < DASHBOARD_REVALIDATE_MS
       ) {
-        return dashboardConfigs;
+        return;
       }
       try {
         setIsLoading(true);
@@ -67,7 +65,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
         // Update the state with the fetched configurations
         setDashboardConfigs(data || []);
-        return data || [];
+        return;
       } catch (error) {
         console.error('Error loading dashboard config:', error);
         throw error;
@@ -75,7 +73,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
       }
     },
-    [dashboardConfigs, dashboardConfigsUpdatedAt, setDashboardConfigs],
+    [dashboardConfigsUpdatedAt, setDashboardConfigs],
   );
 
   // Function to check if a specific configuration already exists

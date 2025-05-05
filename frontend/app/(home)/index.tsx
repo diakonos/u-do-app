@@ -45,7 +45,7 @@ interface DashboardConfig {
 
 export default function TodayTasksList() {
   const colorScheme = useColorScheme();
-  const { loadDashboardConfig } = useDashboard();
+  const { dashboardConfigs, loadDashboardConfig } = useDashboard();
   const { getFriendTasks } = useFriends();
   const router = useRouter();
   const [pinnedFriendsTasks, setPinnedFriendsTasks] = useState<
@@ -68,7 +68,6 @@ export default function TodayTasksList() {
     day: 'numeric',
   });
 
-  // Separate: load only user tasks
   const loadUserTasks = useCallback(async () => {
     if (isLoadingAuth || !session) return;
     try {
@@ -82,18 +81,16 @@ export default function TodayTasksList() {
     }
   }, [isLoadingAuth, session, fetchTasks]);
 
-  // Separate: load only pinned friends' tasks
   const loadPinnedFriendsTasks = useCallback(async () => {
     try {
-      const configs = await loadDashboardConfig();
-      const friendConfigs = configs.filter((config: DashboardConfig) => {
-        return config.block_type === 'friend_tasks';
-      });
-      if (friendConfigs.length === 0) {
+      let configs = dashboardConfigs.filter(
+        (config: DashboardConfig) => config.block_type === 'friend_tasks',
+      );
+      if (!configs || configs.length === 0) {
         setPinnedFriendsTasks([]);
         return;
       }
-      const friendsTasksPromises = friendConfigs.map(async (config: DashboardConfig) => {
+      const friendsTasksPromises = configs.map(async (config: DashboardConfig) => {
         const username = config.value;
         try {
           const tasks = await getFriendTasks(username);
@@ -108,20 +105,20 @@ export default function TodayTasksList() {
     } catch (error) {
       console.error("Error loading pinned friends' tasks:", error);
     }
-  }, [loadDashboardConfig, getFriendTasks]);
+  }, [dashboardConfigs, getFriendTasks]);
 
-  // Optionally, load both on mount
   useEffect(() => {
     loadUserTasks();
-    loadPinnedFriendsTasks();
-  }, [loadUserTasks, loadPinnedFriendsTasks]);
+    loadDashboardConfig().then(loadPinnedFriendsTasks);
+  }, [loadUserTasks, loadPinnedFriendsTasks, loadDashboardConfig]);
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
     await loadUserTasks();
+    await loadDashboardConfig();
     await loadPinnedFriendsTasks();
     setRefreshing(false);
-  }, [loadUserTasks, loadPinnedFriendsTasks]);
+  }, [loadDashboardConfig, loadPinnedFriendsTasks, loadUserTasks]);
 
   const handleDeleteTask = async (taskId: number) => {
     try {
