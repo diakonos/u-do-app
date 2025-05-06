@@ -57,6 +57,7 @@ export default function CreateUsername() {
             onChangeText={setUsername}
             autoCapitalize="none"
             autoCorrect={false}
+            onSubmitEditing={handleSetUsername}
           />
 
           <TouchableOpacity

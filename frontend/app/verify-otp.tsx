@@ -76,6 +76,7 @@ export default function VerifyOTP() {
             onChangeText={setOtp}
             keyboardType="number-pad"
             maxLength={6}
+            onSubmitEditing={handleVerify}
           />
 
           <TouchableOpacity

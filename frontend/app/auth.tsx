@@ -53,6 +53,7 @@ export default function Auth() {
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
+          onSubmitEditing={handleSignIn}
         />
 
         <TouchableOpacity
