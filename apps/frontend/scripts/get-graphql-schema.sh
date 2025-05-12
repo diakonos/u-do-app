@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# This script fetches the GraphQL schema from a Supabase instance and saves it to a file.
+npx get-graphql-schema -h "Authorization=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ncG51bGhqa2ZudnB2d2x4YnFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5MjcyNjAsImV4cCI6MjA2MDUwMzI2MH0.SYaQjJMqDmPSIXEnVUVUx7E2Xsv3yO_5WT94B1YuAzw" -h "Apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ncG51bGhqa2ZudnB2d2x4YnFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5MjcyNjAsImV4cCI6MjA2MDUwMzI2MH0.SYaQjJMqDmPSIXEnVUVUx7E2Xsv3yO_5WT94B1YuAzw"  https://ngpnulhjkfnvpvwlxbqa.supabase.co/graphql/v1 > ./lib/queries/schema.graphql

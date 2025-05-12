@@ -1,0 +1,60 @@
+{
+  "expo": {
+    "name": "U Do",
+    "slug": "u-do-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/App_Icon.png",
+    "scheme": "myapp",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.udoapp"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/App_Icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.anonymous.udoapp"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/images/favicon@3x.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/Splash_Icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#463076"
+        }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "u-do",
+          "organization": "justin-ling"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "ea985cb2-fcdd-4a3f-a658-4c5cac8bfdfd"
+      }
+    },
+    "owner": "jling7"
+  }
+}

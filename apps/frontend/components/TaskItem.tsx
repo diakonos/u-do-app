@@ -1,0 +1,177 @@
+import React, { useRef, useState } from 'react';
+import { View, TextInput, StyleSheet, type ViewStyle } from 'react-native';
+import { TapGestureHandler, TouchableOpacity } from 'react-native-gesture-handler';
+import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import { mutate } from 'swr';
+import Text from '@/components/Text';
+import { Task, updateTaskName, toggleTaskDone, deleteTask } from '@/db/tasks';
+import { baseTheme, useTheme } from '@/lib/theme';
+import CheckIcon from '@/assets/icons/check.svg';
+import ClockIcon from '@/assets/icons/clock.svg';
+import { formatDateUI } from '@/lib/date';
+
+interface TaskProps {
+  hideDueDate?: boolean;
+  onUpdate?: (task: Task) => void;
+  style?: ViewStyle | ViewStyle[];
+  task: Task;
+  revalidateKey?: string | null;
+}
+
+export default function TaskItem({
+  task,
+  onUpdate,
+  style,
+  hideDueDate = false,
+  revalidateKey,
+}: TaskProps) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(task.task_name);
+  const [loading, setLoading] = useState(false);
+  const theme = useTheme();
+  const swipeableRef = useRef(null);
+  const tapRef = useRef(null);
+
+  const handleToggle = async () => {
+    setLoading(true);
+    try {
+      const updated = await toggleTaskDone(task.id, !task.is_done);
+      if (onUpdate) onUpdate(updated);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEdit = async () => {
+    if (name !== task.task_name) {
+      setLoading(true);
+      try {
+        const updated = await updateTaskName(task.id, name);
+        if (onUpdate) onUpdate(updated);
+      } finally {
+        setLoading(false);
+      }
+    }
+    setEditing(false);
+  };
+
+  const handleDelete = async () => {
+    await deleteTask(task.id);
+    if (revalidateKey) {
+      mutate(revalidateKey);
+    }
+  };
+
+  const renderRightActions = () => (
+    <TouchableOpacity
+      style={[styles.deleteButton, { backgroundColor: theme.destructive }]}
+      onPress={handleDelete}
+      accessibilityLabel="Delete task"
+    >
+      <Text>Delete</Text>
+    </TouchableOpacity>
+  );
+
+  return (
+    <Swipeable ref={swipeableRef} renderRightActions={renderRightActions}>
+      <TapGestureHandler ref={tapRef} waitFor={swipeableRef} onActivated={() => setEditing(true)}>
+        <View style={[styles.container, { backgroundColor: theme.background }, style]}>
+          <TouchableOpacity onPress={handleToggle} disabled={loading} style={styles.checkbox}>
+            {task.is_done ? (
+              <View style={[styles.checkedBox, { backgroundColor: theme.success }]}>
+                <CheckIcon style={styles.checkIcon} color={theme.white} />
+              </View>
+            ) : (
+              <View style={[styles.uncheckedBox, { borderColor: theme.text }]} />
+            )}
+          </TouchableOpacity>
+          {editing ? (
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              onBlur={handleEdit}
+              onSubmitEditing={handleEdit}
+              style={[styles.text, styles.input, task.is_done && styles.doneText]}
+              autoFocus
+              underlineColorAndroid="transparent"
+              selectionColor={theme.text}
+            />
+          ) : (
+            <View style={styles.textWrap}>
+              <Text style={[styles.text, task.is_done && styles.doneText]} numberOfLines={1}>
+                {task.task_name}
+              </Text>
+              {!hideDueDate && task.due_date ? (
+                <Text size="small" style={[styles.dueDate, { color: theme.secondary }]}>
+                  {formatDateUI(new Date(task.due_date))}
+                </Text>
+              ) : null}
+            </View>
+          )}
+          <ClockIcon style={styles.clockIcon} color={theme.secondary} />
+        </View>
+      </TapGestureHandler>
+    </Swipeable>
+  );
+}
+
+const styles = StyleSheet.create({
+  checkIcon: {
+    height: 15,
+    width: 15,
+  },
+  checkbox: {
+    alignSelf: 'flex-start',
+    marginRight: baseTheme.margin[2],
+    marginTop: 5,
+  },
+  checkedBox: {
+    alignItems: 'center',
+    height: 20,
+    justifyContent: 'center',
+    width: 20,
+  },
+  clockIcon: {
+    alignSelf: 'center',
+    height: 20,
+    marginLeft: baseTheme.margin[2],
+    width: 20,
+  },
+  container: {
+    flexDirection: 'row',
+    paddingHorizontal: baseTheme.margin[3],
+    paddingVertical: baseTheme.margin[2],
+  },
+  deleteButton: {
+    alignItems: 'center',
+    height: '100%',
+    justifyContent: 'center',
+    paddingHorizontal: baseTheme.margin[2],
+  },
+  doneText: {
+    textDecorationLine: 'line-through',
+  },
+  dueDate: { marginTop: baseTheme.margin[1] },
+  // eslint-disable-next-line react-native/no-color-literals
+  input: {
+    flex: 1,
+    fontFamily: baseTheme.font.regular,
+    fontSize: baseTheme.fontSize.medium,
+    outlineColor: 'transparent',
+    padding: 0,
+    shadowColor: 'transparent',
+  },
+  text: {
+    flexShrink: 1,
+    lineHeight: 30,
+  },
+  textWrap: {
+    flex: 1,
+    marginRight: 8,
+  },
+  uncheckedBox: {
+    borderWidth: 2,
+    height: 20,
+    width: 20,
+  },
+});

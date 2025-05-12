@@ -1,0 +1,25 @@
+{
+  "short_name": "U Do",
+  "name": "U Do",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "48x48 32x32 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "App_Icon-pwa-sm.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "App_Icon-pwa-lg.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#463076",
+  "background_color": "#ffffff"
+}
