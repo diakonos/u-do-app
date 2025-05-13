@@ -90,3 +90,17 @@ export async function deleteTask(taskId: number) {
   const { error } = await supabase.from('tasks').delete().eq('id', taskId);
   if (error) throw error;
 }
+
+export async function updateTaskDueDate(taskId: number, dueDate: Date) {
+  const { data, error } = await supabase
+    .from('tasks')
+    .update({
+      due_date: formatDateYMD(dueDate),
+      updated_at: generateTimestamp(),
+    })
+    .eq('id', taskId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as Task;
+}

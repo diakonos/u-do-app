@@ -31,16 +31,22 @@ export function useScheduledTasks(userId: string | null) {
         async payload => {
           const { eventType, new: newTask, old: oldTask } = payload;
           let updatedTasks = tasks ? [...tasks] : [];
-          function isTask(obj: any): obj is Task {
+          function isTask(obj: unknown): obj is Task {
             return (
-              obj && typeof obj === 'object' && 'id' in obj && 'is_done' in obj && 'due_date' in obj
+              typeof obj === 'object' &&
+              obj !== null &&
+              'id' in obj &&
+              'is_done' in obj &&
+              'due_date' in obj
             );
           }
-          let isScheduled = false;
-          if (isTask(newTask)) {
-            const today = new Date().toISOString().slice(0, 10);
-            isScheduled = !newTask.is_done && newTask.due_date && newTask.due_date > today;
+          if (!isTask(newTask)) {
+            return;
           }
+          const today = new Date().toISOString().slice(0, 10);
+          const isScheduled =
+            !newTask.is_done && typeof newTask.due_date === 'string' && newTask.due_date > today;
+
           if (eventType === 'INSERT' && isScheduled) {
             updatedTasks = [
               newTask as Task,

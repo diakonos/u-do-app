@@ -4,11 +4,12 @@ import { TapGestureHandler, TouchableOpacity } from 'react-native-gesture-handle
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { mutate } from 'swr';
 import Text from '@/components/Text';
-import { Task, updateTaskName, toggleTaskDone, deleteTask } from '@/db/tasks';
+import { Task, updateTaskName, toggleTaskDone, deleteTask, updateTaskDueDate } from '@/db/tasks';
 import { baseTheme, useTheme } from '@/lib/theme';
 import CheckIcon from '@/assets/icons/check.svg';
 import ClockIcon from '@/assets/icons/clock.svg';
 import { formatDateUI } from '@/lib/date';
+import DatePickerModal from '@/components/DatePickerModal';
 
 interface TaskProps {
   hideDueDate?: boolean;
@@ -28,6 +29,7 @@ export default function TaskItem({
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(task.task_name);
   const [loading, setLoading] = useState(false);
+  const [datePickerVisible, setDatePickerVisible] = useState(false);
   const theme = useTheme();
   const swipeableRef = useRef(null);
   const tapRef = useRef(null);
@@ -62,6 +64,17 @@ export default function TaskItem({
     }
   };
 
+  const handleDueDateChange = async (newDate: Date) => {
+    setLoading(true);
+    try {
+      const updated = await updateTaskDueDate(task.id, newDate);
+      if (onUpdate) onUpdate(updated);
+    } finally {
+      setLoading(false);
+    }
+    setDatePickerVisible(false);
+  };
+
   const renderRightActions = () => (
     <TouchableOpacity
       style={[styles.deleteButton, { backgroundColor: theme.destructive }]}
@@ -85,30 +98,45 @@ export default function TaskItem({
               <View style={[styles.uncheckedBox, { borderColor: theme.text }]} />
             )}
           </TouchableOpacity>
-          {editing ? (
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              onBlur={handleEdit}
-              onSubmitEditing={handleEdit}
-              style={[styles.text, styles.input, task.is_done && styles.doneText]}
-              autoFocus
-              underlineColorAndroid="transparent"
-              selectionColor={theme.text}
-            />
-          ) : (
-            <View style={styles.textWrap}>
-              <Text style={[styles.text, task.is_done && styles.doneText]} numberOfLines={1}>
-                {task.task_name}
-              </Text>
-              {!hideDueDate && task.due_date ? (
-                <Text size="small" style={[styles.dueDate, { color: theme.secondary }]}>
-                  {formatDateUI(new Date(task.due_date))}
+          <View style={styles.textAndDueDateWrap}>
+            {editing ? (
+              <TextInput
+                value={name}
+                onChangeText={setName}
+                onBlur={handleEdit}
+                onSubmitEditing={handleEdit}
+                style={[styles.text, styles.input, task.is_done && styles.doneText]}
+                autoFocus
+                underlineColorAndroid="transparent"
+                selectionColor={theme.text}
+              />
+            ) : (
+              // @ts-expect-error "cursor: text" works for web
+              <View style={styles.textWrap}>
+                <Text style={[styles.text, task.is_done && styles.doneText]} numberOfLines={1}>
+                  {task.task_name}
                 </Text>
-              ) : null}
-            </View>
-          )}
-          <ClockIcon style={styles.clockIcon} color={theme.secondary} />
+              </View>
+            )}
+            {!hideDueDate && task.due_date ? (
+              <Text size="small" style={[styles.dueDate, { color: theme.secondary }]}>
+                {formatDateUI(new Date(task.due_date))}
+              </Text>
+            ) : null}
+          </View>
+          <TouchableOpacity
+            style={styles.editDueDateButton}
+            onPress={() => setDatePickerVisible(true)}
+          >
+            <ClockIcon style={styles.clockIcon} color={theme.secondary} />
+          </TouchableOpacity>
+          <DatePickerModal
+            visible={datePickerVisible}
+            date={task.due_date ? new Date(task.due_date) : new Date()}
+            onChange={() => {}}
+            onCancel={() => setDatePickerVisible(false)}
+            onConfirm={handleDueDateChange}
+          />
         </View>
       </TapGestureHandler>
     </Swipeable>
@@ -122,6 +150,7 @@ const styles = StyleSheet.create({
   },
   checkbox: {
     alignSelf: 'flex-start',
+    cursor: 'pointer',
     marginRight: baseTheme.margin[2],
     marginTop: 5,
   },
@@ -132,9 +161,9 @@ const styles = StyleSheet.create({
     width: 20,
   },
   clockIcon: {
-    alignSelf: 'center',
     height: 20,
     marginLeft: baseTheme.margin[2],
+    marginVertical: 'auto',
     width: 20,
   },
   container: {
@@ -152,6 +181,11 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
   },
   dueDate: { marginTop: baseTheme.margin[1] },
+  editDueDateButton: {
+    alignSelf: 'stretch',
+    cursor: 'pointer',
+    flexGrow: 1,
+  },
   // eslint-disable-next-line react-native/no-color-literals
   input: {
     flex: 1,
@@ -165,7 +199,11 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     lineHeight: 30,
   },
+  textAndDueDateWrap: {
+    flex: 1,
+  },
   textWrap: {
+    cursor: 'text',
     flex: 1,
     marginRight: 8,
   },
