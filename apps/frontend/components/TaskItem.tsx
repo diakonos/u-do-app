@@ -81,13 +81,19 @@ export default function TaskItem({
       onPress={handleDelete}
       accessibilityLabel="Delete task"
     >
-      <Text>Delete</Text>
+      <Text style={{ color: theme.textInverse }}>Delete</Text>
     </TouchableOpacity>
   );
 
   return (
     <Swipeable ref={swipeableRef} renderRightActions={renderRightActions}>
-      <TapGestureHandler ref={tapRef} waitFor={swipeableRef} onActivated={() => setEditing(true)}>
+      <TapGestureHandler
+        ref={tapRef}
+        waitFor={swipeableRef}
+        onActivated={() => {
+          if (!task.is_done) setEditing(true);
+        }}
+      >
         <View style={[styles.container, { backgroundColor: theme.background }, style]}>
           <TouchableOpacity onPress={handleToggle} disabled={loading} style={styles.checkbox}>
             {task.is_done ? (
@@ -109,11 +115,19 @@ export default function TaskItem({
                 autoFocus
                 underlineColorAndroid="transparent"
                 selectionColor={theme.text}
+                editable={!task.is_done}
               />
             ) : (
               // @ts-expect-error "cursor: text" works for web
               <View style={styles.textWrap}>
-                <Text style={[styles.text, task.is_done && styles.doneText]} numberOfLines={1}>
+                <Text
+                  style={[
+                    styles.text,
+                    { textDecorationColor: theme.doneLine },
+                    task.is_done && styles.doneText,
+                  ]}
+                  numberOfLines={1}
+                >
                   {task.task_name}
                 </Text>
               </View>
@@ -124,12 +138,14 @@ export default function TaskItem({
               </Text>
             ) : null}
           </View>
-          <TouchableOpacity
-            style={styles.editDueDateButton}
-            onPress={() => setDatePickerVisible(true)}
-          >
-            <ClockIcon style={styles.clockIcon} color={theme.secondary} />
-          </TouchableOpacity>
+          {!task.is_done && (
+            <TouchableOpacity
+              style={styles.editDueDateButton}
+              onPress={() => setDatePickerVisible(true)}
+            >
+              <ClockIcon style={styles.clockIcon} color={theme.secondary} />
+            </TouchableOpacity>
+          )}
           <DatePickerModal
             visible={datePickerVisible}
             date={task.due_date ? new Date(task.due_date) : new Date()}

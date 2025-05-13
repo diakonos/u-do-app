@@ -57,7 +57,7 @@ export default function TodayScreen() {
 const styles = StyleSheet.create({
   archiveButton: {
     flexGrow: 0,
-    marginHorizontal: baseTheme.margin[2],
+    marginHorizontal: baseTheme.margin[3],
     marginTop: baseTheme.margin[3],
   },
   container: {
