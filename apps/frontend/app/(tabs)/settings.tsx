@@ -5,7 +5,8 @@ import Text from '@/components/Text';
 import Button from '@/components/Button';
 import { useCurrentUserId } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
-import { SafeAreaView } from 'react-native';
+import Screen from '@/components/Screen';
+import ScreenTitle from '@/components/ScreenTitle';
 
 export default function SettingsScreen() {
   const theme = useTheme();
@@ -31,11 +32,9 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.containerOuter}>
+    <Screen>
+      <ScreenTitle>Settings</ScreenTitle>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <Text size="large" weight="semibold" style={styles.title}>
-          Settings
-        </Text>
         <View style={styles.infoBox}>
           <View style={styles.row}>
             <Text weight="medium">Username:</Text>
@@ -48,7 +47,7 @@ export default function SettingsScreen() {
         </View>
         <Button title="Log out" onPress={handleLogout} style={styles.logoutButton} />
       </View>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
@@ -56,9 +55,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: baseTheme.margin[3],
-    paddingTop: baseTheme.margin[3],
   },
-  containerOuter: { height: '100%' },
   infoBox: {
     gap: baseTheme.margin[2],
   },

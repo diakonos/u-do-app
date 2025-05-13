@@ -9,6 +9,8 @@ import NewTaskInput from '@/components/NewTaskInput';
 import DatePickerModal from '@/components/DatePickerModal';
 import { formatDateUI } from '@/lib/date';
 import Button from '@/components/Button';
+import Screen from '@/components/Screen';
+import ScreenTitle from '@/components/ScreenTitle';
 
 function ScheduledTaskList() {
   const userId = useCurrentUserId();
@@ -25,32 +27,36 @@ export default function ScheduleScreen() {
   const [modalVisible, setModalVisible] = useState(false);
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <Text style={styles.title} size="large" weight="semibold">
-        Scheduled
-      </Text>
-      <NewTaskInput placeholder="New scheduled task" style={styles.newTask} dueDate={date} />
-      <View style={styles.dueDateContainer}>
-        <Text style={{ color: theme.secondary }}>for</Text>
-        <Text style={styles.dueDateLabel} weight="medium">
-          {formatDateUI(date)}
-        </Text>
-        <Button title="Edit" onPress={() => setModalVisible(true)} style={styles.editDateButton} />
+    <Screen>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <ScreenTitle>Schedule</ScreenTitle>
+        <NewTaskInput placeholder="New scheduled task" style={styles.newTask} dueDate={date} />
+        <View style={styles.dueDateContainer}>
+          <Text style={{ color: theme.secondary }}>for</Text>
+          <Text style={styles.dueDateLabel} weight="medium">
+            {formatDateUI(date)}
+          </Text>
+          <Button
+            title="Edit"
+            onPress={() => setModalVisible(true)}
+            style={styles.editDateButton}
+          />
+        </View>
+        <DatePickerModal
+          visible={modalVisible}
+          date={date}
+          onChange={() => {}}
+          onCancel={() => setModalVisible(false)}
+          onConfirm={d => {
+            setDate(d);
+            setModalVisible(false);
+          }}
+        />
+        <Suspense fallback={<TaskListLoading />}>
+          <ScheduledTaskList />
+        </Suspense>
       </View>
-      <DatePickerModal
-        visible={modalVisible}
-        date={date}
-        onChange={() => {}}
-        onCancel={() => setModalVisible(false)}
-        onConfirm={d => {
-          setDate(d);
-          setModalVisible(false);
-        }}
-      />
-      <Suspense fallback={<TaskListLoading />}>
-        <ScheduledTaskList />
-      </Suspense>
-    </View>
+    </Screen>
   );
 }
 
@@ -59,7 +65,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     flex: 1,
     justifyContent: 'flex-start',
-    paddingTop: 32,
   },
   dueDateContainer: {
     alignItems: 'center',

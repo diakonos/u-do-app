@@ -1,14 +1,15 @@
 import { useRouter } from 'expo-router';
-import { useState, useRef } from 'react';
-import { View, SafeAreaView, StyleSheet, Keyboard, TouchableOpacity } from 'react-native';
+import { useEffect, useState, useRef } from 'react';
+import { View, StyleSheet, Keyboard, TouchableOpacity } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { baseTheme, useTheme } from '@/lib/theme';
 import Text from '@/components/Text';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
 import { formatErrorMessage } from '@/lib/error';
-import { useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
+import Screen from '@/components/Screen';
+import ScreenTitle from '@/components/ScreenTitle';
 
 export default function LoginScreen() {
   const theme = useTheme();
@@ -90,18 +91,16 @@ export default function LoginScreen() {
 
   useEffect(() => {
     if (!isLoadingSession && session) {
-      router.replace('/(tabs)');
+      router.replace('/(tabs)/tasks');
     }
   }, [isLoadingSession, router, session]);
 
   const resendDisabled = resendTimer > 0;
 
   return (
-    <SafeAreaView style={styles.containerOuter}>
+    <Screen>
+      <ScreenTitle>Sign in to U Do</ScreenTitle>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <Text weight="semibold" style={styles.title} size="large">
-          Sign in to U Do
-        </Text>
         <Text style={styles.subtitle}>No passwords!</Text>
         <Text style={styles.body}>
           Just enter your email address and we&apos;ll email you a one time code to log in.
@@ -162,14 +161,12 @@ export default function LoginScreen() {
         )}
         {!!error && <Text style={[styles.error, { color: theme.destructive }]}>{error}</Text>}
       </View>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  body: {
-    marginBottom: 24,
-  },
+  body: { marginBottom: baseTheme.margin[3] },
   button: { flexGrow: 0 },
   cancel: {
     marginTop: baseTheme.margin[3],
@@ -179,9 +176,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-start',
     paddingHorizontal: 20,
-    paddingTop: 32,
   },
-  containerOuter: { height: '100%' },
   error: {
     marginTop: 16,
     textAlign: 'center',
@@ -190,18 +185,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   label: {
-    marginBottom: baseTheme.margin[1],
-    marginTop: 12,
+    marginBottom: baseTheme.margin[2],
   },
   resend: {
     marginTop: baseTheme.margin[3],
     textAlign: 'center',
   },
   subtitle: {
-    marginBottom: baseTheme.margin[4],
-  },
-  title: {
-    fontWeight: 'bold',
-    marginBottom: baseTheme.margin[4],
+    marginBottom: baseTheme.margin[3],
   },
 });

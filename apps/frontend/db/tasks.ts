@@ -104,3 +104,32 @@ export async function updateTaskDueDate(taskId: number, dueDate: Date) {
   if (error) throw error;
   return data as Task;
 }
+
+// Fetch archived (done, updated before today) tasks for a user, paginated
+export async function fetchArchivedTasks(userId: string, page: number, pageSize: number) {
+  const today = formatDateYMD(new Date());
+  const offset = (page - 1) * pageSize;
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('is_done', true)
+    .lt('updated_at', today)
+    .order('updated_at', { ascending: false })
+    .range(offset, offset + pageSize - 1);
+  if (error) throw error;
+  return data as Task[];
+}
+
+// Fetch total count of archived tasks for a user
+export async function fetchArchivedTasksCount(userId: string) {
+  const today = formatDateYMD(new Date());
+  const { count, error } = await supabase
+    .from('tasks')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('is_done', true)
+    .lt('updated_at', today);
+  if (error) throw error;
+  return count ?? 0;
+}

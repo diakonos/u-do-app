@@ -29,6 +29,7 @@ export const baseTheme = {
 const lightTheme = {
   ...baseTheme,
   background: '#ffffff',
+  backgroundSecondary: '#cccccc',
   borderFaint: '#cccccc',
   brand: '#6532D5',
   destructive: '#D53234',
@@ -40,6 +41,7 @@ const lightTheme = {
   secondary: '#999999',
   success: '#41AC41',
   text: '#000000',
+  textSecondary: '#555555',
   textInverse: '#ffffff',
   white: '#ffffff',
 };
@@ -47,6 +49,7 @@ const lightTheme = {
 const darkTheme = {
   ...baseTheme,
   background: '#000000',
+  backgroundSecondary: '#333333',
   borderFaint: '#555555',
   brand: '#6532D5',
   destructive: '#D53234',
@@ -58,6 +61,7 @@ const darkTheme = {
   secondary: '#999999',
   success: '#41AC41',
   text: '#ffffff',
+  textSecondary: '#999999',
   textInverse: '#000000',
   white: '#ffffff',
 };

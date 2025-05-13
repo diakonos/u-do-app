@@ -1,12 +1,16 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CheckedIcon from '@/assets/icons/checked.svg';
 import ScheduleIcon from '@/assets/icons/calendar.svg';
 import CogIcon from '@/assets/icons/cog.svg';
 import { useTheme } from '@/lib/theme';
+import BlurTabBarBackground from '@/components/TabBarBackground';
 
 export default function TabsLayout() {
   const theme = useTheme();
+  const safeArea = useSafeAreaInsets();
   return (
     <Tabs
       screenOptions={{
@@ -14,13 +18,25 @@ export default function TabsLayout() {
         tabBarActiveBackgroundColor: theme.background,
         tabBarActiveTintColor: theme.brand,
         tabBarInactiveBackgroundColor: theme.background,
-        tabBarStyle: {
-          borderColor: theme.borderFaint,
-        },
+        tabBarBackground: BlurTabBarBackground,
+        tabBarStyle: Platform.select({
+          default: {},
+          web: {
+            borderColor: theme.borderFaint,
+            height: 49 + safeArea.bottom,
+            paddingBottom: safeArea.bottom,
+          },
+        }),
+        tabBarLabelStyle: Platform.select({
+          default: { borderColor: theme.borderFaint },
+          web: {
+            overflow: 'visible',
+          },
+        }),
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="tasks"
         options={{
           tabBarIcon: ({ color, size }) => <CheckedIcon color={color} height={size} width={size} />,
           tabBarLabel: 'Today',
@@ -42,6 +58,7 @@ export default function TabsLayout() {
           tabBarLabel: 'Settings',
         }}
       />
+      <Tabs.Screen name="archive" options={{ href: null }} />
     </Tabs>
   );
 }

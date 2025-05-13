@@ -1,17 +1,36 @@
 import React from 'react';
-import { TouchableOpacity, StyleSheet, ActivityIndicator, ViewStyle } from 'react-native';
+import {
+  TouchableOpacity,
+  type TouchableOpacityProps,
+  StyleSheet,
+  ActivityIndicator,
+  TextStyle,
+  ViewStyle,
+} from 'react-native';
 import { baseTheme, useTheme } from '@/lib/theme';
 import Text from '@/components/Text';
 
-interface ButtonProps {
+type ButtonProps = TouchableOpacityProps & {
   title: string;
   onPress: () => void;
   disabled?: boolean;
+  labelStyle?: TextStyle | TextStyle[];
   loading?: boolean;
-  style?: ViewStyle;
-}
+  style?: ViewStyle | ViewStyle[];
+  labelAlign?: 'left' | 'center';
+  icon?: React.ReactNode;
+};
 
-export default function Button({ title, onPress, disabled, loading, style }: ButtonProps) {
+export default function Button({
+  title,
+  onPress,
+  disabled,
+  loading,
+  style,
+  labelStyle,
+  labelAlign = 'center',
+  icon,
+}: ButtonProps) {
   const theme = useTheme();
   return (
     <TouchableOpacity
@@ -23,7 +42,19 @@ export default function Button({ title, onPress, disabled, loading, style }: But
       {loading ? (
         <ActivityIndicator color={theme.white} />
       ) : (
-        <Text style={[styles.label, { color: theme.textInverse }]}>{title}</Text>
+        <>
+          <Text
+            style={[
+              styles.label,
+              { color: theme.textInverse, textAlign: labelAlign },
+              labelStyle,
+              icon ? styles.labelWithIcon : undefined,
+            ]}
+          >
+            {title}
+          </Text>
+          {icon && <>{icon}</>}
+        </>
       )}
     </TouchableOpacity>
   );
@@ -31,13 +62,19 @@ export default function Button({ title, onPress, disabled, loading, style }: But
 
 const styles = StyleSheet.create({
   button: {
+    alignItems: 'center',
     borderRadius: baseTheme.borderRadius,
+    flexDirection: 'row',
     flexGrow: 1,
+    justifyContent: 'space-between',
     paddingHorizontal: baseTheme.margin[2],
     paddingVertical: baseTheme.margin[1],
   },
   label: {
-    textAlign: 'center',
     width: '100%',
+  },
+  labelWithIcon: {
+    flex: 1,
+    marginRight: 8,
   },
 });

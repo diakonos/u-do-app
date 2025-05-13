@@ -63,7 +63,7 @@ module.exports = [
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': ['warn'],
       'prettier/prettier': 'error',
-      'react-native/no-raw-text': ['error', { skip: ['ThemedText'] }],
+      'react-native/no-raw-text': ['error', { skip: ['ScreenTitle'] }],
     },
   },
 ];
