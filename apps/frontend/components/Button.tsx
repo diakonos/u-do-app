@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   TextStyle,
   ViewStyle,
+  View,
 } from 'react-native';
 import { baseTheme, useTheme } from '@/lib/theme';
 import Text from '@/components/Text';
@@ -40,7 +41,15 @@ export default function Button({
       activeOpacity={0.8}
     >
       {loading ? (
-        <ActivityIndicator color={theme.white} />
+        <View
+          style={[
+            styles.loadingContainer,
+            // eslint-disable-next-line react-native/no-inline-styles
+            { alignItems: labelAlign === 'left' ? 'flex-start' : 'center' },
+          ]}
+        >
+          <ActivityIndicator color={theme.white} style={styles.spinner} />
+        </View>
       ) : (
         <>
           <Text
@@ -77,4 +86,10 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    width: '100%',
+  },
+  spinner: { height: 24 },
 });
