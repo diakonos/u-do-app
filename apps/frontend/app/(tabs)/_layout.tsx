@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CheckedIcon from '@/assets/icons/checked.svg';
 import ScheduleIcon from '@/assets/icons/calendar.svg';
 import CogIcon from '@/assets/icons/cog.svg';
+import PersonIcon from '@/assets/icons/person.svg';
 import { useTheme } from '@/lib/theme';
 import BlurTabBarBackground from '@/components/TabBarBackground';
 
@@ -49,6 +50,13 @@ export default function TabsLayout() {
             <ScheduleIcon color={color} height={size} width={size} />
           ),
           tabBarLabel: 'Schedule',
+        }}
+      />
+      <Tabs.Screen
+        name="friends"
+        options={{
+          tabBarIcon: ({ color, size }) => <PersonIcon color={color} height={size} width={size} />,
+          tabBarLabel: 'Friends',
         }}
       />
       <Tabs.Screen

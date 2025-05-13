@@ -3,14 +3,21 @@ import ShimmerPlaceHolder from 'react-native-shimmer-placeholder';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import TaskItem from '@/components/TaskItem';
 import { Task } from '@/db/tasks';
+import { baseTheme } from '@/lib/theme';
 
 interface TaskListProps {
   hideDueDate?: boolean;
   revalidateKey?: string | null;
   tasks: Task[];
+  readonly?: boolean; // Add readonly prop
 }
 
-export default function TaskList({ hideDueDate, tasks, revalidateKey }: TaskListProps) {
+export default function TaskList({
+  hideDueDate,
+  tasks,
+  revalidateKey,
+  readonly = false,
+}: TaskListProps) {
   return (
     <ScrollView style={styles.scroll}>
       {tasks.map(task => (
@@ -19,6 +26,7 @@ export default function TaskList({ hideDueDate, tasks, revalidateKey }: TaskList
           hideDueDate={hideDueDate}
           task={task}
           revalidateKey={revalidateKey}
+          readonly={readonly} // Pass readonly prop
         />
       ))}
     </ScrollView>
@@ -34,7 +42,7 @@ const styles = StyleSheet.create({
 
 export function TaskListLoading({ count = 3 }: { count?: number }) {
   return (
-    <View testID="task-list-loading">
+    <View style={shimmerStyles.loadingContainer} testID="task-list-loading">
       {Array.from({ length: count }).map((_, i) => (
         <View key={i} style={shimmerStyles.row}>
           <ShimmerPlaceHolder style={shimmerStyles.checkbox} shimmerStyle={shimmerStyles.shimmer} />
@@ -52,6 +60,7 @@ const shimmerStyles = StyleSheet.create({
     marginRight: 12,
     width: 20,
   },
+  loadingContainer: { paddingHorizontal: baseTheme.margin[3] },
   row: {
     alignItems: 'center',
     flexDirection: 'row',

@@ -17,6 +17,7 @@ interface TaskProps {
   style?: ViewStyle | ViewStyle[];
   task: Task;
   revalidateKey?: string | null;
+  readonly?: boolean; // Add readonly prop
 }
 
 export default function TaskItem({
@@ -25,6 +26,7 @@ export default function TaskItem({
   style,
   hideDueDate = false,
   revalidateKey,
+  readonly = false, // Default to false
 }: TaskProps) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(task.task_name);
@@ -35,6 +37,7 @@ export default function TaskItem({
   const tapRef = useRef(null);
 
   const handleToggle = async () => {
+    if (readonly) return; // Prevent toggle if readonly
     setLoading(true);
     try {
       const updated = await toggleTaskDone(task.id, !task.is_done);
@@ -45,6 +48,7 @@ export default function TaskItem({
   };
 
   const handleEdit = async () => {
+    if (readonly) return; // Prevent edit if readonly
     if (name !== task.task_name) {
       setLoading(true);
       try {
@@ -58,6 +62,7 @@ export default function TaskItem({
   };
 
   const handleDelete = async () => {
+    if (readonly) return; // Prevent delete if readonly
     await deleteTask(task.id);
     if (revalidateKey) {
       mutate(revalidateKey);
@@ -65,6 +70,7 @@ export default function TaskItem({
   };
 
   const handleDueDateChange = async (newDate: Date) => {
+    if (readonly) return; // Prevent due date change if readonly
     setLoading(true);
     try {
       const updated = await updateTaskDueDate(task.id, newDate);
@@ -75,27 +81,32 @@ export default function TaskItem({
     setDatePickerVisible(false);
   };
 
-  const renderRightActions = () => (
-    <TouchableOpacity
-      style={[styles.deleteButton, { backgroundColor: theme.destructive }]}
-      onPress={handleDelete}
-      accessibilityLabel="Delete task"
-    >
-      <Text style={{ color: theme.textInverse }}>Delete</Text>
-    </TouchableOpacity>
-  );
+  const renderRightActions = () =>
+    !readonly ? (
+      <TouchableOpacity
+        style={[styles.deleteButton, { backgroundColor: theme.destructive }]}
+        onPress={handleDelete}
+        accessibilityLabel="Delete task"
+      >
+        <Text style={{ color: theme.textInverse }}>Delete</Text>
+      </TouchableOpacity>
+    ) : null;
 
   return (
-    <Swipeable ref={swipeableRef} renderRightActions={renderRightActions}>
+    <Swipeable ref={swipeableRef} renderRightActions={renderRightActions} enabled={!readonly}>
       <TapGestureHandler
         ref={tapRef}
         waitFor={swipeableRef}
         onActivated={() => {
-          if (!task.is_done) setEditing(true);
+          if (!task.is_done && !readonly) setEditing(true);
         }}
       >
         <View style={[styles.container, { backgroundColor: theme.background }, style]}>
-          <TouchableOpacity onPress={handleToggle} disabled={loading} style={styles.checkbox}>
+          <TouchableOpacity
+            onPress={handleToggle}
+            disabled={loading || readonly}
+            style={[styles.checkbox, { cursor: loading || readonly ? 'auto' : 'pointer' }]}
+          >
             {task.is_done ? (
               <View style={[styles.checkedBox, { backgroundColor: theme.success }]}>
                 <CheckIcon style={styles.checkIcon} color={theme.white} />
@@ -105,7 +116,7 @@ export default function TaskItem({
             )}
           </TouchableOpacity>
           <View style={styles.textAndDueDateWrap}>
-            {editing ? (
+            {editing && !readonly ? (
               <TextInput
                 value={name}
                 onChangeText={setName}
@@ -115,7 +126,7 @@ export default function TaskItem({
                 autoFocus
                 underlineColorAndroid="transparent"
                 selectionColor={theme.text}
-                editable={!task.is_done}
+                editable={!task.is_done && !readonly}
               />
             ) : (
               // @ts-expect-error "cursor: text" works for web
@@ -138,7 +149,7 @@ export default function TaskItem({
               </Text>
             ) : null}
           </View>
-          {!task.is_done && (
+          {!task.is_done && !readonly && (
             <TouchableOpacity
               style={styles.editDueDateButton}
               onPress={() => setDatePickerVisible(true)}
@@ -166,7 +177,6 @@ const styles = StyleSheet.create({
   },
   checkbox: {
     alignSelf: 'flex-start',
-    cursor: 'pointer',
     marginRight: baseTheme.margin[2],
     marginTop: 5,
   },
