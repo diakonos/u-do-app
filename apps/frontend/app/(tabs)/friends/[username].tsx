@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { View, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { useCurrentUserId } from '@/lib/auth';
@@ -9,8 +9,9 @@ import ScreenTitle from '@/components/ScreenTitle';
 import Text from '@/components/Text';
 import TaskList, { TaskListLoading } from '@/components/TaskList';
 import { useTodayTasks } from '@/db/hooks/useTodayTasks';
-import { useTheme } from '@/lib/theme';
-import { pinFriend, unpinFriend } from '@/db/friends';
+import { baseTheme, useTheme } from '@/lib/theme';
+import { pinFriend, unpinFriend, unfriend } from '@/db/friends';
+import Button from '@/components/Button';
 
 function useUserIdFromUsername(username: string | undefined) {
   return useSWR(
@@ -55,6 +56,7 @@ export default function FriendTasksScreen() {
   const { data: friendUserId } = useUserIdFromUsername(username);
   const { data: isPinned, mutate: mutatePin } = useIsPinned(userId, username);
   const { tasks = [], isLoading } = useTodayTasks(friendUserId);
+  const router = useRouter();
 
   const handlePinToggle = useCallback(async () => {
     if (!userId || !username) return;
@@ -71,6 +73,19 @@ export default function FriendTasksScreen() {
     }
   }, [isPinned, userId, username, mutatePin]);
 
+  // Unfriend handler (no extra query)
+  const handleUnfriend = useCallback(async () => {
+    if (!userId || !friendUserId) return;
+    try {
+      await unfriend(userId, friendUserId);
+      globalMutate(`friends:${userId}`); // Revalidate main friends list
+      Alert.alert('Unfriended', `You have unfriended ${username}.`);
+      router.replace('/friends'); // Navigate back to main friends screen
+    } catch {
+      Alert.alert('Error', 'Could not unfriend.');
+    }
+  }, [userId, friendUserId, username, router]);
+
   return (
     <Screen>
       <View style={styles.headerRow}>
@@ -81,12 +96,29 @@ export default function FriendTasksScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-      {isLoading ? <TaskListLoading /> : <TaskList tasks={tasks} readonly hideDueDate />}
+      {isLoading ? (
+        <TaskListLoading />
+      ) : tasks.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={{ color: theme.secondary }}>No tasks for today</Text>
+        </View>
+      ) : (
+        <TaskList tasks={tasks} readonly hideDueDate />
+      )}
+      {/* Unfriend button at the bottom */}
+      {userId && friendUserId && (
+        <Button
+          title="Unfriend"
+          style={[styles.unfriendButton, { backgroundColor: theme.destructive }]}
+          onPress={handleUnfriend}
+        />
+      )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  emptyContainer: { alignItems: 'center' },
   headerRow: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -98,5 +130,10 @@ const styles = StyleSheet.create({
   },
   pinText: {
     fontWeight: 'bold',
+  },
+  unfriendButton: {
+    alignSelf: 'center',
+    flexGrow: 0,
+    marginTop: baseTheme.margin[4],
   },
 });

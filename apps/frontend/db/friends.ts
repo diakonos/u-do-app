@@ -100,3 +100,22 @@ export async function searchUsersByUsername(query: string) {
   if (error) throw error;
   return data;
 }
+
+// Unfriend a confirmed friend
+export async function unfriend(userId: string, friendUserId: string) {
+  // Find the confirmed friend request (either direction)
+  const { data, error } = await supabase
+    .from('friend_requests')
+    .select('id, requester_id, recipient_id')
+    .or(
+      `and(requester_id.eq.${userId},recipient_id.eq.${friendUserId}),and(requester_id.eq.${friendUserId},recipient_id.eq.${userId})`,
+    )
+    .eq('status', 'confirmed')
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error('No confirmed friendship found');
+  // Delete the friend request row
+  const { error: deleteError } = await supabase.from('friend_requests').delete().eq('id', data.id);
+  if (deleteError) throw deleteError;
+  return true;
+}

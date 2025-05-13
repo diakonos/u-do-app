@@ -64,6 +64,7 @@ function FriendsList() {
   const [actionLoading, setActionLoading] = useState<number | null>(null);
 
   const requestsKey = userId ? `friendRequests:${userId}` : null;
+  const friendsKey = userId ? `friends:${userId}` : null;
 
   const handleWithdraw = async (requestId: number) => {
     if (!userId) return;
@@ -80,6 +81,8 @@ function FriendsList() {
     setActionLoading(requestId);
     try {
       await acceptFriendRequest(requestId, userId);
+      if (requestsKey) mutate(requestsKey);
+      if (friendsKey) mutate(friendsKey);
     } finally {
       setActionLoading(null);
     }
@@ -89,6 +92,7 @@ function FriendsList() {
     setActionLoading(requestId);
     try {
       await declineFriendRequest(requestId, userId);
+      if (requestsKey) mutate(requestsKey);
     } finally {
       setActionLoading(null);
     }
@@ -156,6 +160,7 @@ function SearchResults({
   const [actionLoading, setActionLoading] = useState<string | number | null>(null);
 
   const requestsKey = userId ? `friendRequests:${userId}` : null;
+  const friendsKey = userId ? `friends:${userId}` : null;
 
   useEffect(() => {
     let active = true;
@@ -212,6 +217,8 @@ function SearchResults({
     setActionLoading(requestId);
     try {
       await acceptFriendRequest(requestId, userId);
+      if (requestsKey) mutate(requestsKey);
+      if (friendsKey) mutate(friendsKey);
       onClear();
     } finally {
       setActionLoading(null);
@@ -221,6 +228,7 @@ function SearchResults({
     setActionLoading(requestId);
     try {
       await declineFriendRequest(requestId, userId);
+      if (requestsKey) mutate(requestsKey);
       onClear();
     } finally {
       setActionLoading(null);
