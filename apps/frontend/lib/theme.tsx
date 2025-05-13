@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useMemo, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
+import { Platform } from 'react-native';
 import { Appearance } from 'react-native';
 
 export const baseTheme = {
@@ -78,9 +79,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const colorScheme = Appearance.getColorScheme();
   const [theme, setTheme] = useState(colorScheme === 'dark' ? darkTheme : lightTheme);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-      setTheme(colorScheme === 'dark' ? darkTheme : lightTheme);
+      const newTheme = colorScheme === 'dark' ? darkTheme : lightTheme;
+      setTheme(newTheme);
+
+      if (Platform.OS === 'web') {
+        document?.querySelector!('meta[name="theme-color"]')?.setAttribute(
+          'content',
+          newTheme.background,
+        );
+      }
     });
     return () => subscription.remove();
   }, []);
