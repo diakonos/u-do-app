@@ -1,13 +1,13 @@
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Provider as PaperProvider } from 'react-native-paper';
 import * as Sentry from '@sentry/react-native';
-import { ThemeProvider } from '@/lib/theme';
-import React from 'react';
-import { AuthProvider, useAuth } from '@/lib/auth';
 import { useFonts } from 'expo-font';
+import { useEffect } from 'react';
+import { ThemeProvider } from '@/lib/theme';
+import { AuthProvider, useAuth } from '@/lib/auth';
 
 Sentry.init({
   dsn: 'https://95ef48dd1caf60feb863806b6d0877d6@o4509234354651136.ingest.us.sentry.io/4509234356355072',
@@ -22,15 +22,23 @@ SplashScreen.preventAutoHideAsync();
 
 function RootNavigation() {
   const { session, loading } = useAuth();
-  if (loading) return null;
-  return session ? (
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !session) {
+      router.replace('/login');
+    }
+  }, [loading, session, router]);
+
+  useEffect(() => {
+    if (!loading) {
+      SplashScreen.hide();
+    }
+  }, [loading]);
+
+  return (
     <Stack>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-    </Stack>
-  ) : (
-    <Stack>
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="login" options={{ headerShown: false }} />
     </Stack>
   );
 }

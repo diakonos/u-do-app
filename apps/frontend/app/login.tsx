@@ -1,10 +1,14 @@
-import React, { useState, useRef } from 'react';
-import { View, StyleSheet, Keyboard, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useState, useRef } from 'react';
+import { View, SafeAreaView, StyleSheet, Keyboard, TouchableOpacity } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { baseTheme, useTheme } from '@/lib/theme';
 import Text from '@/components/Text';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
+import { formatErrorMessage } from '@/lib/error';
+import { useEffect } from 'react';
+import { useAuth } from '@/lib/auth';
 
 export default function LoginScreen() {
   const theme = useTheme();
@@ -15,15 +19,17 @@ export default function LoginScreen() {
   const [error, setError] = useState('');
   const [resendTimer, setResendTimer] = useState(60);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const { session, loading: isLoadingSession } = useAuth();
+  const router = useRouter();
 
   // Start resend timer
   const startTimer = () => {
     setResendTimer(60);
-    timerRef.current && clearInterval(timerRef.current);
+    if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       setResendTimer(t => {
         if (t <= 1) {
-          timerRef.current && clearInterval(timerRef.current);
+          if (timerRef.current) clearInterval(timerRef.current);
           return 0;
         }
         return t - 1;
@@ -41,8 +47,8 @@ export default function LoginScreen() {
       setStep('code');
       startTimer();
       Keyboard.dismiss();
-    } catch (e: any) {
-      setError(e.message || 'Failed to send code');
+    } catch (e: unknown) {
+      setError(formatErrorMessage(e, 'Failed to send code.'));
     } finally {
       setLoading(false);
     }
@@ -57,8 +63,8 @@ export default function LoginScreen() {
       if (error) throw error;
       // User is now logged in
       // ...navigate or update state as needed...
-    } catch (e: any) {
-      setError(e.message || 'Invalid code');
+    } catch (e: unknown) {
+      setError(formatErrorMessage(e, 'Invalid code.'));
     } finally {
       setLoading(false);
     }
@@ -79,74 +85,78 @@ export default function LoginScreen() {
     setError('');
     setLoading(false);
     setResendTimer(0);
-    timerRef.current && clearInterval(timerRef.current);
+    if (timerRef.current) clearInterval(timerRef.current);
   };
 
+  useEffect(() => {
+    if (!isLoadingSession && session) {
+      router.replace('/(tabs)');
+    }
+  }, [isLoadingSession, router, session]);
+
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <Text weight="semibold" style={styles.title} size="large">
-        Sign in to U Do
-      </Text>
-      <Text style={styles.subtitle}>No passwords!</Text>
-      <Text style={styles.body}>
-        Just enter your email address and we’ll email you a one time code to log in.
-      </Text>
-      {step === 'email' ? (
-        <>
-          <Text style={styles.label}>Enter your email address:</Text>
-          <Input
-            value={email}
-            onChangeText={setEmail}
-            placeholder="Email address"
-            autoCapitalize="none"
-            keyboardType="email-address"
-            style={styles.input}
-            editable={!loading}
-            onSubmitEditing={handleSendCode}
-            returnKeyType="done"
-          />
-          <Button
-            title="Send one time code"
-            onPress={handleSendCode}
-            disabled={!email || loading}
-            loading={loading}
-          />
-        </>
-      ) : (
-        <>
-          <Text style={styles.label}>Enter the one time code:</Text>
-          <Input
-            value={code}
-            onChangeText={setCode}
-            placeholder="One time code"
-            keyboardType="number-pad"
-            style={styles.input}
-            editable={!loading}
-            onSubmitEditing={handleVerifyCode}
-            returnKeyType="done"
-          />
-          <Button
-            title="Log in"
-            onPress={handleVerifyCode}
-            disabled={!code || loading}
-            loading={loading}
-          />
-          <TouchableOpacity
-            onPress={handleResend}
-            disabled={resendTimer > 0}
-            style={{ marginTop: 8 }}
-          >
-            <Text style={[styles.resend, { color: theme.disabled }]}>
-              Resend the code {resendTimer > 0 ? `(${resendTimer}s)` : ''}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleCancel} style={{ marginTop: 16 }}>
-            <Text style={[styles.cancel, { color: theme.error }]}>Cancel log in</Text>
-          </TouchableOpacity>
-        </>
-      )}
-      {!!error && <Text style={[styles.error, { color: theme.error }]}>{error}</Text>}
-    </View>
+    <SafeAreaView>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <Text weight="semibold" style={styles.title} size="large">
+          Sign in to U Do
+        </Text>
+        <Text style={styles.subtitle}>No passwords!</Text>
+        <Text style={styles.body}>
+          Just enter your email address and we&apos;ll email you a one time code to log in.
+        </Text>
+        {step === 'email' ? (
+          <>
+            <Text style={styles.label}>Enter your email address:</Text>
+            <Input
+              value={email}
+              onChangeText={setEmail}
+              placeholder="Email address"
+              autoCapitalize="none"
+              keyboardType="email-address"
+              style={styles.input}
+              editable={!loading}
+              onSubmitEditing={handleSendCode}
+              returnKeyType="done"
+            />
+            <Button
+              title="Send one time code"
+              onPress={handleSendCode}
+              disabled={!email || loading}
+              loading={loading}
+            />
+          </>
+        ) : (
+          <>
+            <Text style={styles.label}>Enter the one time code:</Text>
+            <Input
+              value={code}
+              onChangeText={setCode}
+              placeholder="One time code"
+              keyboardType="number-pad"
+              style={styles.input}
+              editable={!loading}
+              onSubmitEditing={handleVerifyCode}
+              returnKeyType="done"
+            />
+            <Button
+              title="Log in"
+              onPress={handleVerifyCode}
+              disabled={!code || loading}
+              loading={loading}
+            />
+            <TouchableOpacity onPress={handleResend} disabled={resendTimer > 0}>
+              <Text style={[styles.resend, { color: theme.disabled }]}>
+                Resend the code {resendTimer > 0 ? `(${resendTimer}s)` : ''}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleCancel}>
+              <Text style={[styles.cancel, { color: theme.destructive }]}>Cancel log in</Text>
+            </TouchableOpacity>
+          </>
+        )}
+        {!!error && <Text style={[styles.error, { color: theme.destructive }]}>{error}</Text>}
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -155,6 +165,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   cancel: {
+    marginTop: baseTheme.margin[3],
     textAlign: 'center',
   },
   container: {
@@ -175,6 +186,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   resend: {
+    marginTop: baseTheme.margin[3],
     textAlign: 'center',
   },
   subtitle: {

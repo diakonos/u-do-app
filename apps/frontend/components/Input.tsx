@@ -6,6 +6,7 @@ export default function Input(props: TextInputProps) {
   const theme = useTheme();
   return (
     <TextInput
+      placeholderTextColor={theme.placeholder}
       {...props}
       style={[
         styles.input,
