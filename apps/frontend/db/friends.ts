@@ -26,7 +26,9 @@ export async function sendFriendRequest(requesterId: string, recipientId: string
 export async function listFriendRequests(userId: string) {
   const { data, error } = await supabase
     .from('friend_requests')
-    .select('*')
+    .select(
+      `*, requester:user_profiles!friend_requests_requester_id_fkey1(user_id,username), recipient:user_profiles!friend_requests_recipient_id_fkey1(user_id,username)`,
+    )
     .or(`requester_id.eq.${userId},recipient_id.eq.${userId}`)
     .eq('status', 'pending');
   if (error) throw error;
@@ -87,4 +89,14 @@ export async function unpinFriend(userId: string, friendUsername: string) {
     .eq('user_id', userId)
     .eq('block_type', 'friend_tasks')
     .eq('value', friendUsername);
+}
+
+// Search users by username (case-insensitive, partial match)
+export async function searchUsersByUsername(query: string) {
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select('user_id, username')
+    .ilike('username', `%${query}%`);
+  if (error) throw error;
+  return data;
 }
