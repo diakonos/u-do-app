@@ -12,6 +12,7 @@ export default function Input(props: TextInputProps) {
         styles.input,
         {
           backgroundColor: theme.inputBackground,
+          color: theme.text,
         },
         props.style,
       ]}

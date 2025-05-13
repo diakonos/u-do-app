@@ -35,7 +35,11 @@ export default function FriendTasksCollapse({
         <Text style={styles.count}>
           {completed}/{total}
         </Text>
-        {open ? <CaretDownIcon style={styles.caret} /> : <CaretRightIcon style={styles.caret} />}
+        {open ? (
+          <CaretRightIcon rotation={-90} color={theme.text} style={styles.caret} />
+        ) : (
+          <CaretDownIcon color={theme.text} style={styles.caret} />
+        )}
       </TouchableOpacity>
       {open && (
         <View style={styles.listWrap}>

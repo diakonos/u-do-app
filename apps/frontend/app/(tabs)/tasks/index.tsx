@@ -55,7 +55,7 @@ function TodayTaskList() {
         style={[styles.archiveButton, { backgroundColor: theme.backgroundSecondary }]}
         labelStyle={{ color: theme.textSecondary }}
         labelAlign="left"
-        icon={<CaretRightIcon />}
+        icon={<CaretRightIcon color={theme.textSecondary} />}
       />
       <Suspense fallback={<TaskListLoading />}>
         <FriendTasksSection userId={userId} />
