@@ -1,8 +1,24 @@
 import { supabase } from '@/lib/supabase';
+import { fetchTodayTasks } from '@/db/tasks';
+import { formatDateForDBTimestamp, formatDateYMD } from '@/lib/date';
 
 // Get confirmed friends for a user
 export async function getFriendsForUser(userId: string) {
-  const { data, error } = await supabase.from('friends_view').select('*').eq('user_id', userId);
+  // Calculate today boundaries
+  const updatedAtMin = new Date();
+  updatedAtMin.setHours(0, 0, 0, 0);
+  const updatedAtMinTimestamp = formatDateForDBTimestamp(updatedAtMin);
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+  const tomorrowStr = formatDateYMD(tomorrow);
+
+  // Single query: join friends_view with tasks, aggregate today's tasks
+  const { data, error } = await supabase.rpc('get_friends_with_today_task_counts', {
+    user_id: userId,
+    updated_at_min: updatedAtMinTimestamp,
+    tomorrow_str: tomorrowStr,
+  });
   if (error) throw error;
   return data;
 }

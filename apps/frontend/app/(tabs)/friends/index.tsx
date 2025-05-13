@@ -131,6 +131,8 @@ function FriendsList() {
               <FriendItem
                 username={item.friend_username}
                 onPress={() => router.push(`/friends/${item.friend_username}`)}
+                totalTasksTodayCount={item.today_total_tasks}
+                completedTasksTodayCount={item.today_completed_tasks}
               />
             )}
           />
@@ -271,12 +273,7 @@ function SearchResults({
             } else {
               return (
                 <View style={styles.resultRow}>
-                  <Text
-                    style={[styles.friendItem, styles.resultUsername]}
-                    onPress={() => router.push(`/friends/${item.username}`)}
-                  >
-                    {item.username}
-                  </Text>
+                  <Text style={[styles.friendItem, styles.resultUsername]}>{item.username}</Text>
                   <Button
                     title="Add Friend"
                     onPress={() => handleSend(item)}

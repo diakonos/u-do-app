@@ -134,6 +134,7 @@ const styles = StyleSheet.create({
   unfriendButton: {
     alignSelf: 'center',
     flexGrow: 0,
+    marginBottom: baseTheme.margin[3],
     marginTop: baseTheme.margin[4],
   },
 });
