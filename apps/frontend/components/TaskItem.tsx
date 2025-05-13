@@ -1,6 +1,6 @@
-import React, { useRef, useState } from 'react';
-import { View, TextInput, StyleSheet, type ViewStyle } from 'react-native';
-import { TapGestureHandler, TouchableOpacity } from 'react-native-gesture-handler';
+import { useRef, useState } from 'react';
+import { View, TextInput, StyleSheet, type ViewStyle, Platform } from 'react-native';
+import { TouchableOpacity, TouchableHighlight } from 'react-native-gesture-handler';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { mutate } from 'swr';
 import Text from '@/components/Text';
@@ -93,13 +93,17 @@ export default function TaskItem({
     ) : null;
 
   return (
-    <Swipeable ref={swipeableRef} renderRightActions={renderRightActions} enabled={!readonly}>
-      <TapGestureHandler
-        ref={tapRef}
-        waitFor={swipeableRef}
-        onActivated={() => {
+    <Swipeable
+      ref={swipeableRef}
+      renderRightActions={renderRightActions}
+      enabled={!readonly && !editing}
+      containerStyle={{ backgroundColor: theme.background }}
+    >
+      <TouchableHighlight
+        onPress={() => {
           if (!task.is_done && !readonly) setEditing(true);
         }}
+        disabled={readonly || editing}
       >
         <View style={[styles.container, { backgroundColor: theme.background }, style]}>
           <TouchableOpacity
@@ -122,7 +126,13 @@ export default function TaskItem({
                 onChangeText={setName}
                 onBlur={handleEdit}
                 onSubmitEditing={handleEdit}
-                style={[styles.text, styles.input, task.is_done && styles.doneText]}
+                style={[
+                  styles.text,
+                  styles.input,
+                  task.is_done && styles.doneText,
+                  { color: theme.text },
+                  Platform.OS === 'web' && ({ outlineStyle: 'none' } as any),
+                ]}
                 autoFocus
                 underlineColorAndroid="transparent"
                 selectionColor={theme.text}
@@ -165,7 +175,7 @@ export default function TaskItem({
             onConfirm={handleDueDateChange}
           />
         </View>
-      </TapGestureHandler>
+      </TouchableHighlight>
     </Swipeable>
   );
 }
@@ -187,10 +197,9 @@ const styles = StyleSheet.create({
     width: 20,
   },
   clockIcon: {
-    height: 20,
+    alignSelf: 'center',
     marginLeft: baseTheme.margin[2],
-    marginVertical: 'auto',
-    width: 20,
+    marginTop: 5,
   },
   container: {
     flexDirection: 'row',
@@ -210,14 +219,13 @@ const styles = StyleSheet.create({
   editDueDateButton: {
     alignSelf: 'stretch',
     cursor: 'pointer',
-    flexGrow: 1,
+    flexGrow: 0,
   },
   // eslint-disable-next-line react-native/no-color-literals
   input: {
     flex: 1,
     fontFamily: baseTheme.font.regular,
     fontSize: baseTheme.fontSize.medium,
-    outlineColor: 'transparent',
     padding: 0,
     shadowColor: 'transparent',
   },

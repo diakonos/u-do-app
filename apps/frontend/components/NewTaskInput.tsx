@@ -4,6 +4,7 @@ import { Task, createTask } from '@/db/tasks';
 import { useCurrentUserId } from '@/lib/auth';
 import { baseTheme, useTheme } from '@/lib/theme';
 import PlusIcon from '@/assets/icons/plus.svg';
+import { Platform } from 'react-native';
 
 interface NewTaskInputProps {
   onCreate?: (task: Task) => void;
@@ -44,7 +45,12 @@ export default function NewTaskInput({
         onSubmitEditing={handleCreate}
         placeholder={placeholder}
         placeholderTextColor={theme.placeholder}
-        style={[styles.newTaskInput, { color: theme.text }]}
+        style={[
+          styles.newTaskInput,
+          { color: theme.text },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          Platform.OS === 'web' && ({ outlineStyle: 'none' } as any),
+        ]}
         editable={!loading}
         returnKeyType="done"
       />
