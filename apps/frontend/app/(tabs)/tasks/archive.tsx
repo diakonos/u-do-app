@@ -1,5 +1,5 @@
 import { useEffect, useState, Suspense } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import useSWRInfinite from 'swr/infinite';
 import useSWR from 'swr';
 import { baseTheme, useTheme } from '@/lib/theme';
@@ -51,9 +51,11 @@ function ArchivedTaskList({ onCount }: { onCount?: (count: number) => void }) {
       <TaskList tasks={allTasks} hideDueDate />
       {hasMore && (
         <View style={styles.loadMoreContainer}>
-          <Text style={styles.loadMoreBtn} onPress={() => setSize(size + 1)}>
-            {isValidating ? 'Loading...' : 'Load more tasks'}
-          </Text>
+          <TouchableOpacity onPress={() => setSize(size + 1)}>
+            <Text style={styles.loadMoreBtn}>
+              {isValidating ? 'Loading...' : 'Load more tasks'}
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
     </>
@@ -67,8 +69,10 @@ export default function ArchiveScreen() {
   return (
     <Screen>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+        <ScreenTitle showBackButton>
+          Archived Tasks{typeof total === 'number' ? ` (${total})` : ''}
+        </ScreenTitle>
         <View style={[styles.container, { backgroundColor: theme.background || '#fff' }]}>
-          <ScreenTitle>Archived Tasks{typeof total === 'number' ? ` (${total})` : ''}</ScreenTitle>
           <Suspense fallback={<TaskListLoading />}>
             <ArchivedTaskList onCount={setTotal} />
           </Suspense>
@@ -86,10 +90,8 @@ export const options = {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: baseTheme.margin[3],
   },
   loadMoreBtn: {
-    fontWeight: 'bold',
     padding: baseTheme.margin[2],
   },
   loadMoreContainer: {
