@@ -29,6 +29,7 @@ export const baseTheme = {
 const lightTheme = {
   ...baseTheme,
   background: '#ffffff',
+  borderFaint: '#cccccc',
   brand: '#6532D5',
   destructive: '#D53234',
   disabled: '#aaa',
@@ -46,6 +47,7 @@ const lightTheme = {
 const darkTheme = {
   ...baseTheme,
   background: '#000000',
+  borderFaint: '#555555',
   brand: '#6532D5',
   destructive: '#D53234',
   disabled: '#444',

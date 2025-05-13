@@ -94,8 +94,10 @@ export default function LoginScreen() {
     }
   }, [isLoadingSession, router, session]);
 
+  const resendDisabled = resendTimer > 0;
+
   return (
-    <SafeAreaView>
+    <SafeAreaView style={styles.containerOuter}>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <Text weight="semibold" style={styles.title} size="large">
           Sign in to U Do
@@ -123,6 +125,7 @@ export default function LoginScreen() {
               onPress={handleSendCode}
               disabled={!email || loading}
               loading={loading}
+              style={styles.button}
             />
           </>
         ) : (
@@ -143,10 +146,13 @@ export default function LoginScreen() {
               onPress={handleVerifyCode}
               disabled={!code || loading}
               loading={loading}
+              style={styles.button}
             />
-            <TouchableOpacity onPress={handleResend} disabled={resendTimer > 0}>
-              <Text style={[styles.resend, { color: theme.disabled }]}>
-                Resend the code {resendTimer > 0 ? `(${resendTimer}s)` : ''}
+            <TouchableOpacity onPress={handleResend} disabled={resendDisabled}>
+              <Text
+                style={[styles.resend, { color: resendDisabled ? theme.disabled : theme.primary }]}
+              >
+                Resend the code {resendDisabled ? `(${resendTimer}s)` : ''}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={handleCancel}>
@@ -164,6 +170,7 @@ const styles = StyleSheet.create({
   body: {
     marginBottom: 24,
   },
+  button: { flexGrow: 0 },
   cancel: {
     marginTop: baseTheme.margin[3],
     textAlign: 'center',
@@ -174,6 +181,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 32,
   },
+  containerOuter: { height: '100%' },
   error: {
     marginTop: 16,
     textAlign: 'center',
