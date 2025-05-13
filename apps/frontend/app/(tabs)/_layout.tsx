@@ -1,17 +1,44 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
-import { Platform } from 'react-native';
+import { Link, Slot, Tabs, useRouter } from 'expo-router';
+import { Platform, useWindowDimensions, ScrollView, View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CheckedIcon from '@/assets/icons/checked.svg';
 import ScheduleIcon from '@/assets/icons/calendar.svg';
 import CogIcon from '@/assets/icons/cog.svg';
 import PersonIcon from '@/assets/icons/person.svg';
-import { useTheme } from '@/lib/theme';
+import { baseTheme, useTheme } from '@/lib/theme';
 import BlurTabBarBackground from '@/components/TabBarBackground';
+import Text from '@/components/Text';
+import Button from '@/components/Button';
 
 export default function TabsLayout() {
   const theme = useTheme();
   const safeArea = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const router = useRouter();
+
+  if (width >= 1200) {
+    return (
+      <ScrollView style={{ backgroundColor: theme.background }}>
+        <View style={styles.desktopHeader}>
+          <Link href="/(tabs)/tasks">
+            <Text weight="light" style={{ fontSize: 50 }}>
+              U Do
+            </Text>
+          </Link>
+          <Button
+            title="Settings"
+            icon={<CogIcon color={theme.text} />}
+            onPress={() => router.push('/(tabs)/settings')}
+            style={styles.settingsButton}
+            labelStyle={{ color: theme.text }}
+          />
+        </View>
+        <Slot />
+        <View style={{ height: baseTheme.margin[4] }}></View>
+      </ScrollView>
+    );
+  }
+
   return (
     <Tabs
       screenOptions={{
@@ -70,3 +97,20 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  desktopHeader: {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: baseTheme.margin[3],
+    paddingTop: baseTheme.margin[3],
+    paddingBottom: baseTheme.margin[4],
+  },
+  settingsButton: {
+    backgroundColor: 'transparent',
+    flexGrow: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
+});
