@@ -4,6 +4,8 @@ import useSWR from 'swr';
 import { loadDashboardFriendTasks } from '@/db/dashboard';
 import FriendTasksCollapse from '@/components/FriendTasksCollapse';
 import { Task } from '@/db/tasks';
+import { StyleSheet } from 'react-native';
+import { baseTheme } from '@/lib/theme';
 
 interface FriendData {
   friend_id: string;
@@ -30,10 +32,18 @@ export default function FriendTasksSection({ userId, friendTasksStyle }: FriendT
         const tasks = friend.tasks || [];
         return (
           <View key={friend.friend_id} style={friendTasksStyle}>
-            <FriendTasksCollapse friendName={friend.friend_username} tasks={tasks} />
+            <FriendTasksCollapse
+              friendName={friend.friend_username}
+              tasks={tasks}
+              style={styles.friend}
+            />
           </View>
         );
       })}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  friend: { marginBottom: baseTheme.margin[3] },
+});
