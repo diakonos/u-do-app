@@ -29,7 +29,7 @@ export default function ScheduleScreen() {
   return (
     <Screen>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <ScreenTitle>Schedule</ScreenTitle>
+        <ScreenTitle>Scheduled tasks</ScreenTitle>
         <NewTaskInput placeholder="New scheduled task" style={styles.newTask} dueDate={date} />
         <View style={styles.dueDateContainer}>
           <Text style={{ color: theme.secondary }}>for</Text>
@@ -76,5 +76,4 @@ const styles = StyleSheet.create({
   dueDateLabel: { marginLeft: baseTheme.margin[2] },
   editDateButton: { marginLeft: baseTheme.margin[3] },
   newTask: { marginBottom: baseTheme.margin[2] },
-  title: { marginBottom: baseTheme.margin[4], marginLeft: baseTheme.margin[3] },
 });

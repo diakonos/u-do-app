@@ -1,7 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { Suspense } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import useSWR from 'swr';
+import { View, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
 import { baseTheme, useTheme } from '@/lib/theme';
 import Text from '@/components/Text';
 import TaskList, { TaskListLoading } from '@/components/TaskList';
@@ -41,8 +40,10 @@ function TodayTaskList({ showFriendsTasks = true }: { showFriendsTasks?: boolean
   );
 }
 
-export default function TodayScreen({ showFriendsTasks = true }: { showFriendsTasks?: boolean }) {
+export default function TodayScreen() {
   const theme = useTheme();
+  const { width } = useWindowDimensions();
+  const showFriendsTasks = width < 1200;
 
   return (
     <Screen>
@@ -73,8 +74,4 @@ const styles = StyleSheet.create({
     marginLeft: baseTheme.margin[1],
   },
   friendTasks: { marginBottom: baseTheme.margin[3] },
-  title: {
-    marginBottom: baseTheme.margin[4],
-    marginLeft: baseTheme.margin[3],
-  },
 });

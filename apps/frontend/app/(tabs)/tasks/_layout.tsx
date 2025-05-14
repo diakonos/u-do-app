@@ -1,7 +1,6 @@
-import { Stack } from 'expo-router';
+import { Stack, Slot } from 'expo-router';
 import { SafeAreaView, useWindowDimensions, View, StyleSheet } from 'react-native';
 import ScheduleScreen from '@/app/(tabs)/schedule';
-import TodayScreen from '.';
 import { useCurrentUserId } from '@/lib/auth';
 import FriendTasksSection from '@/components/FriendTasksSection';
 import { useTheme } from '@/lib/theme';
@@ -15,7 +14,8 @@ export default function TasksLayout() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
         <View style={styles.column}>
-          <TodayScreen showFriendsTasks={false} />
+          {/* <TodayScreen showFriendsTasks={false} /> */}
+          <Slot />
         </View>
         <View style={styles.column}>
           <ScheduleScreen />
