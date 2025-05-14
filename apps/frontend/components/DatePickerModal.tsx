@@ -8,7 +8,6 @@ import { ModalSheet } from '@/components/ModalSheet';
 interface DatePickerModalProps {
   visible: boolean;
   date: Date;
-  onChange: (date: Date) => void;
   onCancel: () => void;
   onConfirm: (date: Date) => void;
 }
@@ -16,7 +15,6 @@ interface DatePickerModalProps {
 export default function DatePickerModal({
   visible,
   date,
-  onChange,
   onCancel,
   onConfirm,
 }: DatePickerModalProps) {

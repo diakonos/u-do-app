@@ -1,5 +1,4 @@
 import { supabase } from '@/lib/supabase';
-import { fetchTodayTasks } from '@/db/tasks';
 import { formatDateForDBTimestamp, formatDateYMD } from '@/lib/date';
 
 // Get confirmed friends for a user

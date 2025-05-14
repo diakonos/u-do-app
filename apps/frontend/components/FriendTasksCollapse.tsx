@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
 import Text from '@/components/Text';
 import TaskList from '@/components/TaskList';
 import CaretDownIcon from '@/assets/icons/caret-down.svg';
 import CaretRightIcon from '@/assets/icons/caret-right.svg';
 import { baseTheme, useTheme } from '@/lib/theme';
-import { ViewStyle } from 'react-native';
+import { Task } from '@/db/tasks';
 
 interface FriendTasksCollapseProps {
   friendName: string;
-  tasks: any[];
+  tasks: Task[];
   style?: ViewStyle | ViewStyle[];
 }
 
@@ -30,7 +30,7 @@ export default function FriendTasksCollapse({
     <View style={[styles.container, style]}>
       <TouchableOpacity style={styles.header} onPress={() => setOpen(o => !o)} activeOpacity={0.8}>
         <Text weight="medium" style={styles.title}>
-          {friendName}'s tasks
+          {friendName}&apos;s tasks
         </Text>
         <Text style={styles.count}>
           {completed}/{total}
@@ -47,13 +47,7 @@ export default function FriendTasksCollapse({
           {showToggle && (
             <TouchableOpacity
               onPress={() => setExpanded(e => !e)}
-              style={{
-                marginTop: baseTheme.margin[1],
-                alignSelf: 'center',
-                backgroundColor: 'transparent',
-                paddingHorizontal: 12,
-                paddingVertical: 4,
-              }}
+              style={styles.expandButton}
               activeOpacity={0.7}
             >
               <Text size="small" style={{ color: theme.textSecondary }}>
@@ -69,13 +63,24 @@ export default function FriendTasksCollapse({
 
 const styles = StyleSheet.create({
   caret: {
-    marginLeft: baseTheme.margin[3],
     height: 20,
+    marginLeft: baseTheme.margin[3],
     width: 20,
   },
   container: {
     borderRadius: baseTheme.borderRadius,
     overflow: 'hidden',
+  },
+  count: {
+    marginLeft: baseTheme.margin[2],
+  },
+  // eslint-disable-next-line react-native/no-color-literals
+  expandButton: {
+    alignSelf: 'center',
+    backgroundColor: 'transparent',
+    marginTop: baseTheme.margin[1],
+    paddingHorizontal: 12,
+    paddingVertical: 4,
   },
   header: {
     alignItems: 'center',
@@ -83,12 +88,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: baseTheme.margin[3],
     paddingVertical: baseTheme.margin[2],
   },
+  listWrap: {},
   title: {
     flex: 1,
   },
-  count: {
-    marginLeft: baseTheme.margin[2],
-    color: '#888',
-  },
-  listWrap: {},
 });

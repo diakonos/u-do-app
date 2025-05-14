@@ -34,6 +34,7 @@ export default function ScreenTitle({ children, showBackButton, style, onBack }:
       <Text
         size="large"
         weight="semibold"
+        // eslint-disable-next-line react-native/no-inline-styles
         style={[styles.title, !showBackButton && { marginLeft: 0 }]}
         numberOfLines={1}
       >
@@ -45,21 +46,21 @@ export default function ScreenTitle({ children, showBackButton, style, onBack }:
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: baseTheme.margin[4],
-    marginLeft: baseTheme.margin[3],
-    marginTop: baseTheme.margin[3],
-  },
   backButton: {
     marginRight: baseTheme.margin[2],
     padding: 4,
   },
-  title: {
-    flex: 1,
-  },
   rightSpacer: {
     width: 28, // for symmetry
+  },
+  row: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    marginBottom: baseTheme.margin[4],
+    marginLeft: baseTheme.margin[3],
+    marginTop: baseTheme.margin[3],
+  },
+  title: {
+    flex: 1,
   },
 });

@@ -68,9 +68,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: baseTheme.margin[3],
   },
-  title: {
-    marginBottom: baseTheme.margin[4],
-  },
   value: {
     flexShrink: 1,
     marginLeft: baseTheme.margin[2],

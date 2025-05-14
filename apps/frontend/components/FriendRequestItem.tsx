@@ -57,15 +57,16 @@ export default function FriendRequestItem({
 }
 
 const styles = StyleSheet.create({
-  pendingRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  friendItem: { paddingVertical: 8 },
+  // eslint-disable-next-line react-native/no-color-literals
   actionButton: { backgroundColor: 'transparent', flexGrow: 0, marginLeft: 8 },
   actionRow: {
     alignItems: 'center',
     flexDirection: 'row',
+  },
+  friendItem: { paddingVertical: 8 },
+  pendingRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
 });

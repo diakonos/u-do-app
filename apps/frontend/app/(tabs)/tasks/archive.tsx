@@ -105,8 +105,4 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
   },
-  title: {
-    marginBottom: baseTheme.margin[4],
-    marginLeft: baseTheme.margin[3],
-  },
 });

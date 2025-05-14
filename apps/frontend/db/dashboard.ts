@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { formatDateForDBTimestamp, formatDateYMD } from '@/lib/date';
+import { Task } from '@/db/tasks';
 
 // Loads dashboard pinned friends and their tasks for the current user (today's tasks only)
 export async function loadDashboardFriendTasks(userId: string) {
@@ -56,7 +57,7 @@ export async function loadDashboardFriendTasks(userId: string) {
   if (tasksError) throw tasksError;
 
   // Group tasks by friend_id
-  const tasksByFriend: Record<string, any[]> = {};
+  const tasksByFriend: Record<string, Task[]> = {};
   for (const task of tasks ?? []) {
     if (!tasksByFriend[task.user_id]) tasksByFriend[task.user_id] = [];
     tasksByFriend[task.user_id].push(task);

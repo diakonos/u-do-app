@@ -21,7 +21,7 @@ export default function TabsLayout() {
       <ScrollView style={{ backgroundColor: theme.background }}>
         <View style={styles.desktopHeader}>
           <Link href="/(tabs)/tasks">
-            <Text weight="light" style={{ fontSize: 50 }}>
+            <Text weight="light" style={styles.logo}>
               U Do
             </Text>
           </Link>
@@ -103,10 +103,12 @@ const styles = StyleSheet.create({
     display: 'flex',
     flexDirection: 'row',
     justifyContent: 'space-between',
+    paddingBottom: baseTheme.margin[4],
     paddingHorizontal: baseTheme.margin[3],
     paddingTop: baseTheme.margin[3],
-    paddingBottom: baseTheme.margin[4],
   },
+  logo: { fontSize: 50 },
+  // eslint-disable-next-line react-native/no-color-literals
   settingsButton: {
     backgroundColor: 'transparent',
     flexGrow: 0,

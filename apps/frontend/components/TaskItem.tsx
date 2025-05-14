@@ -34,7 +34,6 @@ export default function TaskItem({
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const theme = useTheme();
   const swipeableRef = useRef(null);
-  const tapRef = useRef(null);
 
   const handleToggle = async () => {
     if (readonly) return; // Prevent toggle if readonly
@@ -109,6 +108,7 @@ export default function TaskItem({
           <TouchableOpacity
             onPress={handleToggle}
             disabled={loading || readonly}
+            // eslint-disable-next-line react-native/no-inline-styles
             style={[styles.checkbox, { cursor: loading || readonly ? 'auto' : 'pointer' }]}
           >
             {task.is_done ? (
@@ -131,6 +131,7 @@ export default function TaskItem({
                   styles.input,
                   task.is_done && styles.doneText,
                   { color: theme.text },
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   Platform.OS === 'web' && ({ outlineStyle: 'none' } as any),
                 ]}
                 autoFocus
@@ -170,7 +171,6 @@ export default function TaskItem({
           <DatePickerModal
             visible={datePickerVisible}
             date={task.due_date ? new Date(task.due_date) : new Date()}
-            onChange={() => {}}
             onCancel={() => setDatePickerVisible(false)}
             onConfirm={handleDueDateChange}
           />
