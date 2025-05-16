@@ -1,4 +1,4 @@
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -17,18 +17,8 @@ Sentry.init({
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-// Remove InitialLayout (not used)
-// TODO: Replace require() font loading with static imports or another supported method if needed.
-
 function RootNavigation() {
-  const { session, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && !session) {
-      router.replace('/login');
-    }
-  }, [loading, session, router]);
+  const { loading } = useAuth();
 
   useEffect(() => {
     if (!loading) {
@@ -38,6 +28,7 @@ function RootNavigation() {
 
   return (
     <Stack>
+      <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="login" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
     </Stack>
