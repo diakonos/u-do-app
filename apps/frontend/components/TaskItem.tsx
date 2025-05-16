@@ -8,8 +8,11 @@ import { Task, updateTaskName, toggleTaskDone, deleteTask, updateTaskDueDate } f
 import { baseTheme, useTheme } from '@/lib/theme';
 import CheckIcon from '@/assets/icons/check.svg';
 import ClockIcon from '@/assets/icons/clock.svg';
+import LockIcon from '@/assets/icons/lock.svg';
+import UnlockIcon from '@/assets/icons/unlock.svg';
 import { formatDateUI } from '@/lib/date';
 import DatePickerModal from '@/components/DatePickerModal';
+import { useAuth } from '@/lib/auth';
 
 interface TaskProps {
   hideDueDate?: boolean;
@@ -32,8 +35,11 @@ export default function TaskItem({
   const [name, setName] = useState(task.task_name);
   const [loading, setLoading] = useState(false);
   const [datePickerVisible, setDatePickerVisible] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(false);
   const theme = useTheme();
   const swipeableRef = useRef(null);
+  const { session } = useAuth();
+  const isCurrentUserTask = session?.user?.id === task.user_id;
 
   const handleToggle = async () => {
     if (readonly) return; // Prevent toggle if readonly
@@ -160,6 +166,21 @@ export default function TaskItem({
               </Text>
             ) : null}
           </View>
+          {/* Only show lock/unlock toggle for current user's tasks */}
+          {isCurrentUserTask && (
+            <TouchableOpacity
+              style={styles.editDueDateButton}
+              onPress={() => setIsPrivate(prev => !prev)}
+              accessibilityLabel={isPrivate ? 'Set task public' : 'Set task private'}
+            >
+              {isPrivate ? (
+                <LockIcon style={styles.clockIcon} color={theme.secondary} />
+              ) : (
+                <UnlockIcon style={styles.clockIcon} color={theme.secondary} />
+              )}
+            </TouchableOpacity>
+          )}
+          {/* Clock icon button */}
           {!task.is_done && !readonly && (
             <TouchableOpacity
               style={styles.editDueDateButton}
@@ -198,7 +219,7 @@ const styles = StyleSheet.create({
   },
   clockIcon: {
     alignSelf: 'center',
-    marginLeft: baseTheme.margin[2],
+    marginLeft: baseTheme.margin[3],
     marginTop: 5,
   },
   container: {
