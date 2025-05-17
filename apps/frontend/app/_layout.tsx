@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -18,13 +18,25 @@ Sentry.init({
 SplashScreen.preventAutoHideAsync();
 
 function RootNavigation() {
-  const { loading } = useAuth();
+  const { session, loading } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     if (!loading) {
       SplashScreen.hide();
     }
   }, [loading]);
+
+  useEffect(() => {
+    if (loading) {
+      return;
+    }
+    if (!session) {
+      router.replace('/login');
+    } else {
+      router.replace('/(tabs)/tasks');
+    }
+  }, [loading, session, router]);
 
   return (
     <Stack>

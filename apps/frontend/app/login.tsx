@@ -139,6 +139,7 @@ export default function LoginScreen() {
               editable={!loading}
               onSubmitEditing={handleVerifyCode}
               returnKeyType="done"
+              autoComplete="one-time-code"
             />
             <Button
               title="Log in"

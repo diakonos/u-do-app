@@ -31,11 +31,12 @@ export default function TaskItem({
   revalidateKey,
   readonly = false, // Default to false
 }: TaskProps) {
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(true);
   const [name, setName] = useState(task.task_name);
   const [loading, setLoading] = useState(false);
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
+  const [inputHeight, setInputHeight] = useState(30);
   const theme = useTheme();
   const swipeableRef = useRef(null);
   const { session } = useAuth();
@@ -127,26 +128,53 @@ export default function TaskItem({
           </TouchableOpacity>
           <View style={styles.textAndDueDateWrap}>
             {editing && !readonly ? (
-              <TextInput
-                value={name}
-                onChangeText={setName}
-                onBlur={handleEdit}
-                onSubmitEditing={handleEdit}
-                style={[
-                  styles.text,
-                  styles.input,
-                  task.is_done && styles.doneText,
-                  { color: theme.text },
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  Platform.OS === 'web' && ({ outlineStyle: 'none' } as any),
-                ]}
-                autoFocus
-                underlineColorAndroid="transparent"
-                selectionColor={theme.text}
-                editable={!task.is_done && !readonly}
-              />
+              <View style={styles.textWrap}>
+                <TextInput
+                  value={name}
+                  onChangeText={setName}
+                  onBlur={handleEdit}
+                  onSubmitEditing={handleEdit}
+                  onKeyPress={e => {
+                    if (e.nativeEvent.key === 'Enter') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleEdit();
+                    }
+                  }}
+                  style={[
+                    styles.text,
+                    styles.input,
+                    task.is_done && styles.doneText,
+                    {
+                      color: theme.text,
+                      height: inputHeight,
+                    },
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    Platform.OS === 'web' && ({ outlineStyle: 'none' } as any),
+                  ]}
+                  autoFocus
+                  underlineColorAndroid="transparent"
+                  selectionColor={theme.text}
+                  editable={!task.is_done && !readonly}
+                  multiline
+                  scrollEnabled={false}
+                  selectTextOnFocus={false}
+                />
+                {/* Hidden text for measuring height */}
+                <Text
+                  style={[styles.text, task.is_done && styles.doneText, styles.measureText]}
+                  accessible={false}
+                  importantForAccessibility="no-hide-descendants"
+                  onLayout={e => {
+                    const height = e.nativeEvent.layout.height;
+                    console.log('Hidden text height:', height);
+                    setInputHeight(Math.max(30, height));
+                  }}
+                >
+                  {name || ' '}
+                </Text>
+              </View>
             ) : (
-              // @ts-expect-error "cursor: text" works for web
               <View style={styles.textWrap}>
                 <Text
                   style={[
@@ -154,7 +182,6 @@ export default function TaskItem({
                     { textDecorationColor: theme.doneLine },
                     task.is_done && styles.doneText,
                   ]}
-                  numberOfLines={1}
                 >
                   {task.task_name}
                 </Text>
@@ -244,23 +271,37 @@ const styles = StyleSheet.create({
   },
   // eslint-disable-next-line react-native/no-color-literals
   input: {
-    flex: 1,
     fontFamily: baseTheme.font.regular,
     fontSize: baseTheme.fontSize.medium,
+    left: 0,
     padding: 0,
+    position: 'absolute',
     shadowColor: 'transparent',
+    top: 0,
+    width: '100%',
+  },
+  measureText: {
+    fontFamily: baseTheme.font.regular,
+    fontSize: baseTheme.fontSize.medium,
+    left: 0,
+    opacity: 0,
+    padding: 0,
+    pointerEvents: 'none',
+    top: 0,
+    width: '100%',
   },
   text: {
-    flexShrink: 1,
+    // flexShrink: 1,
     lineHeight: 30,
   },
   textAndDueDateWrap: {
     flex: 1,
   },
   textWrap: {
-    cursor: 'text',
     flex: 1,
+    justifyContent: 'center',
     marginRight: 8,
+    minHeight: 30,
   },
   uncheckedBox: {
     borderWidth: 2,

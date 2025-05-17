@@ -1,22 +1,8 @@
-import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { ActivityIndicator } from 'react-native';
 import { useAuth } from '@/lib/auth';
-import { ActivityIndicator } from 'react-native-paper';
 
 export default function Homepage() {
-  const { loading, session } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (loading) {
-      return;
-    }
-    if (!session) {
-      router.replace('/login');
-    } else {
-      router.replace('/(tabs)/tasks');
-    }
-  }, [loading, session, router]);
+  const { loading } = useAuth();
 
   // Only render something while loading, otherwise nothing (since we redirect)
   if (!loading) {
