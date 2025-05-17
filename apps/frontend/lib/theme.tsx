@@ -1,5 +1,13 @@
-import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
-import { Platform } from 'react-native';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  ReactNode,
+  useCallback,
+} from 'react';
+import { ColorSchemeName, Platform } from 'react-native';
 import { Appearance } from 'react-native';
 
 export const baseTheme = {
@@ -79,20 +87,25 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const colorScheme = Appearance.getColorScheme();
   const [theme, setTheme] = useState(colorScheme === 'dark' ? darkTheme : lightTheme);
 
+  const updateTheme = useCallback((scheme: ColorSchemeName) => {
+    console.log('Updating theme to', scheme);
+    const newTheme = scheme === 'dark' ? darkTheme : lightTheme;
+    setTheme(newTheme);
+
+    if (Platform.OS === 'web') {
+      document?.querySelector!('meta[name="theme-color"]')?.setAttribute(
+        'content',
+        newTheme.background,
+      );
+    }
+  }, []);
+
   useEffect(() => {
     const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-      const newTheme = colorScheme === 'dark' ? darkTheme : lightTheme;
-      setTheme(newTheme);
-
-      if (Platform.OS === 'web') {
-        document?.querySelector!('meta[name="theme-color"]')?.setAttribute(
-          'content',
-          newTheme.background,
-        );
-      }
+      updateTheme(colorScheme);
     });
     return () => subscription.remove();
-  }, []);
+  }, [updateTheme]);
 
   const value = useMemo(() => theme, [theme]);
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

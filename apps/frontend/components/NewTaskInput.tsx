@@ -79,6 +79,8 @@ const styles = StyleSheet.create({
     textAlignVertical: 'center',
   },
   plusIcon: {
+    flexGrow: 0,
+    flexShrink: 0,
     height: 20,
     marginRight: baseTheme.margin[2],
     width: 20,
