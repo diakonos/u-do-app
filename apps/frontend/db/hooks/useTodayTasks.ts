@@ -13,7 +13,6 @@ export function useTodayTasks(userId: string | null) {
     isLoading,
     mutate,
   } = useSWR(revalidateKey, () => fetcher(userId!), {
-    revalidateOnFocus: true,
     suspense: true,
   });
 

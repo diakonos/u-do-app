@@ -31,7 +31,7 @@ export default function TaskItem({
   revalidateKey,
   readonly = false, // Default to false
 }: TaskProps) {
-  const [editing, setEditing] = useState(true);
+  const [editing, setEditing] = useState(false);
   const [name, setName] = useState(task.task_name);
   const [loading, setLoading] = useState(false);
   const [datePickerVisible, setDatePickerVisible] = useState(false);
@@ -107,6 +107,7 @@ export default function TaskItem({
     >
       <TouchableHighlight
         onPress={() => {
+          console.log('Task item pressed');
           if (!task.is_done && !readonly) setEditing(true);
         }}
         disabled={readonly || editing}
