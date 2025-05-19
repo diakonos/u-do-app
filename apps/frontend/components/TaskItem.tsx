@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { View, TextInput, StyleSheet, type ViewStyle, Platform } from 'react-native';
 import { TouchableOpacity, TouchableHighlight } from 'react-native-gesture-handler';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
@@ -39,6 +39,7 @@ export default function TaskItem({
   const [inputHeight, setInputHeight] = useState(30);
   const theme = useTheme();
   const swipeableRef = useRef(null);
+  const inputRef = useRef<TextInput>(null);
   const { session } = useAuth();
   const isCurrentUserTask = session?.user?.id === task.user_id;
 
@@ -98,6 +99,13 @@ export default function TaskItem({
       </TouchableOpacity>
     ) : null;
 
+  // Focus the input when editing becomes true
+  useEffect(() => {
+    if (editing && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [editing]);
+
   return (
     <Swipeable
       ref={swipeableRef}
@@ -131,6 +139,7 @@ export default function TaskItem({
             {editing && !readonly ? (
               <View style={styles.textWrap}>
                 <TextInput
+                  ref={inputRef}
                   value={name}
                   onChangeText={setName}
                   onBlur={handleEdit}

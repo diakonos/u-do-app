@@ -32,11 +32,7 @@ export function useAuth() {
 }
 
 export function useCurrentUserId() {
-  const [userId, setUserId] = useState<string | null>(null);
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUserId(data?.user?.id ?? null);
-    });
-  }, []);
+  const { session } = useAuth();
+  const userId = session?.user.id || null;
   return userId;
 }
