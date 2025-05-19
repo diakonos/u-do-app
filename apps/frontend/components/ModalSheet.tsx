@@ -60,34 +60,45 @@ export const ModalSheet: React.FC<ModalSheetProps> = ({
       <Pressable style={styles.modalTouch} onPress={onClose} testID={testID}>
         <Animated.View
           style={[styles.modalOverlay, { backgroundColor: theme.overlay, opacity: overlayAnim }]}
-        >
-          <Animated.View
-            style={[
-              styles.modalSheet,
-              {
-                backgroundColor: backgroundColor || theme.background,
-                paddingBottom: safeArea.bottom,
-                shadowColor: shadowColor || '#000000',
-                transform: [
-                  {
-                    translateY: sheetAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [Dimensions.get('window').height, 0],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            {children}
-          </Animated.View>
-        </Animated.View>
+        />
       </Pressable>
+      <Animated.View style={styles.modalContent} pointerEvents="box-none">
+        <Animated.View
+          style={[
+            styles.modalSheet,
+            {
+              backgroundColor: backgroundColor || theme.background,
+              paddingBottom: safeArea.bottom,
+              shadowColor: shadowColor || '#000000',
+              transform: [
+                {
+                  translateY: sheetAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [Dimensions.get('window').height, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          {children}
+        </Animated.View>
+      </Animated.View>
     </Portal>
   );
 };
 
 const styles = StyleSheet.create({
+  modalContent: {
+    alignItems: 'stretch',
+    bottom: 0,
+    justifyContent: 'flex-end',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 1001,
+  },
   modalOverlay: {
     alignItems: 'stretch',
     bottom: 0,
