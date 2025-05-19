@@ -48,7 +48,9 @@ export default function TabsLayout() {
         tabBarInactiveBackgroundColor: theme.background,
         tabBarBackground: BlurTabBarBackground,
         tabBarStyle: Platform.select({
-          default: {},
+          default: {
+            backgroundColor: theme.background,
+          },
           web: {
             borderColor: theme.borderFaint,
             height: 49 + safeArea.bottom,
