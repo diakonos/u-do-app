@@ -36,7 +36,7 @@ export default function FriendTasksCollapse({
           {completed}/{total}
         </Text>
         {open ? (
-          <CaretRightIcon rotation={-90} color={theme.text} style={styles.caret} />
+          <CaretRightIcon color={theme.text} style={[styles.caret, styles.caretDown]} />
         ) : (
           <CaretDownIcon color={theme.text} style={styles.caret} />
         )}
@@ -67,6 +67,7 @@ const styles = StyleSheet.create({
     marginLeft: baseTheme.margin[3],
     width: 20,
   },
+  caretDown: { transform: [{ rotate: '-90deg' }] },
   container: {
     borderRadius: baseTheme.borderRadius,
     overflow: 'hidden',
