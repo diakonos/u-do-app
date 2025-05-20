@@ -14,6 +14,7 @@ interface NewTaskInputProps {
   placeholder?: string;
   style?: ViewStyle | ViewStyle[];
   dueDate?: Date | null;
+  revalidateKey: string | null;
 }
 
 type CreateTaskArgs = { name: string; dueDate: Date | null | undefined };
@@ -23,6 +24,7 @@ export default function NewTaskInput({
   placeholder = 'New task',
   style,
   dueDate,
+  revalidateKey,
 }: NewTaskInputProps) {
   const [value, setValue] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,7 +33,7 @@ export default function NewTaskInput({
 
   // SWR mutation hook for creating a task
   const { trigger: triggerCreateTask } = useSWRMutation<Task[], Error, Key, CreateTaskArgs>(
-    userId ? `todayTasks:${userId}` : null,
+    revalidateKey,
     async (key: string, { arg }: { arg: { name: string; dueDate: Date | null | undefined } }) => {
       return [await createTask(userId!, arg.name, arg.dueDate)];
     },

@@ -20,17 +20,23 @@ function ScheduledTaskList() {
 
 export default function ScheduleScreen() {
   const theme = useTheme();
-  // Set default date to tomorrow
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const [date, setDate] = useState(tomorrow);
   const [modalVisible, setModalVisible] = useState(false);
+  const userId = useCurrentUserId();
+  const { revalidateKey } = useScheduledTasks(userId);
 
   return (
     <Screen>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <ScreenTitle>Scheduled tasks</ScreenTitle>
-        <NewTaskInput placeholder="New scheduled task" style={styles.newTask} dueDate={date} />
+        <NewTaskInput
+          placeholder="New scheduled task"
+          style={styles.newTask}
+          dueDate={date}
+          revalidateKey={revalidateKey}
+        />
         <View style={styles.dueDateContainer}>
           <Text style={{ color: theme.secondary }}>for</Text>
           <Text style={styles.dueDateLabel} weight="medium">
@@ -45,7 +51,6 @@ export default function ScheduleScreen() {
         <DatePickerModal
           visible={modalVisible}
           date={date}
-          onChange={() => {}}
           onCancel={() => setModalVisible(false)}
           onConfirm={d => {
             setDate(d);

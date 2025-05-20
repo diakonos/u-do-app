@@ -22,7 +22,7 @@ function TodayTaskList({ showFriendsTasks = true }: { showFriendsTasks?: boolean
   return (
     <View>
       <TaskList hideDueDate tasks={tasks} revalidateKey={revalidateKey} />
-      <NewTaskInput />
+      <NewTaskInput revalidateKey={revalidateKey} />
       <Button
         title="Archived tasks"
         onPress={() => router.push('/tasks/archive')}

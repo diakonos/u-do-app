@@ -3,6 +3,7 @@ import { View, TextInput, StyleSheet, type ViewStyle, Platform } from 'react-nat
 import { TouchableOpacity, TouchableHighlight } from 'react-native-gesture-handler';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { mutate } from 'swr';
+import useSWRMutation from 'swr/mutation';
 import Text from '@/components/Text';
 import {
   Task,
@@ -12,13 +13,12 @@ import {
   updateTaskDueDate,
   updateTaskIsPrivate,
 } from '@/db/tasks';
-import useSWRMutation from 'swr/mutation';
 import { baseTheme, useTheme } from '@/lib/theme';
 import CheckIcon from '@/assets/icons/check.svg';
 import ClockIcon from '@/assets/icons/clock.svg';
 import LockIcon from '@/assets/icons/lock.svg';
 import UnlockIcon from '@/assets/icons/unlock.svg';
-import { formatDateUI } from '@/lib/date';
+import { formatDateUI, formatDateYMD } from '@/lib/date';
 import DatePickerModal from '@/components/DatePickerModal';
 import { useAuth } from '@/lib/auth';
 
@@ -32,6 +32,9 @@ interface TaskProps {
 }
 
 type UpdateTaskIsPrivateArgs = { isPrivate: boolean };
+type UpdateTaskNameArgs = { name: string };
+type UpdateTaskDueDateArgs = { dueDate: Date };
+type UpdateTaskDoneArgs = { isDone: boolean };
 
 export default function TaskItem({
   task,
@@ -45,7 +48,13 @@ export default function TaskItem({
   const [name, setName] = useState(task.task_name);
   const [loading, setLoading] = useState(false);
   const [datePickerVisible, setDatePickerVisible] = useState(false);
-  const [isPrivate, setIsPrivate] = useState(task.is_private);
+  const [inputHeight, setInputHeight] = useState(30);
+  const theme = useTheme();
+  const swipeableRef = useRef(null);
+  const inputRef = useRef<TextInput>(null);
+  const { session } = useAuth();
+  const isCurrentUserTask = session?.user?.id === task.user_id;
+
   // SWR mutation for updating is_private with optimistic response
   const { trigger: triggerUpdateIsPrivate } = useSWRMutation<
     Task[],
@@ -55,7 +64,11 @@ export default function TaskItem({
   >(
     revalidateKey,
     async (key: string, { arg }: { arg: { isPrivate: boolean } }) => {
-      return [await updateTaskIsPrivate(task.id, arg.isPrivate)];
+      const updated = await updateTaskIsPrivate(task.id, arg.isPrivate);
+      if (onUpdate) {
+        onUpdate(updated);
+      }
+      return [updated];
     },
     {
       optimisticData: (currentData = []) => {
@@ -67,31 +80,79 @@ export default function TaskItem({
       revalidate: false,
     },
   );
-  const [inputHeight, setInputHeight] = useState(30);
-  const theme = useTheme();
-  const swipeableRef = useRef(null);
-  const inputRef = useRef<TextInput>(null);
-  const { session } = useAuth();
-  const isCurrentUserTask = session?.user?.id === task.user_id;
+
+  // SWR mutation for toggling completion with optimistic response
+  const { trigger: triggerToggleTaskDone } = useSWRMutation<
+    Task[],
+    Error,
+    string | null | undefined,
+    UpdateTaskDoneArgs
+  >(revalidateKey, async (key: string, { arg }: { arg: UpdateTaskDoneArgs }) => {
+    const updated = await toggleTaskDone(task.id, arg.isDone);
+    if (onUpdate) {
+      onUpdate(updated);
+    }
+    return [updated];
+  });
 
   const handleToggle = async () => {
     if (readonly) return; // Prevent toggle if readonly
     setLoading(true);
     try {
-      const updated = await toggleTaskDone(task.id, !task.is_done);
-      if (onUpdate) onUpdate(updated);
+      await triggerToggleTaskDone(
+        { isDone: !task.is_done },
+        {
+          optimisticData: (currentData = []) =>
+            currentData.map(t => (t.id === task.id ? { ...t, is_done: !task.is_done } : t)),
+          revalidate: false,
+        },
+      );
     } finally {
       setLoading(false);
     }
   };
+
+  // SWR mutation for updating task name with optimistic response (updates the list)
+  const { trigger: triggerUpdateTaskName } = useSWRMutation<
+    Task[],
+    Error,
+    string | null | undefined,
+    UpdateTaskNameArgs
+  >(revalidateKey, async (key: string, { arg }: { arg: UpdateTaskNameArgs }) => {
+    const updated = await updateTaskName(task.id, arg.name);
+    if (onUpdate) {
+      onUpdate(updated);
+    }
+    return [updated];
+  });
+
+  // SWR mutation for updating due date with optimistic response
+  const { trigger: triggerUpdateDueDate } = useSWRMutation<
+    Task[],
+    Error,
+    string | null | undefined,
+    UpdateTaskDueDateArgs
+  >(revalidateKey, async (key: string, { arg }: { arg: UpdateTaskDueDateArgs }) => {
+    const updated = await updateTaskDueDate(task.id, arg.dueDate);
+    if (onUpdate) {
+      onUpdate(updated);
+    }
+    return [updated];
+  });
 
   const handleEdit = async () => {
     if (readonly) return; // Prevent edit if readonly
     if (name !== task.task_name) {
       setLoading(true);
       try {
-        const updated = await updateTaskName(task.id, name);
-        if (onUpdate) onUpdate(updated);
+        await triggerUpdateTaskName(
+          { name },
+          {
+            optimisticData: (currentData = []) =>
+              currentData.map(t => (t.id === task.id ? { ...t, task_name: name } : t)),
+            revalidate: false,
+          },
+        );
       } finally {
         setLoading(false);
       }
@@ -111,8 +172,15 @@ export default function TaskItem({
     if (readonly) return; // Prevent due date change if readonly
     setLoading(true);
     try {
-      const updated = await updateTaskDueDate(task.id, newDate);
-      if (onUpdate) onUpdate(updated);
+      await triggerUpdateDueDate(
+        { dueDate: newDate },
+        {
+          optimisticData: (currentData = []) =>
+            currentData.map(t =>
+              t.id === task.id ? { ...t, due_date: newDate ? formatDateYMD(newDate) : null } : t,
+            ),
+        },
+      );
     } finally {
       setLoading(false);
     }
@@ -239,14 +307,13 @@ export default function TaskItem({
             <TouchableOpacity
               style={styles.editDueDateButton}
               onPress={async () => {
-                const newValue = !isPrivate;
-                setIsPrivate(newValue);
+                const newValue = !task.is_private;
                 await triggerUpdateIsPrivate({ isPrivate: newValue });
               }}
-              accessibilityLabel={isPrivate ? 'Set task public' : 'Set task private'}
+              accessibilityLabel={task.is_private ? 'Set task public' : 'Set task private'}
             >
-              {isPrivate ? (
-                <LockIcon style={styles.clockIcon} color={theme.secondary} />
+              {task.is_private ? (
+                <LockIcon style={styles.clockIcon} color={theme.primary} />
               ) : (
                 <UnlockIcon style={styles.clockIcon} color={theme.secondary} />
               )}
