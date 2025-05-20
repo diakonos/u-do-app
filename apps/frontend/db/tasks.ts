@@ -10,6 +10,7 @@ export interface Task {
   user_id: string;
   created_at: string;
   updated_at: string;
+  is_private: boolean;
 }
 
 // Fetch tasks due today or not done but updated today
@@ -79,6 +80,17 @@ export async function toggleTaskDone(taskId: number, isDone: boolean) {
   const { data, error } = await supabase
     .from('tasks')
     .update({ is_done: isDone, updated_at: generateTimestamp() })
+    .eq('id', taskId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as Task;
+}
+
+export async function updateTaskIsPrivate(taskId: number, isPrivate: boolean) {
+  const { data, error } = await supabase
+    .from('tasks')
+    .update({ is_private: isPrivate, updated_at: generateTimestamp() })
     .eq('id', taskId)
     .select()
     .single();

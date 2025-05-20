@@ -50,6 +50,7 @@ export default function NewTaskInput({
           user_id: userId!,
           is_done: false,
           due_date: dueDate ? formatDateForDBTimestamp(dueDate) : null,
+          is_private: false,
         };
         return [...currentData, optimisticTask];
       },

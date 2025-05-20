@@ -4,7 +4,15 @@ import { TouchableOpacity, TouchableHighlight } from 'react-native-gesture-handl
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { mutate } from 'swr';
 import Text from '@/components/Text';
-import { Task, updateTaskName, toggleTaskDone, deleteTask, updateTaskDueDate } from '@/db/tasks';
+import {
+  Task,
+  updateTaskName,
+  toggleTaskDone,
+  deleteTask,
+  updateTaskDueDate,
+  updateTaskIsPrivate,
+} from '@/db/tasks';
+import useSWRMutation from 'swr/mutation';
 import { baseTheme, useTheme } from '@/lib/theme';
 import CheckIcon from '@/assets/icons/check.svg';
 import ClockIcon from '@/assets/icons/clock.svg';
@@ -23,6 +31,8 @@ interface TaskProps {
   readonly?: boolean; // Add readonly prop
 }
 
+type UpdateTaskIsPrivateArgs = { isPrivate: boolean };
+
 export default function TaskItem({
   task,
   onUpdate,
@@ -35,7 +45,28 @@ export default function TaskItem({
   const [name, setName] = useState(task.task_name);
   const [loading, setLoading] = useState(false);
   const [datePickerVisible, setDatePickerVisible] = useState(false);
-  const [isPrivate, setIsPrivate] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(task.is_private);
+  // SWR mutation for updating is_private with optimistic response
+  const { trigger: triggerUpdateIsPrivate } = useSWRMutation<
+    Task[],
+    Error,
+    string | null | undefined,
+    UpdateTaskIsPrivateArgs
+  >(
+    revalidateKey,
+    async (key: string, { arg }: { arg: { isPrivate: boolean } }) => {
+      return [await updateTaskIsPrivate(task.id, arg.isPrivate)];
+    },
+    {
+      optimisticData: (currentData = []) => {
+        // Return a new array with the updated task
+        return currentData.map(t =>
+          t.id === task.id ? { ...t, is_private: !task.is_private } : t,
+        );
+      },
+      revalidate: false,
+    },
+  );
   const [inputHeight, setInputHeight] = useState(30);
   const theme = useTheme();
   const swipeableRef = useRef(null);
@@ -207,7 +238,11 @@ export default function TaskItem({
           {isCurrentUserTask && (
             <TouchableOpacity
               style={styles.editDueDateButton}
-              onPress={() => setIsPrivate(prev => !prev)}
+              onPress={async () => {
+                const newValue = !isPrivate;
+                setIsPrivate(newValue);
+                await triggerUpdateIsPrivate({ isPrivate: newValue });
+              }}
               accessibilityLabel={isPrivate ? 'Set task public' : 'Set task private'}
             >
               {isPrivate ? (
