@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
+import useSWRMutation from 'swr/mutation';
 import { View, TextInput, StyleSheet, ViewStyle } from 'react-native';
 import { Task, createTask } from '@/db/tasks';
 import { useCurrentUserId } from '@/lib/auth';
 import { baseTheme, useTheme } from '@/lib/theme';
 import PlusIcon from '@/assets/icons/plus.svg';
 import { Platform } from 'react-native';
+import { formatDateForDBTimestamp } from '@/lib/date';
+import { Key } from 'swr';
 
 interface NewTaskInputProps {
   onCreate?: (task: Task) => void;
@@ -12,6 +15,8 @@ interface NewTaskInputProps {
   style?: ViewStyle | ViewStyle[];
   dueDate?: Date | null;
 }
+
+type CreateTaskArgs = { name: string; dueDate: Date | null | undefined };
 
 export default function NewTaskInput({
   onCreate,
@@ -24,12 +29,42 @@ export default function NewTaskInput({
   const userId = useCurrentUserId();
   const theme = useTheme();
 
+  // SWR mutation hook for creating a task
+  const { trigger: triggerCreateTask } = useSWRMutation<Task[], Error, Key, CreateTaskArgs>(
+    userId ? `todayTasks:${userId}` : null,
+    async (key: string, { arg }: { arg: { name: string; dueDate: Date | null | undefined } }) => {
+      return [await createTask(userId!, arg.name, arg.dueDate)];
+    },
+    {
+      onSuccess(data) {
+        if (onCreate) {
+          onCreate(data[0]);
+        }
+      },
+      optimisticData: (currentData = []) => {
+        const optimisticTask: Task = {
+          id: 0,
+          task_name: value.trim(),
+          created_at: formatDateForDBTimestamp(new Date()),
+          updated_at: formatDateForDBTimestamp(new Date()),
+          user_id: userId!,
+          is_done: false,
+          due_date: dueDate ? formatDateForDBTimestamp(dueDate) : null,
+        };
+        return [...currentData, optimisticTask];
+      },
+      populateCache: (result, currentData = []) => {
+        return [...currentData, ...result];
+      },
+      revalidate: false,
+    },
+  );
+
   const handleCreate = async () => {
     if (!value.trim() || !userId) return;
     setLoading(true);
     try {
-      const task = await createTask(userId, value.trim(), dueDate);
-      if (onCreate) onCreate(task);
+      await triggerCreateTask({ name: value.trim(), dueDate });
       setValue('');
     } finally {
       setLoading(false);
