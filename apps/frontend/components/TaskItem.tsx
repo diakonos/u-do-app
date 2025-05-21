@@ -20,7 +20,7 @@ import LockIcon from '@/assets/icons/lock.svg';
 import UnlockIcon from '@/assets/icons/unlock.svg';
 import { formatDateUI, formatDateYMD } from '@/lib/date';
 import DatePickerModal from '@/components/DatePickerModal';
-import { useAuth } from '@/lib/auth';
+import { useCurrentUserId } from '@/lib/auth';
 
 interface TaskProps {
   hideDueDate?: boolean;
@@ -52,8 +52,8 @@ export default function TaskItem({
   const theme = useTheme();
   const swipeableRef = useRef(null);
   const inputRef = useRef<TextInput>(null);
-  const { session } = useAuth();
-  const isCurrentUserTask = session?.user?.id === task.user_id;
+  const userId = useCurrentUserId();
+  const isCurrentUserTask = userId === task.user_id;
 
   // SWR mutation for updating is_private with optimistic response
   const { trigger: triggerUpdateIsPrivate } = useSWRMutation<
@@ -132,13 +132,22 @@ export default function TaskItem({
     Error,
     string | null | undefined,
     UpdateTaskDueDateArgs
-  >(revalidateKey, async (key: string, { arg }: { arg: UpdateTaskDueDateArgs }) => {
-    const updated = await updateTaskDueDate(task.id, arg.dueDate);
-    if (onUpdate) {
-      onUpdate(updated);
-    }
-    return [updated];
-  });
+  >(
+    revalidateKey,
+    async (key: string, { arg }: { arg: UpdateTaskDueDateArgs }) => {
+      const updated = await updateTaskDueDate(task.id, arg.dueDate);
+      if (onUpdate) {
+        onUpdate(updated);
+      }
+      return [updated];
+    },
+    {
+      onSuccess: () => {
+        mutate(`scheduledTasks:${userId}`);
+        mutate(`todayTasks:${userId}`);
+      },
+    },
+  );
 
   const handleEdit = async () => {
     if (readonly) return; // Prevent edit if readonly
@@ -214,7 +223,6 @@ export default function TaskItem({
     >
       <TouchableHighlight
         onPress={() => {
-          console.log('Task item pressed');
           if (!task.is_done && !readonly) setEditing(true);
         }}
         disabled={readonly || editing}
@@ -276,7 +284,6 @@ export default function TaskItem({
                   importantForAccessibility="no-hide-descendants"
                   onLayout={e => {
                     const height = e.nativeEvent.layout.height;
-                    console.log('Hidden text height:', height);
                     setInputHeight(Math.max(30, height));
                   }}
                 >

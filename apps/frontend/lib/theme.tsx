@@ -88,7 +88,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState(colorScheme === 'dark' ? darkTheme : lightTheme);
 
   const updateTheme = useCallback((scheme: ColorSchemeName) => {
-    console.log('Updating theme to', scheme);
     const newTheme = scheme === 'dark' ? darkTheme : lightTheme;
     setTheme(newTheme);
 
