@@ -7,7 +7,7 @@ import * as Sentry from '@sentry/react-native';
 import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 import { ThemeProvider } from '@/lib/theme';
-import { AuthProvider, useAuth } from '@/lib/auth';
+import { AuthProvider, useAuth, useCurrentUserUsername } from '@/lib/auth';
 
 Sentry.init({
   dsn: 'https://95ef48dd1caf60feb863806b6d0877d6@o4509234354651136.ingest.us.sentry.io/4509234356355072',
@@ -20,6 +20,7 @@ SplashScreen.preventAutoHideAsync();
 function RootNavigation() {
   const { session, loading } = useAuth();
   const router = useRouter();
+  const username = useCurrentUserUsername();
 
   useEffect(() => {
     if (!loading) {
@@ -33,16 +34,19 @@ function RootNavigation() {
     }
     if (!session) {
       router.replace('/login');
+    } else if (!username) {
+      router.replace('/complete-profile');
     } else {
       router.replace('/(tabs)/tasks');
     }
-  }, [loading, session, router]);
+  }, [loading, session, router, username]);
 
   return (
     <Stack>
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="login" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="complete-profile" options={{ headerShown: false }} />
     </Stack>
   );
 }

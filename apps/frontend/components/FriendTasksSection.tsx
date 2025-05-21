@@ -6,6 +6,7 @@ import FriendTasksCollapse from '@/components/FriendTasksCollapse';
 import { Task } from '@/db/tasks';
 import { StyleSheet } from 'react-native';
 import { baseTheme } from '@/lib/theme';
+import Text from '@/components/Text';
 
 interface FriendData {
   friend_id: string;
@@ -25,7 +26,8 @@ export default function FriendTasksSection({ userId, friendTasksStyle }: FriendT
   );
   if (!userId || isLoading) return null;
   if (error) return null;
-  if (!data || data.length === 0) return null;
+  if (!data || data.length === 0)
+    return <Text style={styles.emptyMessage}>No friends pinned.</Text>;
   return (
     <View>
       {data.map(friend => {
@@ -45,5 +47,6 @@ export default function FriendTasksSection({ userId, friendTasksStyle }: FriendT
 }
 
 const styles = StyleSheet.create({
+  emptyMessage: { marginHorizontal: baseTheme.margin[3] },
   friend: { marginBottom: baseTheme.margin[3] },
 });

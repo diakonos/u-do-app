@@ -6,10 +6,8 @@ import Text from '@/components/Text';
 import Screen from '@/components/Screen';
 import ScreenTitle from '@/components/ScreenTitle';
 import { useCurrentUserId } from '@/lib/auth';
-import useSWR, { mutate } from 'swr';
+import { mutate } from 'swr';
 import {
-  getFriendsForUser,
-  listFriendRequests,
   searchUsersByUsername,
   sendFriendRequest,
   withdrawFriendRequest,
@@ -32,29 +30,7 @@ type StatusType =
   | { type: 'pending_received'; requestId: number }
   | { type: 'none' };
 
-function useFriendsData(userId: string | null) {
-  const friendsKey = userId ? `friends:${userId}` : null;
-  const requestsKey = userId ? `friendRequests:${userId}` : null;
-  const { data: friends, isLoading: loadingFriends } = useSWR(
-    friendsKey,
-    () => getFriendsForUser(userId!),
-    { suspense: true },
-  );
-  const { data: requests, isLoading: loadingRequests } = useSWR(
-    requestsKey,
-    () => listFriendRequests(userId!),
-    { suspense: true },
-  );
-  return {
-    friends: friends
-      ? [...friends].sort((a, b) =>
-          (a.friend_username || '').localeCompare(b.friend_username || ''),
-        )
-      : [],
-    requests: requests || [],
-    loading: loadingFriends || loadingRequests,
-  };
-}
+import { useFriendsData } from '@/db/hooks/useFriendsData';
 
 function FriendsList() {
   const userId = useCurrentUserId();

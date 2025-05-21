@@ -1,3 +1,4 @@
+import useSWR from 'swr';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from './supabase';
 import type { Session } from '@supabase/supabase-js';
@@ -35,4 +36,18 @@ export function useCurrentUserId() {
   const { session } = useAuth();
   const userId = session?.user.id || null;
   return userId;
+}
+
+export function useCurrentUserUsername() {
+  const userId = useCurrentUserId();
+  const { data } = useSWR(userId ? `userProfile:${userId}` : null, async () => {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('username')
+      .eq('user_id', userId)
+      .single();
+    if (error) throw error;
+    return data?.username || null;
+  });
+  return data ?? null;
 }
