@@ -327,12 +327,16 @@ export default function TaskItem({
             </TouchableOpacity>
           )}
           {/* Clock icon button */}
-          {!task.is_done && !readonly && (
+          {!readonly && (
             <TouchableOpacity
               style={styles.editDueDateButton}
               onPress={() => setDatePickerVisible(true)}
+              disabled={task.is_done}
             >
-              <ClockIcon style={styles.clockIcon} color={theme.secondary} />
+              <ClockIcon
+                style={[styles.clockIcon, task.is_done ? styles.hidden : {}]}
+                color={theme.secondary}
+              />
             </TouchableOpacity>
           )}
           <DatePickerModal
@@ -388,6 +392,7 @@ const styles = StyleSheet.create({
     cursor: 'pointer',
     flexGrow: 0,
   },
+  hidden: { opacity: 0 },
   // eslint-disable-next-line react-native/no-color-literals
   input: {
     fontFamily: baseTheme.font.regular,
