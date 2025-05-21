@@ -309,7 +309,14 @@ export default function TaskItem({
               </Text>
             ) : null}
           </View>
-          {/* Only show lock/unlock toggle for current user's tasks */}
+          {!task.is_done && !readonly && (
+            <TouchableOpacity
+              style={styles.editDueDateButton}
+              onPress={() => setDatePickerVisible(true)}
+            >
+              <ClockIcon style={styles.icon} color={theme.secondary} />
+            </TouchableOpacity>
+          )}
           {isCurrentUserTask && (
             <TouchableOpacity
               style={styles.editDueDateButton}
@@ -320,23 +327,10 @@ export default function TaskItem({
               accessibilityLabel={task.is_private ? 'Set task public' : 'Set task private'}
             >
               {task.is_private ? (
-                <LockIcon style={styles.clockIcon} color={theme.primary} />
+                <LockIcon style={styles.icon} color={theme.primary} />
               ) : (
-                <UnlockIcon style={styles.clockIcon} color={theme.secondary} />
+                <UnlockIcon style={styles.icon} color={theme.secondary} />
               )}
-            </TouchableOpacity>
-          )}
-          {/* Clock icon button */}
-          {!readonly && (
-            <TouchableOpacity
-              style={styles.editDueDateButton}
-              onPress={() => setDatePickerVisible(true)}
-              disabled={task.is_done}
-            >
-              <ClockIcon
-                style={[styles.clockIcon, task.is_done ? styles.hidden : {}]}
-                color={theme.secondary}
-              />
             </TouchableOpacity>
           )}
           <DatePickerModal
@@ -367,11 +361,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 20,
   },
-  clockIcon: {
-    alignSelf: 'center',
-    marginLeft: baseTheme.margin[3],
-    marginTop: 5,
-  },
   container: {
     flexDirection: 'row',
     paddingHorizontal: baseTheme.margin[3],
@@ -392,7 +381,11 @@ const styles = StyleSheet.create({
     cursor: 'pointer',
     flexGrow: 0,
   },
-  hidden: { opacity: 0 },
+  icon: {
+    alignSelf: 'center',
+    marginLeft: baseTheme.margin[3],
+    marginTop: 5,
+  },
   // eslint-disable-next-line react-native/no-color-literals
   input: {
     fontFamily: baseTheme.font.regular,
