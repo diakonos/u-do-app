@@ -1,35 +1,39 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import ShimmerPlaceHolder from 'react-native-shimmer-placeholder';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
 import TaskItem from '@/components/TaskItem';
 import { Task } from '@/db/tasks';
 import { baseTheme, useTheme } from '@/lib/theme';
 import Text from '@/components/Text';
 
 interface TaskListProps {
+  emptyMessage?: string | ReactNode;
   hideDueDate?: boolean;
   revalidateKey?: string | null;
+  style?: ViewStyle | ViewStyle[];
   tasks: Task[];
   readonly?: boolean; // Add readonly prop
 }
 
 export default function TaskList({
+  emptyMessage = 'No tasks',
   hideDueDate,
   tasks,
   revalidateKey,
   readonly = false,
+  style,
 }: TaskListProps) {
   const theme = useTheme();
 
   if (!tasks || tasks.length === 0) {
     return (
-      <View style={styles.empty}>
-        <Text style={{ color: theme.secondary }}>No tasks</Text>
+      <View style={[styles.empty, style]}>
+        <Text style={{ color: theme.secondary }}>{emptyMessage}</Text>
       </View>
     );
   }
   return (
-    <ScrollView style={styles.scroll}>
+    <ScrollView style={[styles.scroll, style]}>
       {tasks.map(task => (
         <TaskItem
           key={task.id}

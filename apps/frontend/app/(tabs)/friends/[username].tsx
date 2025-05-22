@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { View, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Alert } from 'react-native';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { useCurrentUserId } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
@@ -88,53 +88,62 @@ export default function FriendTasksScreen() {
 
   return (
     <Screen>
-      <View style={styles.headerRow}>
-        <ScreenTitle showBackButton>{username}&apos;s Tasks</ScreenTitle>
-        <TouchableOpacity onPress={handlePinToggle} style={styles.pinButton}>
-          <Text style={[styles.pinText, { color: isPinned ? theme.destructive : theme.brand }]}>
-            {isPinned ? 'Unpin from Today' : 'Pin to Today'}
-          </Text>
-        </TouchableOpacity>
+      <ScreenTitle showBackButton>{username}&apos;s Tasks</ScreenTitle>
+      <View style={styles.tasksContainer}>
+        {isLoading ? (
+          <TaskListLoading />
+        ) : (
+          <TaskList
+            tasks={tasks}
+            readonly
+            hideDueDate
+            emptyMessage={
+              <Text style={[styles.emptyContainer, { color: theme.secondary }]}>
+                No tasks for today
+              </Text>
+            }
+          />
+        )}
       </View>
-      {isLoading ? (
-        <TaskListLoading />
-      ) : tasks.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={{ color: theme.secondary }}>No tasks for today</Text>
-        </View>
-      ) : (
-        <TaskList tasks={tasks} readonly hideDueDate />
-      )}
-      {/* Unfriend button at the bottom */}
       {userId && friendUserId && (
-        <Button
-          title="Unfriend"
-          style={[styles.unfriendButton, { backgroundColor: theme.destructive }]}
-          onPress={handleUnfriend}
-        />
+        <View style={styles.buttons}>
+          <Button
+            style={[
+              styles.pinButton,
+              { backgroundColor: isPinned ? theme.destructive : theme.brand },
+            ]}
+            onPress={handlePinToggle}
+            title={isPinned ? 'Unpin from Today' : 'Pin to Today'}
+          />
+          {/* <TouchableOpacity onPress={handlePinToggle} style={styles.pinButton}>
+            <Text style={[styles.pinText, { color: isPinned ? theme.destructive : theme.brand }]}>
+              
+            </Text>
+          </TouchableOpacity> */}
+          <Button
+            title="Unfriend"
+            style={[styles.unfriendButton, { backgroundColor: theme.destructive }]}
+            onPress={handleUnfriend}
+          />
+        </View>
       )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  emptyContainer: { alignItems: 'center' },
-  headerRow: {
+  buttons: {
     alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: baseTheme.margin[2],
+    paddingHorizontal: baseTheme.margin[3],
   },
+  emptyContainer: { display: 'flex', justifyContent: 'center', textAlign: 'center' },
   pinButton: {
-    borderRadius: 6,
-    paddingHorizontal: 12,
-  },
-  pinText: {
-    fontWeight: 'bold',
-  },
-  unfriendButton: {
-    alignSelf: 'center',
     flexGrow: 0,
-    marginBottom: baseTheme.margin[3],
-    marginTop: baseTheme.margin[4],
+    maxWidth: 200,
+  },
+  tasksContainer: { marginBottom: baseTheme.margin[3] },
+  unfriendButton: {
+    flexGrow: 0,
   },
 });

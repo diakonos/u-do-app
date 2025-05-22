@@ -26,7 +26,7 @@ export default function TasksLayout() {
           <View style={styles.friendsHeader}>
             <ScreenTitle>Pinned friends</ScreenTitle>
             <Link href="/(tabs)/friends" style={styles.friendsLink}>
-              <Text style={{ color: theme.success }}>View all</Text>
+              <Text style={{ color: theme.link }}>View all</Text>
             </Link>
           </View>
           <FriendTasksSection userId={userId} />
