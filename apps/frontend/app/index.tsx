@@ -1,4 +1,4 @@
-import { ActivityIndicator } from 'react-native';
+import { Redirect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 
 export default function Homepage() {
@@ -10,6 +10,5 @@ export default function Homepage() {
     return null;
   }
 
-  // Optionally, show a loading spinner here
-  return <ActivityIndicator animating={true} size="large" />;
+  return <Redirect href="/(tabs)/tasks" />;
 }

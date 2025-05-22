@@ -38,8 +38,6 @@ function RootNavigation() {
       router.replace('/login');
     } else if (!username && !isLoadingUsername) {
       router.replace('/complete-profile');
-    } else {
-      router.replace('/(tabs)/tasks');
     }
   }, [loading, session, router, username, isLoadingUsername]);
 
