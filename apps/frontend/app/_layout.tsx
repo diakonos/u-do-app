@@ -20,7 +20,7 @@ SplashScreen.preventAutoHideAsync();
 function RootNavigation() {
   const { session, loading } = useAuth();
   const router = useRouter();
-  const username = useCurrentUserUsername();
+  const [username, isLoadingUsername] = useCurrentUserUsername();
 
   useEffect(() => {
     if (!loading) {
@@ -34,12 +34,12 @@ function RootNavigation() {
     }
     if (!session) {
       router.replace('/login');
-    } else if (!username) {
+    } else if (!username && !isLoadingUsername) {
       router.replace('/complete-profile');
     } else {
       router.replace('/(tabs)/tasks');
     }
-  }, [loading, session, router, username]);
+  }, [loading, session, router, username, isLoadingUsername]);
 
   return (
     <Stack>

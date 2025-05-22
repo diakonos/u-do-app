@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     display: 'flex',
     flexDirection: 'row',
-    marginBottom: baseTheme.margin[4],
+    marginBottom: baseTheme.margin[2],
     paddingLeft: baseTheme.margin[3],
   },
   dueDateLabel: { marginLeft: baseTheme.margin[2] },

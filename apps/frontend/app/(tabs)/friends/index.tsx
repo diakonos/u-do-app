@@ -19,6 +19,7 @@ import Button from '@/components/Button';
 import PlusIcon from '@/assets/icons/plus.svg';
 import FriendItem from '@/components/FriendItem';
 import FriendRequestItem from '@/components/FriendRequestItem';
+import { useFriendsData } from '@/db/hooks/useFriendsData';
 
 type UserProfile = { user_id: string; username: string };
 type Friend = { friend_id: string; friend_username: string };
@@ -29,8 +30,6 @@ type StatusType =
   | { type: 'pending_sent'; requestId: number }
   | { type: 'pending_received'; requestId: number }
   | { type: 'none' };
-
-import { useFriendsData } from '@/db/hooks/useFriendsData';
 
 function FriendsList() {
   const userId = useCurrentUserId();

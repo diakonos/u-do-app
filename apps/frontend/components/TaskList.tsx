@@ -3,7 +3,8 @@ import ShimmerPlaceHolder from 'react-native-shimmer-placeholder';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import TaskItem from '@/components/TaskItem';
 import { Task } from '@/db/tasks';
-import { baseTheme } from '@/lib/theme';
+import { baseTheme, useTheme } from '@/lib/theme';
+import Text from '@/components/Text';
 
 interface TaskListProps {
   hideDueDate?: boolean;
@@ -18,6 +19,15 @@ export default function TaskList({
   revalidateKey,
   readonly = false,
 }: TaskListProps) {
+  const theme = useTheme();
+
+  if (!tasks || tasks.length === 0) {
+    return (
+      <View style={styles.empty}>
+        <Text style={{ color: theme.secondary }}>No tasks</Text>
+      </View>
+    );
+  }
   return (
     <ScrollView style={styles.scroll}>
       {tasks.map(task => (
@@ -34,6 +44,11 @@ export default function TaskList({
 }
 
 const styles = StyleSheet.create({
+  empty: {
+    paddingHorizontal: baseTheme.margin[3],
+    paddingVertical: baseTheme.margin[2],
+    width: '100%',
+  },
   scroll: {
     flex: 1,
     width: '100%',

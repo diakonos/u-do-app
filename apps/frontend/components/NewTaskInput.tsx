@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 0,
     flexDirection: 'row',
-    height: 40,
+    height: 50,
     paddingHorizontal: baseTheme.margin[3],
     paddingVertical: baseTheme.margin[2],
   },

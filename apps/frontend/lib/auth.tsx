@@ -40,14 +40,17 @@ export function useCurrentUserId() {
 
 export function useCurrentUserUsername() {
   const userId = useCurrentUserId();
-  const { data } = useSWR(userId ? `userProfile:${userId}` : null, async () => {
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .select('username')
-      .eq('user_id', userId)
-      .single();
-    if (error) throw error;
-    return data?.username || null;
-  });
-  return data ?? null;
+  const { data: username, isLoading } = useSWR<string>(
+    userId ? `userProfile:${userId}` : null,
+    async () => {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('username')
+        .eq('user_id', userId)
+        .single();
+      if (error) throw error;
+      return data?.username || null;
+    },
+  );
+  return [username, isLoading];
 }
