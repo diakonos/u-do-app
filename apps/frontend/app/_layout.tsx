@@ -8,6 +8,8 @@ import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 import { ThemeProvider } from '@/lib/theme';
 import { AuthProvider, useAuth, useCurrentUserUsername } from '@/lib/auth';
+import { SWRConfig } from 'swr';
+import { localStorageSWRProvider } from '@/lib/state';
 
 Sentry.init({
   dsn: 'https://95ef48dd1caf60feb863806b6d0877d6@o4509234354651136.ingest.us.sentry.io/4509234356355072',
@@ -77,13 +79,15 @@ export default Sentry.wrap(function RootLayout() {
   if (!fontsLoaded) return null;
   return (
     <GestureHandlerRootView>
-      <ThemeProvider>
-        <PaperProvider>
-          <AuthProvider>
-            <RootNavigation />
-          </AuthProvider>
-        </PaperProvider>
-      </ThemeProvider>
+      <SWRConfig value={{ provider: localStorageSWRProvider }}>
+        <ThemeProvider>
+          <PaperProvider>
+            <AuthProvider>
+              <RootNavigation />
+            </AuthProvider>
+          </PaperProvider>
+        </ThemeProvider>
+      </SWRConfig>
     </GestureHandlerRootView>
   );
 });

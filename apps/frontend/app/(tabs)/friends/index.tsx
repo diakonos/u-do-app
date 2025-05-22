@@ -6,7 +6,6 @@ import Text from '@/components/Text';
 import Screen from '@/components/Screen';
 import ScreenTitle from '@/components/ScreenTitle';
 import { useCurrentUserId } from '@/lib/auth';
-import { mutate } from 'swr';
 import {
   searchUsersByUsername,
   sendFriendRequest,
@@ -20,6 +19,7 @@ import PlusIcon from '@/assets/icons/plus.svg';
 import FriendItem from '@/components/FriendItem';
 import FriendRequestItem from '@/components/FriendRequestItem';
 import { useFriendsData } from '@/db/hooks/useFriendsData';
+import { useSWRConfig } from 'swr';
 
 type UserProfile = { user_id: string; username: string };
 type Friend = { friend_id: string; friend_username: string };
@@ -37,6 +37,7 @@ function FriendsList() {
   const theme = useTheme();
   const router = useRouter();
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const { mutate } = useSWRConfig();
 
   const requestsKey = userId ? `friendRequests:${userId}` : null;
   const friendsKey = userId ? `friends:${userId}` : null;
@@ -132,6 +133,7 @@ function SearchResults({
 }) {
   const theme = useTheme();
   const router = useRouter();
+  const { mutate } = useSWRConfig();
   const [results, setResults] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | number | null>(null);

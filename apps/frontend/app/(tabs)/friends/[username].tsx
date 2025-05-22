@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { View, StyleSheet, Alert } from 'react-native';
-import useSWR, { mutate as globalMutate } from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import { useCurrentUserId } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import Screen from '@/components/Screen';
@@ -57,6 +57,7 @@ export default function FriendTasksScreen() {
   const { data: isPinned, mutate: mutatePin } = useIsPinned(userId, username);
   const { tasks = [], isLoading } = useTodayTasks(friendUserId);
   const router = useRouter();
+  const { mutate: globalMutate } = useSWRConfig();
 
   const handlePinToggle = useCallback(async () => {
     if (!userId || !username) return;
@@ -71,7 +72,7 @@ export default function FriendTasksScreen() {
     } catch {
       Alert.alert('Error', 'Could not update pin.');
     }
-  }, [isPinned, userId, username, mutatePin]);
+  }, [userId, username, isPinned, mutatePin, globalMutate]);
 
   // Unfriend handler (no extra query)
   const handleUnfriend = useCallback(async () => {
@@ -84,7 +85,7 @@ export default function FriendTasksScreen() {
     } catch {
       Alert.alert('Error', 'Could not unfriend.');
     }
-  }, [userId, friendUserId, username, router]);
+  }, [userId, friendUserId, globalMutate, username, router]);
 
   return (
     <Screen>

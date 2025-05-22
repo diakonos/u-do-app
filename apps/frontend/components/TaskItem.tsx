@@ -2,7 +2,6 @@ import { useRef, useState, useEffect } from 'react';
 import { View, TextInput, StyleSheet, type ViewStyle, Platform } from 'react-native';
 import { TouchableOpacity, TouchableHighlight } from 'react-native-gesture-handler';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
-import { mutate } from 'swr';
 import useSWRMutation from 'swr/mutation';
 import Text from '@/components/Text';
 import {
@@ -21,6 +20,7 @@ import UnlockIcon from '@/assets/icons/unlock.svg';
 import { formatDateUI, formatDateYMD } from '@/lib/date';
 import DatePickerModal from '@/components/DatePickerModal';
 import { useCurrentUserId } from '@/lib/auth';
+import { useSWRConfig } from 'swr';
 
 interface TaskProps {
   hideDueDate?: boolean;
@@ -44,6 +44,7 @@ export default function TaskItem({
   revalidateKey,
   readonly = false, // Default to false
 }: TaskProps) {
+  const { mutate } = useSWRConfig();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(task.task_name);
   const [loading, setLoading] = useState(false);
