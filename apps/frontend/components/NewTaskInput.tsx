@@ -142,6 +142,7 @@ const styles = StyleSheet.create({
     padding: 0,
     shadowColor: 'transparent',
     textAlignVertical: 'center',
+    width: '100%',
   },
   plusIcon: {
     flexGrow: 0,
