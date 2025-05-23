@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { baseTheme, useTheme } from '@/lib/theme';
 import Text from '@/components/Text';
@@ -7,24 +7,15 @@ import { useCurrentUserId } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import Screen from '@/components/Screen';
 import ScreenTitle from '@/components/ScreenTitle';
+import useSWR from 'swr';
+import { fetchProfile } from '@/db/profiles';
 
 export default function SettingsScreen() {
   const theme = useTheme();
   const userId = useCurrentUserId();
-  const [profile, setProfile] = useState<{ email?: string; username?: string }>({});
-
-  useEffect(() => {
-    async function fetchProfile() {
-      if (!userId) return;
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('email,username')
-        .eq('user_id', userId)
-        .single();
-      if (!error && data) setProfile(data);
-    }
-    fetchProfile();
-  }, [userId]);
+  const { data: profile } = useSWR(userId ? `profile:${userId}` : null, () =>
+    userId ? fetchProfile(userId) : null,
+  );
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -38,11 +29,11 @@ export default function SettingsScreen() {
         <View style={styles.infoBox}>
           <View style={styles.row}>
             <Text weight="medium">Username:</Text>
-            <Text style={styles.value}>{profile.username ?? '—'}</Text>
+            <Text style={styles.value}>{profile?.username ?? '—'}</Text>
           </View>
           <View style={styles.row}>
             <Text weight="medium">Email:</Text>
-            <Text style={styles.value}>{profile.email ?? '-'}</Text>
+            <Text style={styles.value}>{profile?.email ?? '-'}</Text>
           </View>
         </View>
         <Button title="Log out" onPress={handleLogout} style={styles.logoutButton} />
