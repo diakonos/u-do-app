@@ -80,5 +80,5 @@ const styles = StyleSheet.create({
   },
   dueDateLabel: { marginLeft: baseTheme.margin[2] },
   editDateButton: { marginLeft: baseTheme.margin[3] },
-  newTask: { marginBottom: baseTheme.margin[2] },
+  newTask: { marginBottom: baseTheme.margin[2], width: '100%' },
 });
