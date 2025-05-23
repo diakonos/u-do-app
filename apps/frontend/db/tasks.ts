@@ -48,7 +48,12 @@ export async function fetchScheduledTasks(userId: string) {
   return data as Task[];
 }
 
-export async function createTask(userId: string, taskName: string, dueDate?: Date | null) {
+export async function createTask(
+  userId: string,
+  taskName: string,
+  dueDate?: Date | null,
+  isPrivate: boolean = false,
+) {
   const { data, error } = await supabase
     .from('tasks')
     .insert([
@@ -56,6 +61,7 @@ export async function createTask(userId: string, taskName: string, dueDate?: Dat
         user_id: userId,
         task_name: taskName,
         due_date: dueDate ? formatDateYMD(dueDate) : null,
+        is_private: isPrivate,
         updated_at: generateTimestamp(),
       },
     ])

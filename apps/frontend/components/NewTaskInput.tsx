@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
+import { Key } from 'swr';
 import useSWRMutation from 'swr/mutation';
-import { View, TextInput, StyleSheet, ViewStyle } from 'react-native';
+import { View, TextInput, StyleSheet, ViewStyle, Platform } from 'react-native';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 import { Task, createTask } from '@/db/tasks';
 import { useCurrentUserId } from '@/lib/auth';
 import { baseTheme, useTheme } from '@/lib/theme';
 import PlusIcon from '@/assets/icons/plus.svg';
-import { Platform } from 'react-native';
+import LockIcon from '@/assets/icons/lock.svg';
+import UnlockIcon from '@/assets/icons/unlock.svg';
 import { formatDateForDBTimestamp } from '@/lib/date';
-import { Key } from 'swr';
 
 interface NewTaskInputProps {
   onCreate?: (task: Task) => void;
@@ -28,6 +30,7 @@ export default function NewTaskInput({
 }: NewTaskInputProps) {
   const [value, setValue] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(false);
   const userId = useCurrentUserId();
   const theme = useTheme();
 
@@ -35,7 +38,7 @@ export default function NewTaskInput({
   const { trigger: triggerCreateTask } = useSWRMutation<Task[], Error, Key, CreateTaskArgs>(
     revalidateKey,
     async (key: string, { arg }: { arg: { name: string; dueDate: Date | null | undefined } }) => {
-      return [await createTask(userId!, arg.name, arg.dueDate)];
+      return [await createTask(userId!, arg.name, arg.dueDate, isPrivate)];
     },
     {
       onSuccess(data) {
@@ -52,7 +55,7 @@ export default function NewTaskInput({
           user_id: userId!,
           is_done: false,
           due_date: dueDate ? formatDateForDBTimestamp(dueDate) : null,
-          is_private: false,
+          is_private: isPrivate,
         };
         return [...currentData, optimisticTask];
       },
@@ -92,6 +95,18 @@ export default function NewTaskInput({
         editable={!loading}
         returnKeyType="done"
       />
+      <TouchableOpacity
+        style={styles.lockButton}
+        onPress={() => setIsPrivate(p => !p)}
+        accessibilityLabel={isPrivate ? 'Set task public' : 'Set task private'}
+        disabled={loading}
+      >
+        {isPrivate ? (
+          <LockIcon style={styles.lockIcon} color={theme.primary} />
+        ) : (
+          <UnlockIcon style={styles.lockIcon} color={theme.secondary} />
+        )}
+      </TouchableOpacity>
     </View>
   );
 }
@@ -104,6 +119,18 @@ const styles = StyleSheet.create({
     height: 50,
     paddingHorizontal: baseTheme.margin[3],
     paddingVertical: baseTheme.margin[2],
+  },
+  lockButton: {
+    alignItems: 'flex-end',
+    flexGrow: 0,
+    flexShrink: 0,
+    height: 30,
+    justifyContent: 'center',
+    width: 30,
+  },
+  lockIcon: {
+    height: 21,
+    width: 18,
   },
   // eslint-disable-next-line react-native/no-color-literals
   newTaskInput: {
