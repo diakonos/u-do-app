@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { formatDateForDBTimestamp, formatDateYMD } from '@/lib/date';
+import { generateTimestamp } from '@/db/lib';
 
 // Get confirmed friends for a user
 export async function getFriendsForUser(userId: string) {
@@ -133,4 +134,52 @@ export async function unfriend(userId: string, friendUserId: string) {
   const { error: deleteError } = await supabase.from('friend_requests').delete().eq('id', data.id);
   if (deleteError) throw deleteError;
   return true;
+}
+
+// Enable a friend's permission to create tasks for the user
+export async function enableFriendCreateTasksPermission(userId: string, friendUserId: string) {
+  const { data, error } = await supabase
+    .from('friend_permissions')
+    .upsert(
+      {
+        user_id: userId,
+        friend_user_id: friendUserId,
+        create_tasks: true,
+        updated_at: generateTimestamp(),
+      },
+      { onConflict: 'user_id,friend_user_id' }, // This is the correct syntax for onConflict
+    )
+    .select();
+
+  if (error) throw error;
+  return data;
+}
+
+// Disable a friend's permission to create tasks for the user
+export async function disableFriendCreateTasksPermission(userId: string, friendUserId: string) {
+  const { data, error } = await supabase
+    .from('friend_permissions')
+    .update({
+      create_tasks: false,
+      updated_at: generateTimestamp(),
+    })
+    .eq('user_id', userId)
+    .eq('friend_user_id', friendUserId)
+    .select();
+
+  if (error) throw error;
+  return data;
+}
+
+// Get a friend's permission to create tasks for the user
+export async function getFriendCreateTasksPermission(userId: string, friendUserId: string) {
+  const { data, error } = await supabase
+    .from('friend_permissions')
+    .select('create_tasks')
+    .eq('user_id', userId)
+    .eq('friend_user_id', friendUserId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.create_tasks || false;
 }

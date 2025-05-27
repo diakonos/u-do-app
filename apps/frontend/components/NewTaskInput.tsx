@@ -17,6 +17,7 @@ interface NewTaskInputProps {
   style?: ViewStyle | ViewStyle[];
   dueDate?: Date | null;
   revalidateKey: string | null;
+  ownerUserId?: string; // Added ownerUserId prop
 }
 
 type CreateTaskArgs = { name: string; dueDate: Date | null | undefined };
@@ -27,18 +28,24 @@ export default function NewTaskInput({
   style,
   dueDate,
   revalidateKey,
+  ownerUserId, // Destructure ownerUserId
 }: NewTaskInputProps) {
   const [value, setValue] = useState('');
   const [loading, setLoading] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
-  const userId = useCurrentUserId();
+  const currentUserId = useCurrentUserId(); // Renamed to avoid conflict
   const theme = useTheme();
+
+  const taskOwnerId = ownerUserId || currentUserId; // Determine the owner of the task
 
   // SWR mutation hook for creating a task
   const { trigger: triggerCreateTask } = useSWRMutation<Task[], Error, Key, CreateTaskArgs>(
     revalidateKey,
     async (key: string, { arg }: { arg: { name: string; dueDate: Date | null | undefined } }) => {
-      return [await createTask(userId!, arg.name, arg.dueDate, isPrivate)];
+      // Use taskOwnerId when creating the task, pass currentUserId as assigned_by if creating for someone else
+      const assignedBy =
+        taskOwnerId && taskOwnerId !== currentUserId && currentUserId ? currentUserId : undefined;
+      return [await createTask(taskOwnerId!, arg.name, arg.dueDate, isPrivate, assignedBy)];
     },
     {
       onSuccess(data) {
@@ -52,22 +59,25 @@ export default function NewTaskInput({
           task_name: value.trim(),
           created_at: formatDateForDBTimestamp(new Date()),
           updated_at: formatDateForDBTimestamp(new Date()),
-          user_id: userId!,
+          user_id: taskOwnerId!, // Use taskOwnerId for optimistic update
           is_done: false,
           due_date: dueDate ? formatDateForDBTimestamp(dueDate) : null,
           is_private: isPrivate,
+          assigned_by:
+            taskOwnerId && taskOwnerId !== currentUserId && currentUserId
+              ? currentUserId
+              : undefined,
         };
         return [...currentData, optimisticTask];
       },
       populateCache: (result, currentData = []) => {
         return [...currentData, ...result];
       },
-      revalidate: false,
     },
   );
 
   const handleCreate = async () => {
-    if (!value.trim() || !userId) return;
+    if (!value.trim() || !taskOwnerId) return; // Use taskOwnerId in validation
     setLoading(true);
     try {
       await triggerCreateTask({ name: value.trim(), dueDate });
@@ -95,18 +105,21 @@ export default function NewTaskInput({
         editable={!loading}
         returnKeyType="done"
       />
-      <TouchableOpacity
-        style={styles.lockButton}
-        onPress={() => setIsPrivate(p => !p)}
-        accessibilityLabel={isPrivate ? 'Set task public' : 'Set task private'}
-        disabled={loading}
-      >
-        {isPrivate ? (
-          <LockIcon style={styles.lockIcon} color={theme.primary} />
-        ) : (
-          <UnlockIcon style={styles.lockIcon} color={theme.secondary} />
-        )}
-      </TouchableOpacity>
+      {/* Only show private/public toggle if creating task for current user */}
+      {taskOwnerId === currentUserId && (
+        <TouchableOpacity
+          style={styles.lockButton}
+          onPress={() => setIsPrivate(p => !p)}
+          accessibilityLabel={isPrivate ? 'Set task public' : 'Set task private'}
+          disabled={loading}
+        >
+          {isPrivate ? (
+            <LockIcon style={styles.lockIcon} color={theme.primary} />
+          ) : (
+            <UnlockIcon style={styles.lockIcon} color={theme.secondary} />
+          )}
+        </TouchableOpacity>
+      )}
     </View>
   );
 }

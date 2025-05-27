@@ -2,7 +2,9 @@ import { useRef, useState, useEffect } from 'react';
 import { View, TextInput, StyleSheet, type ViewStyle, Platform } from 'react-native';
 import { TouchableOpacity, TouchableHighlight } from 'react-native-gesture-handler';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import { useSWRConfig } from 'swr';
 import useSWRMutation from 'swr/mutation';
+import { Link } from 'expo-router';
 import Text from '@/components/Text';
 import {
   Task,
@@ -20,7 +22,6 @@ import UnlockIcon from '@/assets/icons/unlock.svg';
 import { formatDateUI, formatDateYMD } from '@/lib/date';
 import DatePickerModal from '@/components/DatePickerModal';
 import { useCurrentUserId } from '@/lib/auth';
-import { useSWRConfig } from 'swr';
 
 interface TaskProps {
   hideDueDate?: boolean;
@@ -304,10 +305,42 @@ export default function TaskItem({
                 </Text>
               </View>
             )}
-            {!hideDueDate && task.due_date ? (
-              <Text size="small" style={[styles.dueDate, { color: theme.secondary }]}>
-                {formatDateUI(new Date(task.due_date))}
-              </Text>
+            {(!hideDueDate && task.due_date) || task.assigned_by ? (
+              <View style={styles.dueDateAndAssignedWrap}>
+                {!hideDueDate && task.due_date ? (
+                  <Text size="small" style={[styles.dueDate, { color: theme.secondary }]}>
+                    {formatDateUI(new Date(task.due_date))}
+                  </Text>
+                ) : null}
+                {!hideDueDate && task.due_date && task.assigned_by ? (
+                  <Text size="small" style={[styles.separator, { color: theme.secondary }]}>
+                    •
+                  </Text>
+                ) : null}
+                {task.assigned_by ? (
+                  <Text size="small" style={[styles.assignedLabel, { color: theme.secondary }]}>
+                    {task.assigned_by === userId ? (
+                      'Assigned by you'
+                    ) : (
+                      <>
+                        Assigned by{' '}
+                        {task.assigned_by_username ? (
+                          <Link
+                            href={`/friends/${task.assigned_by_username}`}
+                            style={styles.usernameLink}
+                          >
+                            <Text size="small" style={{ color: theme.link }}>
+                              {task.assigned_by_username}
+                            </Text>
+                          </Link>
+                        ) : (
+                          'a friend'
+                        )}
+                      </>
+                    )}
+                  </Text>
+                ) : null}
+              </View>
             ) : null}
           </View>
           {!task.is_done && !readonly && (
@@ -347,6 +380,7 @@ export default function TaskItem({
 }
 
 const styles = StyleSheet.create({
+  assignedLabel: { marginTop: baseTheme.margin[1] },
   checkIcon: {
     height: 15,
     width: 15,
@@ -377,6 +411,12 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
   },
   dueDate: { marginTop: baseTheme.margin[1] },
+  dueDateAndAssignedWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: baseTheme.margin[1],
+    marginTop: baseTheme.margin[1],
+  },
   editDueDateButton: {
     alignSelf: 'stretch',
     cursor: 'pointer',
@@ -408,6 +448,7 @@ const styles = StyleSheet.create({
     top: 0,
     width: '100%',
   },
+  separator: { marginTop: baseTheme.margin[1] },
   text: {
     // flexShrink: 1,
     lineHeight: 30,
@@ -425,5 +466,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     height: 20,
     width: 20,
+  },
+  usernameLink: {
+    alignSelf: 'flex-start',
   },
 });

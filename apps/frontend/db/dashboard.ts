@@ -48,7 +48,9 @@ export async function loadDashboardFriendTasks(userId: string) {
   // Get all today's tasks for these friend IDs in a single query
   const { data: tasks, error: tasksError } = await supabase
     .from('tasks')
-    .select('id, task_name, due_date, is_done, created_at, updated_at, user_id')
+    .select(
+      'id, task_name, due_date, is_done, created_at, updated_at, user_id, is_private, assigned_by, assigned_by_profile:user_profiles!assigned_by(username)',
+    )
     .in('user_id', friendIds)
     .or(
       `and(is_done.eq.false,due_date.is.null),and(is_done.eq.false,due_date.lt.${tomorrowStr}),and(is_done.eq.true,updated_at.gte.${updatedAtMinTimestamp})`,
@@ -57,10 +59,21 @@ export async function loadDashboardFriendTasks(userId: string) {
   if (tasksError) throw tasksError;
 
   // Group tasks by friend_id
-  const tasksByFriend: Record<string, Task[]> = {};
-  for (const task of tasks ?? []) {
+  const tasksByFriend: Record<
+    string,
+    (Task & {
+      assigned_by_profile?: { username?: string } | null;
+    })[]
+  > = {};
+  for (const task of (tasks ?? []) as (Task & {
+    assigned_by_profile?: { username?: string } | null;
+  })[]) {
     if (!tasksByFriend[task.user_id]) tasksByFriend[task.user_id] = [];
-    tasksByFriend[task.user_id].push(task);
+    tasksByFriend[task.user_id].push({
+      ...task,
+      assigned_by_username: task.assigned_by_profile?.username,
+      assigned_by_profile: undefined,
+    });
   }
 
   // Merge friend info with their tasks

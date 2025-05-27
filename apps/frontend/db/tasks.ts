@@ -11,27 +11,37 @@ export interface Task {
   created_at: string;
   updated_at: string;
   is_private: boolean;
+  assigned_by?: string;
+  assigned_by_username?: string;
 }
 
 // Fetch tasks due today or not done but updated today
 export async function fetchTodayTasks(userId: string) {
   const updatedAtMin = new Date();
   updatedAtMin.setHours(0, 0, 0, 0);
-  const updatedAtMinTimeestamp = formatDateForDBTimestamp(updatedAtMin);
+  const updatedAtMinTimestamp = formatDateForDBTimestamp(updatedAtMin);
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   tomorrow.setHours(0, 0, 0, 0);
   const tomorrowStr = formatDateYMD(tomorrow);
   const { data, error } = await supabase
     .from('tasks')
-    .select('*')
+    .select('*, assigned_by_profile:user_profiles!assigned_by(username)')
     .eq('user_id', userId)
     .or(
-      `and(is_done.eq.false,due_date.is.null),and(is_done.eq.false,due_date.lt.${tomorrowStr}),and(is_done.eq.true,updated_at.gte.${updatedAtMinTimeestamp})`,
+      `and(is_done.eq.false,due_date.is.null),and(is_done.eq.false,due_date.lt.${tomorrowStr}),and(is_done.eq.true,updated_at.gte.${updatedAtMinTimestamp})`,
     )
     .order('created_at', { ascending: true });
   if (error) throw error;
-  return data as Task[];
+
+  // Transform the data to flatten the assigned_by_username
+  const tasks = data.map((task: Task & { assigned_by_profile?: { username?: string } | null }) => ({
+    ...task,
+    assigned_by_username: task.assigned_by_profile?.username,
+    assigned_by_profile: undefined, // Remove the nested object
+  }));
+
+  return tasks as Task[];
 }
 
 // Fetch scheduled (future, not done) tasks for a user
@@ -39,13 +49,21 @@ export async function fetchScheduledTasks(userId: string) {
   const today = formatDateYMD(new Date());
   const { data, error } = await supabase
     .from('tasks')
-    .select('*')
+    .select('*, assigned_by_profile:user_profiles!assigned_by(username)')
     .eq('user_id', userId)
     .eq('is_done', false)
     .gt('due_date', today)
     .order('due_date', { ascending: true });
   if (error) throw error;
-  return data as Task[];
+
+  // Transform the data to flatten the assigned_by_username
+  const tasks = data.map((task: Task & { assigned_by_profile?: { username?: string } | null }) => ({
+    ...task,
+    assigned_by_username: task.assigned_by_profile?.username,
+    assigned_by_profile: undefined, // Remove the nested object
+  }));
+
+  return tasks as Task[];
 }
 
 export async function createTask(
@@ -53,6 +71,7 @@ export async function createTask(
   taskName: string,
   dueDate?: Date | null,
   isPrivate: boolean = false,
+  assignedBy?: string,
 ) {
   const { data, error } = await supabase
     .from('tasks')
@@ -62,6 +81,7 @@ export async function createTask(
         task_name: taskName,
         due_date: dueDate ? formatDateYMD(dueDate) : null,
         is_private: isPrivate,
+        assigned_by: assignedBy,
         updated_at: generateTimestamp(),
       },
     ])

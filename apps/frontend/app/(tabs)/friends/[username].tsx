@@ -9,8 +9,15 @@ import ScreenTitle from '@/components/ScreenTitle';
 import Text from '@/components/Text';
 import TaskList, { TaskListLoading } from '@/components/TaskList';
 import { useTodayTasks } from '@/db/hooks/useTodayTasks';
+import { useFriendCreateTasksPermission } from '@/db/hooks/useFriendCreateTasksPermission'; // New import
 import { baseTheme, useTheme } from '@/lib/theme';
-import { pinFriend, unpinFriend, unfriend } from '@/db/friends';
+import {
+  pinFriend,
+  unpinFriend,
+  unfriend,
+  enableFriendCreateTasksPermission,
+  disableFriendCreateTasksPermission,
+} from '@/db/friends';
 import Button from '@/components/Button';
 
 function useUserIdFromUsername(username: string | undefined) {
@@ -55,6 +62,10 @@ export default function FriendTasksScreen() {
   const userId = useCurrentUserId();
   const { data: friendUserId } = useUserIdFromUsername(username);
   const { data: isPinned, mutate: mutatePin } = useIsPinned(userId, username);
+  const { data: canCreateTasks, mutate: mutateCanCreateTasks } = useFriendCreateTasksPermission(
+    userId,
+    friendUserId,
+  );
   const { tasks = [], isLoading } = useTodayTasks(friendUserId);
   const router = useRouter();
   const { mutate: globalMutate } = useSWRConfig();
@@ -87,6 +98,20 @@ export default function FriendTasksScreen() {
     }
   }, [userId, friendUserId, globalMutate, username, router]);
 
+  const handleCreateTasksPermissionToggle = useCallback(async () => {
+    if (!userId || !friendUserId) return;
+    try {
+      if (canCreateTasks) {
+        await disableFriendCreateTasksPermission(userId, friendUserId);
+      } else {
+        await enableFriendCreateTasksPermission(userId, friendUserId);
+      }
+      mutateCanCreateTasks();
+    } catch {
+      Alert.alert('Error', 'Could not update permission.');
+    }
+  }, [userId, friendUserId, canCreateTasks, mutateCanCreateTasks]);
+
   return (
     <Screen>
       <ScreenTitle showBackButton>{username}&apos;s Tasks</ScreenTitle>
@@ -116,11 +141,16 @@ export default function FriendTasksScreen() {
             onPress={handlePinToggle}
             title={isPinned ? 'Unpin from Today' : 'Pin to Today'}
           />
-          {/* <TouchableOpacity onPress={handlePinToggle} style={styles.pinButton}>
-            <Text style={[styles.pinText, { color: isPinned ? theme.destructive : theme.brand }]}>
-              
-            </Text>
-          </TouchableOpacity> */}
+          <Button
+            title={
+              canCreateTasks ? 'Disable creating tasks for you' : 'Allow to create tasks for you'
+            }
+            style={[
+              styles.permissionButton,
+              { backgroundColor: canCreateTasks ? theme.destructive : theme.brand },
+            ]}
+            onPress={handleCreateTasksPermissionToggle}
+          />
           <Button
             title="Unfriend"
             style={[styles.unfriendButton, { backgroundColor: theme.destructive }]}
@@ -139,6 +169,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: baseTheme.margin[3],
   },
   emptyContainer: { display: 'flex', justifyContent: 'center', textAlign: 'center' },
+  permissionButton: {
+    flexGrow: 0,
+    maxWidth: 300, // Adjust as needed
+  },
   pinButton: {
     flexGrow: 0,
     maxWidth: 200,

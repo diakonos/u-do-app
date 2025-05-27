@@ -1,10 +1,9 @@
 import React from 'react';
-import { View, ViewStyle } from 'react-native';
+import { StyleSheet, View, ViewStyle } from 'react-native';
 import useSWR from 'swr';
 import { loadDashboardFriendTasks } from '@/db/dashboard';
 import FriendTasksCollapse from '@/components/FriendTasksCollapse';
 import { Task } from '@/db/tasks';
-import { StyleSheet } from 'react-native';
 import { baseTheme } from '@/lib/theme';
 import Text from '@/components/Text';
 
@@ -36,6 +35,7 @@ export default function FriendTasksSection({ userId, friendTasksStyle }: FriendT
           <View key={friend.friend_id} style={friendTasksStyle}>
             <FriendTasksCollapse
               friendName={friend.friend_username}
+              friendUserId={friend.friend_id} // Pass friend_id as friendUserId
               tasks={tasks}
               style={styles.friend}
             />

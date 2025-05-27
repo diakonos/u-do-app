@@ -2,25 +2,33 @@ import React, { useState } from 'react';
 import { View, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
 import Text from '@/components/Text';
 import TaskList from '@/components/TaskList';
+import NewTaskInput from '@/components/NewTaskInput'; // Import NewTaskInput
 import CaretDownIcon from '@/assets/icons/caret-down.svg';
 import CaretRightIcon from '@/assets/icons/caret-right.svg';
 import { baseTheme, useTheme } from '@/lib/theme';
 import { Task } from '@/db/tasks';
+import { useCurrentUserId } from '@/lib/auth'; // Corrected import path
+import { useFriendCreateTasksPermission } from '@/db/hooks/useFriendCreateTasksPermission'; // Corrected import path
 
 interface FriendTasksCollapseProps {
   friendName: string;
+  friendUserId: string;
   tasks: Task[];
   style?: ViewStyle | ViewStyle[];
 }
 
 export default function FriendTasksCollapse({
   friendName,
+  friendUserId,
   tasks,
   style,
 }: FriendTasksCollapseProps) {
   const [open, setOpen] = useState(true); // Open by default
   const [expanded, setExpanded] = useState(false); // For show all/less
   const theme = useTheme();
+  const userId = useCurrentUserId();
+  const { data: canCreateTasks } = useFriendCreateTasksPermission(userId, friendUserId);
+
   const completed = tasks.filter(t => t.is_done).length;
   const total = tasks.length;
   const showToggle = total > 5;
@@ -54,6 +62,13 @@ export default function FriendTasksCollapse({
                 {expanded ? 'Show less tasks' : 'Show all tasks'}
               </Text>
             </TouchableOpacity>
+          )}
+          {canCreateTasks && (
+            <NewTaskInput
+              placeholder={`New task for ${friendName}`}
+              revalidateKey={`dashboard-friend-tasks:${userId}`}
+              ownerUserId={friendUserId}
+            />
           )}
         </View>
       )}
