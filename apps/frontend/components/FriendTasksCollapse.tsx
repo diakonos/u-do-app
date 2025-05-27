@@ -27,7 +27,7 @@ export default function FriendTasksCollapse({
   const [expanded, setExpanded] = useState(false); // For show all/less
   const theme = useTheme();
   const userId = useCurrentUserId();
-  const { data: canCreateTasks } = useFriendCreateTasksPermission(userId, friendUserId);
+  const { data: canCreateTasks } = useFriendCreateTasksPermission(friendUserId, userId);
 
   const completed = tasks.filter(t => t.is_done).length;
   const total = tasks.length;
