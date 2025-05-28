@@ -398,9 +398,11 @@ const styles = StyleSheet.create({
     width: 15,
   },
   checkbox: {
-    alignSelf: 'flex-start',
-    marginRight: baseTheme.margin[2],
-    marginTop: 5,
+    alignItems: 'center',
+    display: 'flex',
+    minHeight: 40,
+    minWidth: 40,
+    paddingTop: baseTheme.margin[2],
   },
   checkedBox: {
     alignItems: 'center',
@@ -410,9 +412,8 @@ const styles = StyleSheet.create({
   },
   container: {
     flexDirection: 'row',
-    paddingLeft: baseTheme.margin[3],
-    paddingRight: baseTheme.margin[2],
-    paddingVertical: baseTheme.margin[2],
+    paddingHorizontal: baseTheme.margin[2],
+    paddingVertical: baseTheme.margin[1],
   },
   deleteButton: {
     alignItems: 'center',
@@ -428,7 +429,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: baseTheme.margin[1],
-    marginTop: baseTheme.margin[1],
   },
   editDueDateButton: {
     alignItems: 'center',
@@ -446,8 +446,7 @@ const styles = StyleSheet.create({
     fontFamily: baseTheme.font.regular,
     fontSize: baseTheme.fontSize.medium,
     left: 0,
-    padding: 0,
-    position: 'absolute',
+    // paddingTop: 0,
     shadowColor: 'transparent',
     top: 0,
     width: '100%',
@@ -459,6 +458,7 @@ const styles = StyleSheet.create({
     opacity: 0,
     padding: 0,
     pointerEvents: 'none',
+    position: 'absolute',
     top: 0,
     width: '100%',
   },
@@ -468,12 +468,12 @@ const styles = StyleSheet.create({
   },
   textAndDueDateWrap: {
     flex: 1,
+    marginLeft: baseTheme.margin[1],
   },
   textWrap: {
     flex: 1,
-    justifyContent: 'center',
     marginRight: 8,
-    minHeight: 30,
+    paddingTop: 5,
   },
   uncheckedBox: {
     borderWidth: 2,
