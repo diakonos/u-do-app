@@ -154,6 +154,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
     outlineColor: 'transparent',
     padding: 0,
+    paddingLeft: baseTheme.margin[1],
     shadowColor: 'transparent',
     textAlignVertical: 'center',
     width: '100%',
