@@ -36,6 +36,7 @@ type UpdateTaskIsPrivateArgs = { isPrivate: boolean };
 type UpdateTaskNameArgs = { name: string };
 type UpdateTaskDueDateArgs = { dueDate: Date };
 type UpdateTaskDoneArgs = { isDone: boolean };
+type DeleteTaskArgs = { taskId: number };
 
 export default function TaskItem({
   task,
@@ -48,7 +49,6 @@ export default function TaskItem({
   const { mutate } = useSWRConfig();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(task.task_name);
-  const [loading, setLoading] = useState(false);
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [inputHeight, setInputHeight] = useState(30);
   const theme = useTheme();
@@ -58,7 +58,7 @@ export default function TaskItem({
   const isCurrentUserTask = userId === task.user_id;
 
   // SWR mutation for updating is_private with optimistic response
-  const { trigger: triggerUpdateIsPrivate } = useSWRMutation<
+  const { trigger: triggerUpdateIsPrivate, isMutating: isUpdatingPrivate } = useSWRMutation<
     Task[],
     Error,
     string | null | undefined,
@@ -84,7 +84,7 @@ export default function TaskItem({
   );
 
   // SWR mutation for toggling completion with optimistic response
-  const { trigger: triggerToggleTaskDone } = useSWRMutation<
+  const { trigger: triggerToggleTaskDone, isMutating: isTogglingDone } = useSWRMutation<
     Task[],
     Error,
     string | null | undefined,
@@ -99,23 +99,18 @@ export default function TaskItem({
 
   const handleToggle = async () => {
     if (readonly) return; // Prevent toggle if readonly
-    setLoading(true);
-    try {
-      await triggerToggleTaskDone(
-        { isDone: !task.is_done },
-        {
-          optimisticData: (currentData = []) =>
-            currentData.map(t => (t.id === task.id ? { ...t, is_done: !task.is_done } : t)),
-          revalidate: false,
-        },
-      );
-    } finally {
-      setLoading(false);
-    }
+    await triggerToggleTaskDone(
+      { isDone: !task.is_done },
+      {
+        optimisticData: (currentData = []) =>
+          currentData.map(t => (t.id === task.id ? { ...t, is_done: !task.is_done } : t)),
+        revalidate: false,
+      },
+    );
   };
 
   // SWR mutation for updating task name with optimistic response (updates the list)
-  const { trigger: triggerUpdateTaskName } = useSWRMutation<
+  const { trigger: triggerUpdateTaskName, isMutating: isUpdatingName } = useSWRMutation<
     Task[],
     Error,
     string | null | undefined,
@@ -129,7 +124,7 @@ export default function TaskItem({
   });
 
   // SWR mutation for updating due date with optimistic response
-  const { trigger: triggerUpdateDueDate } = useSWRMutation<
+  const { trigger: triggerUpdateDueDate, isMutating: isUpdatingDueDate } = useSWRMutation<
     Task[],
     Error,
     string | null | undefined,
@@ -151,50 +146,67 @@ export default function TaskItem({
     },
   );
 
+  // SWR mutation for deleting task with optimistic response
+  const { trigger: triggerDeleteTask, isMutating: isDeleting } = useSWRMutation<
+    Task[],
+    Error,
+    string | null | undefined,
+    DeleteTaskArgs
+  >(
+    revalidateKey,
+    async (key: string, { arg }: { arg: DeleteTaskArgs }) => {
+      await deleteTask(arg.taskId);
+      return [];
+    },
+    {
+      optimisticData: (currentData = []) => {
+        // Remove the task from the current data optimistically
+        return currentData.filter(t => t.id !== task.id);
+      },
+      revalidate: false,
+      onSuccess: () => {
+        // Revalidate related data after successful deletion
+        mutate(`scheduledTasks:${userId}`);
+        mutate(`todayTasks:${userId}`);
+      },
+    },
+  );
+
+  // Combined loading state from all mutations
+  const loading =
+    isUpdatingPrivate || isTogglingDone || isUpdatingName || isUpdatingDueDate || isDeleting;
+
   const handleEdit = async () => {
     if (readonly) return; // Prevent edit if readonly
     if (name !== task.task_name) {
-      setLoading(true);
-      try {
-        await triggerUpdateTaskName(
-          { name },
-          {
-            optimisticData: (currentData = []) =>
-              currentData.map(t => (t.id === task.id ? { ...t, task_name: name } : t)),
-            revalidate: false,
-          },
-        );
-      } finally {
-        setLoading(false);
-      }
+      await triggerUpdateTaskName(
+        { name },
+        {
+          optimisticData: (currentData = []) =>
+            currentData.map(t => (t.id === task.id ? { ...t, task_name: name } : t)),
+          revalidate: false,
+        },
+      );
     }
     setEditing(false);
   };
 
   const handleDelete = async () => {
     if (readonly) return; // Prevent delete if readonly
-    await deleteTask(task.id);
-    if (revalidateKey) {
-      mutate(revalidateKey);
-    }
+    await triggerDeleteTask({ taskId: task.id });
   };
 
   const handleDueDateChange = async (newDate: Date) => {
     if (readonly) return; // Prevent due date change if readonly
-    setLoading(true);
-    try {
-      await triggerUpdateDueDate(
-        { dueDate: newDate },
-        {
-          optimisticData: (currentData = []) =>
-            currentData.map(t =>
-              t.id === task.id ? { ...t, due_date: newDate ? formatDateYMD(newDate) : null } : t,
-            ),
-        },
-      );
-    } finally {
-      setLoading(false);
-    }
+    await triggerUpdateDueDate(
+      { dueDate: newDate },
+      {
+        optimisticData: (currentData = []) =>
+          currentData.map(t =>
+            t.id === task.id ? { ...t, due_date: newDate ? formatDateYMD(newDate) : null } : t,
+          ),
+      },
+    );
     setDatePickerVisible(false);
   };
 
