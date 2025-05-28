@@ -410,7 +410,8 @@ const styles = StyleSheet.create({
   },
   container: {
     flexDirection: 'row',
-    paddingHorizontal: baseTheme.margin[3],
+    paddingLeft: baseTheme.margin[3],
+    paddingRight: baseTheme.margin[2],
     paddingVertical: baseTheme.margin[2],
   },
   deleteButton: {
@@ -430,14 +431,15 @@ const styles = StyleSheet.create({
     marginTop: baseTheme.margin[1],
   },
   editDueDateButton: {
-    alignSelf: 'stretch',
+    alignItems: 'center',
     cursor: 'pointer',
     flexGrow: 0,
+    justifyContent: 'center',
+    minHeight: 40,
+    minWidth: 40,
   },
   icon: {
     alignSelf: 'center',
-    marginLeft: baseTheme.margin[3],
-    marginTop: 5,
   },
   // eslint-disable-next-line react-native/no-color-literals
   input: {
@@ -462,7 +464,6 @@ const styles = StyleSheet.create({
   },
   separator: { marginTop: baseTheme.margin[1] },
   text: {
-    // flexShrink: 1,
     lineHeight: 30,
   },
   textAndDueDateWrap: {
