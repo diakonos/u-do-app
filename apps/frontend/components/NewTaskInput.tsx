@@ -31,7 +31,6 @@ export default function NewTaskInput({
   ownerUserId, // Destructure ownerUserId
 }: NewTaskInputProps) {
   const [value, setValue] = useState('');
-  const [loading, setLoading] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
   const currentUserId = useCurrentUserId(); // Renamed to avoid conflict
   const theme = useTheme();
@@ -39,7 +38,12 @@ export default function NewTaskInput({
   const taskOwnerId = ownerUserId || currentUserId; // Determine the owner of the task
 
   // SWR mutation hook for creating a task
-  const { trigger: triggerCreateTask } = useSWRMutation<Task[], Error, Key, CreateTaskArgs>(
+  const { trigger: triggerCreateTask, isMutating: isCreatingTask } = useSWRMutation<
+    Task[],
+    Error,
+    Key,
+    CreateTaskArgs
+  >(
     revalidateKey,
     async (key: string, { arg }: { arg: { name: string; dueDate: Date | null | undefined } }) => {
       // Use taskOwnerId when creating the task, pass currentUserId as assigned_by if creating for someone else
@@ -78,13 +82,8 @@ export default function NewTaskInput({
 
   const handleCreate = async () => {
     if (!value.trim() || !taskOwnerId) return; // Use taskOwnerId in validation
-    setLoading(true);
-    try {
-      await triggerCreateTask({ name: value.trim(), dueDate });
-      setValue('');
-    } finally {
-      setLoading(false);
-    }
+    setValue('');
+    await triggerCreateTask({ name: value.trim(), dueDate });
   };
 
   return (
@@ -102,7 +101,7 @@ export default function NewTaskInput({
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           Platform.OS === 'web' && ({ outlineStyle: 'none' } as any),
         ]}
-        editable={!loading}
+        editable={!isCreatingTask}
         returnKeyType="done"
       />
       {/* Only show private/public toggle if creating task for current user */}
@@ -111,7 +110,7 @@ export default function NewTaskInput({
           style={styles.lockButton}
           onPress={() => setIsPrivate(p => !p)}
           accessibilityLabel={isPrivate ? 'Set task public' : 'Set task private'}
-          disabled={loading}
+          disabled={isCreatingTask}
         >
           {isPrivate ? (
             <LockIcon style={styles.lockIcon} color={theme.primary} />

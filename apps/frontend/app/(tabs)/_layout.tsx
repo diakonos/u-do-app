@@ -95,7 +95,6 @@ export default function TabsLayout() {
           tabBarLabel: 'Settings',
         }}
       />
-      <Tabs.Screen name="archive" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -62,7 +62,7 @@ export const ModalSheet: React.FC<ModalSheetProps> = ({
           style={[styles.modalOverlay, { backgroundColor: theme.overlay, opacity: overlayAnim }]}
         />
       </Pressable>
-      <Animated.View style={styles.modalContent} pointerEvents="box-none">
+      <Animated.View style={styles.modalContent}>
         <Animated.View
           style={[
             styles.modalSheet,
@@ -94,6 +94,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'flex-end',
     left: 0,
+    pointerEvents: 'box-none',
     position: 'absolute',
     right: 0,
     top: 0,
