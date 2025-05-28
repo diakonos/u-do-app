@@ -77,6 +77,7 @@ export default function NewTaskInput({
       populateCache: (result, currentData = []) => {
         return [...currentData, ...result];
       },
+      revalidate: false,
     },
   );
 

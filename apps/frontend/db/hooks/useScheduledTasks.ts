@@ -49,8 +49,8 @@ export function useScheduledTasks(userId: string | null) {
 
           if (eventType === 'INSERT' && isScheduled) {
             updatedTasks = [
-              newTask as Task,
               ...updatedTasks.filter(t => t.id !== (newTask as Task).id),
+              newTask as Task,
             ];
           } else if (eventType === 'UPDATE') {
             updatedTasks = updatedTasks.map(t =>

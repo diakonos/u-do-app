@@ -34,7 +34,7 @@ export function useTodayTasks(userId: string | null) {
           let updatedTasks = tasks ? [...tasks] : [];
           if (eventType === 'INSERT') {
             if (newTask.due_date === today || (!newTask.due_date && !newTask.is_done)) {
-              updatedTasks = [newTask, ...updatedTasks.filter(t => t.id !== newTask.id)];
+              updatedTasks = [...updatedTasks.filter(t => t.id !== newTask.id), newTask];
             }
           } else if (eventType === 'UPDATE') {
             updatedTasks = updatedTasks.map(t => (t.id === newTask.id ? newTask : t));
