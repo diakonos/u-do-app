@@ -1,12 +1,20 @@
-import { useEffect, useState, Suspense } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { Suspense, useCallback } from 'react';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  ViewStyle,
+  TextStyle,
+} from 'react-native';
 import useSWRInfinite from 'swr/infinite';
-import useSWR from 'swr';
+import useSWR, { mutate } from 'swr';
 import { baseTheme, useTheme } from '@/lib/theme';
 import TaskList, { TaskListLoading } from '@/components/TaskList';
 import { useCurrentUserId } from '@/lib/auth';
 import Screen from '@/components/Screen';
-import { fetchArchivedTasks, fetchArchivedTasksCount } from '@/db/tasks';
+import { fetchArchivedTasks, fetchArchivedTasksCount, clearArchivedTasks } from '@/db/tasks';
 import ScreenTitle from '@/components/ScreenTitle';
 import Text from '@/components/Text';
 
@@ -17,7 +25,7 @@ function useArchivedTasksInfinite(userId: string | null) {
     (index, prevData) => {
       if (!userId) return null;
       if (prevData && prevData.length === 0) return null; // reached end
-      return `${userId}:${index + 1}`;
+      return `archivedTasks-${userId}:${index + 1}`;
     },
     async key => {
       const page = parseInt(key.split(':')[1], 10);
@@ -34,13 +42,10 @@ function useArchivedTasksCountSWR(userId: string | null) {
   return data;
 }
 
-function ArchivedTaskList({ onCount }: { onCount?: (count: number) => void }) {
+function ArchivedTaskList({ count }: { count?: number }) {
   const userId = useCurrentUserId();
   const { data, size, setSize, isValidating } = useArchivedTasksInfinite(userId);
-  const count = useArchivedTasksCountSWR(userId);
-  useEffect(() => {
-    if (typeof count === 'number' && onCount) onCount(count);
-  }, [count, onCount]);
+
   const allTasks = data ? data.flat() : [];
   const hasMore =
     typeof count === 'number'
@@ -64,17 +69,62 @@ function ArchivedTaskList({ onCount }: { onCount?: (count: number) => void }) {
 
 export default function ArchiveScreen() {
   const theme = useTheme();
-  const [total, setTotal] = useState<number | null>(null);
+  const userId = useCurrentUserId();
+  const count = useArchivedTasksCountSWR(userId);
+
+  const handleClearAll = useCallback(async () => {
+    if (!userId) return;
+
+    Alert.alert(
+      'Clear All Archived Tasks',
+      'Are you sure you want to permanently delete all archived tasks? This action cannot be undone.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Clear All',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await clearArchivedTasks(userId);
+              // Invalidate all SWR caches related to archived tasks
+              mutate((key: string | null) => {
+                if (key?.startsWith(`archivedTasks-${userId}:`)) return null;
+                return key;
+              });
+              mutate(`archivedTasksCount-${userId}`);
+            } catch (error) {
+              console.error('Failed to clear archived tasks:', error);
+              Alert.alert('Error', 'Failed to clear archived tasks. Please try again.');
+            }
+          },
+        },
+      ],
+      { cancelable: true },
+    );
+  }, [userId]);
 
   return (
     <Screen>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        <ScreenTitle showBackButton>
-          Archived Tasks{typeof total === 'number' ? ` (${total})` : ''}
-        </ScreenTitle>
+        <View style={styles.header}>
+          <ScreenTitle showBackButton style={styles.title}>
+            Archived Tasks{typeof count === 'number' ? ` (${count})` : ''}
+          </ScreenTitle>
+          {count !== undefined && count > 0 && (
+            <TouchableOpacity
+              style={[styles.clearButton, { backgroundColor: theme.primary }]}
+              onPress={handleClearAll}
+            >
+              <Text style={[styles.clearButtonText, { color: theme.background }]}>Clear All</Text>
+            </TouchableOpacity>
+          )}
+        </View>
         <View style={[styles.container, { backgroundColor: theme.background || '#fff' }]}>
           <Suspense fallback={<TaskListLoading />}>
-            <ArchivedTaskList onCount={setTotal} />
+            <ArchivedTaskList count={count} />
           </Suspense>
         </View>
       </ScrollView>
@@ -88,8 +138,26 @@ export const options = {
 };
 
 const styles = StyleSheet.create({
+  clearButton: {
+    alignItems: 'center',
+    borderRadius: 4,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  } as ViewStyle,
+  clearButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+  } as TextStyle,
   container: {
     flex: 1,
+  },
+  header: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    paddingHorizontal: 16,
   },
   loadMoreBtn: {
     padding: baseTheme.margin[2],
@@ -104,5 +172,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+  },
+  title: {
+    flex: 1,
   },
 });
