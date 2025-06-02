@@ -24,6 +24,8 @@ const CalendarDatePicker: React.FC<CalendarDatePickerProps> = ({ date, onChange,
         style={{ backgroundColor: theme.background }}
         styles={{
           day_label: { color: theme.text },
+          disabled: { opacity: 0.5 },
+          disabled_label: { opacity: 0.5 },
           month_label: { color: theme.text },
           month_selector_label: { color: theme.text },
           selected_label: { color: theme.white },

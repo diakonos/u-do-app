@@ -27,7 +27,7 @@ export default function DatePickerModal({
   return (
     <ModalSheet visible={visible} onClose={onCancel}>
       <View style={styles.modal}>
-        <DatePicker date={pendingDate} onChange={setPendingDate} />
+        <DatePicker date={pendingDate} onChange={setPendingDate} minDate={new Date()} />
         <View style={styles.buttons}>
           <Button title="Cancel" onPress={onCancel} />
           <Button title="Confirm" onPress={() => onConfirm(pendingDate)} />
