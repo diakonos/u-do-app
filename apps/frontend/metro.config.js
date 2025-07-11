@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const { getDefaultConfig } = require('expo/metro-config');
 const { withSentryConfig } = require('@sentry/react-native/metro');
+const { withNativeWind } = require('nativewind/metro');
 
 module.exports = (() => {
   const config = getDefaultConfig(__dirname);
@@ -17,5 +18,5 @@ module.exports = (() => {
     sourceExts: [...resolver.sourceExts, 'svg'],
   };
 
-  return withSentryConfig(config);
+  return withSentryConfig(withNativeWind(config, { input: './assets/global.css' }));
 })();

@@ -1,14 +1,26 @@
-import { useEffect, useState, Suspense } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { Suspense, useCallback, useEffect, useState } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import useSWRInfinite from 'swr/infinite';
-import useSWR from 'swr';
+import useSWR, { mutate } from 'swr';
 import { baseTheme, useTheme } from '@/lib/theme';
 import TaskList, { TaskListLoading } from '@/components/TaskList';
 import { useCurrentUserId } from '@/lib/auth';
 import Screen from '@/components/Screen';
-import { fetchArchivedTasks, fetchArchivedTasksCount } from '@/db/tasks';
+import { clearArchivedTasks, fetchArchivedTasks, fetchArchivedTasksCount } from '@/db/tasks';
 import ScreenTitle from '@/components/ScreenTitle';
 import Text from '@/components/Text';
+import Button from '@/components/Button';
 
 const PAGE_SIZE = 20;
 
@@ -65,13 +77,90 @@ function ArchivedTaskList({ onCount }: { onCount?: (count: number) => void }) {
 export default function ArchiveScreen() {
   const theme = useTheme();
   const [total, setTotal] = useState<number | null>(null);
+  const userId = useCurrentUserId();
+  const count = useArchivedTasksCountSWR(userId);
+  const [isClearing, setIsClearing] = useState(false);
+
+  const handleClearAll = useCallback(async () => {
+    if (!userId) return;
+
+    try {
+      setIsClearing(true);
+      await clearArchivedTasks(userId);
+      // Invalidate all SWR caches related to archived tasks
+      await Promise.all([
+        mutate(
+          (key: string | null) => {
+            if (typeof key === 'string' && key.startsWith('archivedTasks-')) {
+              return null;
+            }
+            return key;
+          },
+          undefined,
+          { revalidate: true },
+        ),
+        mutate(`archivedTasksCount-${userId}`, 0, false),
+      ]);
+    } catch (error) {
+      console.error('Failed to clear archived tasks:', error);
+      Alert.alert('Error', 'Failed to clear archived tasks. Please try again.');
+    } finally {
+      setIsClearing(false);
+    }
+  }, [userId]);
 
   return (
     <Screen>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        <ScreenTitle showBackButton>
-          Archived Tasks{typeof total === 'number' ? ` (${total})` : ''}
-        </ScreenTitle>
+        <View>
+          <ScreenTitle showBackButton>
+            Archived Tasks{typeof count === 'number' ? ` (${total})` : ''}
+          </ScreenTitle>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              {count && count > 0 ? (
+                <Button
+                  onPress={() => {}}
+                  style={{
+                    backgroundColor: theme.primary,
+                    marginHorizontal: baseTheme.margin[3],
+                    marginBottom: baseTheme.margin[2],
+                    padding: baseTheme.margin[2],
+                  }}
+                  disabled={isClearing}
+                  title={isClearing ? 'Clearing...' : 'Clear All'}
+                />
+              ) : null}
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  <Text>Clear All Archived Tasks</Text>
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  <Text>
+                    Are you sure you want to permanently delete all archived tasks? This action
+                    cannot be undone.
+                  </Text>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={isClearing} className="mb-2">
+                  <Text>Cancel</Text>
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onPress={handleClearAll}
+                  disabled={isClearing}
+                  style={{ backgroundColor: theme.primary }}
+                >
+                  <Text style={{ color: theme.background }}>
+                    {isClearing ? 'Clearing...' : 'Clear All'}
+                  </Text>
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </View>
         <View style={[styles.container, { backgroundColor: theme.background || '#fff' }]}>
           <Suspense fallback={<TaskListLoading />}>
             <ArchivedTaskList onCount={setTotal} />

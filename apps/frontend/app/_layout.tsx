@@ -6,9 +6,9 @@ import { Provider as PaperProvider } from 'react-native-paper';
 import * as Sentry from '@sentry/react-native';
 import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
+import { SWRConfig } from 'swr';
 import { ThemeProvider } from '@/lib/theme';
 import { AuthProvider, useAuth, useCurrentUserUsername } from '@/lib/auth';
-import { SWRConfig } from 'swr';
 import { localStorageSWRProvider } from '@/lib/state';
 
 Sentry.init({
@@ -42,12 +42,14 @@ function RootNavigation() {
   }, [loading, session, router, username, isLoadingUsername]);
 
   return (
-    <Stack>
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="login" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="complete-profile" options={{ headerShown: false }} />
-    </Stack>
+    <>
+      <Stack>
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="login" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="complete-profile" options={{ headerShown: false }} />
+      </Stack>
+    </>
   );
 }
 

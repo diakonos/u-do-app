@@ -7,8 +7,8 @@ import {
   ReactNode,
   useCallback,
 } from 'react';
-import { ColorSchemeName, Platform } from 'react-native';
-import { Appearance } from 'react-native';
+import { Appearance, ColorSchemeName, Platform } from 'react-native';
+import '../assets/global.css';
 
 export const baseTheme = {
   borderRadius: 5,

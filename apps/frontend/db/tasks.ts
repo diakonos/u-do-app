@@ -171,3 +171,15 @@ export async function fetchArchivedTasksCount(userId: string) {
   if (error) throw error;
   return count ?? 0;
 }
+
+// Delete all archived (done, updated before today) tasks for a user
+export async function clearArchivedTasks(userId: string) {
+  const today = formatDateYMD(new Date());
+  const { error } = await supabase
+    .from('tasks')
+    .delete()
+    .eq('user_id', userId)
+    .eq('is_done', true)
+    .lt('updated_at', today);
+  if (error) throw error;
+}
