@@ -23,7 +23,7 @@ function useArchivedTasksInfinite(userId: string | null) {
       const page = parseInt(key.split(':')[1], 10);
       return fetchArchivedTasks(userId!, page, PAGE_SIZE);
     },
-    { revalidateAll: false, revalidateFirstPage: false, suspense: true },
+    { suspense: true },
   );
 }
 
