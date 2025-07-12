@@ -1,5 +1,6 @@
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,8 +47,6 @@ function useArchivedTasksInfinite(userId: string | null) {
           { revalidate: true },
         );
         await mutate(`archivedTasksCount-${userId}`, undefined, { revalidate: true });
-      } else {
-        console.log('useArchivedTasksInfinite not clearing cache cuz page not 1');
       }
 
       return fetchArchivedTasks(userId!, page, PAGE_SIZE);
@@ -57,19 +56,20 @@ function useArchivedTasksInfinite(userId: string | null) {
 }
 
 function useArchivedTasksCountSWR(userId: string | null) {
-  const { data } = useSWR(userId ? `archivedTasksCount-${userId}` : null, () =>
-    fetchArchivedTasksCount(userId!),
+  const { data } = useSWR(
+    userId ? `archivedTasksCount-${userId}` : null,
+    () => fetchArchivedTasksCount(userId!),
+    { suspense: true },
   );
+
   return data;
 }
 
-function ArchivedTaskList({ onCount }: { onCount?: (count: number) => void }) {
+function ArchivedTaskList() {
   const userId = useCurrentUserId();
   const { data, size, setSize, isValidating } = useArchivedTasksInfinite(userId);
   const count = useArchivedTasksCountSWR(userId);
-  useEffect(() => {
-    if (typeof count === 'number' && onCount) onCount(count);
-  }, [count, onCount]);
+
   const allTasks = data ? data.flat() : [];
   const hasMore =
     typeof count === 'number'
@@ -95,9 +95,11 @@ export default function ArchiveScreen() {
   const userId = useCurrentUserId();
   const theme = useTheme();
   const count = useArchivedTasksCountSWR(userId);
-  const [total, setTotal] = useState<number>(count ?? 0);
+
+  // const [total, setTotal] = useState<number>(count ?? 0);
   const [isClearing, setIsClearing] = useState(false);
   const { mutate } = useSWRConfig();
+  const router = useRouter();
 
   const handleClearAll = useCallback(async () => {
     if (!userId) return;
@@ -128,8 +130,8 @@ export default function ArchiveScreen() {
     <Screen>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         <View>
-          <ScreenTitle showBackButton>
-            Archived Tasks{typeof count === 'number' ? ` (${total})` : ''}
+          <ScreenTitle showBackButton onBack={() => router.push('/tasks')}>
+            Archived Tasks{typeof count === 'number' ? ` (${count})` : ''}
           </ScreenTitle>
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -160,7 +162,7 @@ export default function ArchiveScreen() {
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel disabled={isClearing} className="mb-2">
+                <AlertDialogCancel disabled={isClearing} className="mb-5">
                   <Text>Cancel</Text>
                 </AlertDialogCancel>
                 <AlertDialogAction
@@ -178,7 +180,7 @@ export default function ArchiveScreen() {
         </View>
         <View style={[styles.container, { backgroundColor: theme.background || '#fff' }]}>
           <Suspense fallback={<TaskListLoading />}>
-            <ArchivedTaskList onCount={setTotal} />
+            <ArchivedTaskList />
           </Suspense>
         </View>
       </ScrollView>

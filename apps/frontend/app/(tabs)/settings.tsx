@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { baseTheme, useTheme } from '@/lib/theme';
 import Text from '@/components/Text';
 import Button from '@/components/Button';
@@ -9,6 +9,16 @@ import Screen from '@/components/Screen';
 import ScreenTitle from '@/components/ScreenTitle';
 import useSWR from 'swr';
 import { fetchProfile } from '@/db/profiles';
+import { clearAppCache } from '@/lib/state';
+import { useSWRConfig } from 'swr';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function SettingsScreen() {
   const theme = useTheme();
@@ -16,14 +26,44 @@ export default function SettingsScreen() {
   const { data: profile } = useSWR(userId ? `profile:${userId}` : null, () =>
     userId ? fetchProfile(userId) : null,
   );
+  const { cache } = useSWRConfig();
+  const [alertVisible, setAlertVisible] = React.useState(false);
+  const [alertTitle, setAlertTitle] = React.useState('');
+  const [alertMessage, setAlertMessage] = React.useState('');
+
+  const showAlert = (title: string, message?: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message || '');
+    setAlertVisible(true);
+  };
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
-    if (error) Alert.alert('Logout failed', error.message);
+    if (error) showAlert('Logout failed', error.message);
+  };
+
+  const handleClearCache = async () => {
+    try {
+      await clearAppCache(cache);
+      showAlert('Cache cleared', 'App cache has been cleared. Restart the app for best results.');
+    } catch {
+      showAlert('Error', 'Failed to clear app cache.');
+    }
   };
 
   return (
     <Screen>
+      <AlertDialog open={alertVisible} onOpenChange={setAlertVisible}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{alertTitle}</AlertDialogTitle>
+            {alertMessage ? <AlertDialogDescription>{alertMessage}</AlertDialogDescription> : null}
+          </AlertDialogHeader>
+          <AlertDialogAction onPress={() => setAlertVisible(false)}>
+            <Text style={{ color: theme.textInverse }}>OK</Text>
+          </AlertDialogAction>
+        </AlertDialogContent>
+      </AlertDialog>
       <ScreenTitle>Settings</ScreenTitle>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <View style={styles.infoBox}>
@@ -36,6 +76,11 @@ export default function SettingsScreen() {
             <Text style={styles.value}>{profile?.email ?? '-'}</Text>
           </View>
         </View>
+        <Button
+          title="Clear App Cache"
+          onPress={handleClearCache}
+          style={[styles.logoutButton, { backgroundColor: theme.secondary }]}
+        />
         <Button title="Log out" onPress={handleLogout} style={styles.logoutButton} />
       </View>
     </Screen>

@@ -1,6 +1,6 @@
 import * as AlertDialogPrimitive from '@rn-primitives/alert-dialog';
 import * as React from 'react';
-import { Platform, StyleProp, View, ViewStyle, type ViewProps } from 'react-native';
+import { Platform, View, type ViewProps } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { buttonTextVariants, buttonVariants } from '~/components/ui/button';
 import { cn } from '~/lib/utils';

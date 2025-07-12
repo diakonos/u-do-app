@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState } from 'react-native';
+import { type Cache } from 'swr';
 
 export function localStorageSWRProvider<Data>(): Map<string, Data> {
   const map: Map<string, Data> = new Map();
@@ -30,4 +31,17 @@ export function localStorageSWRProvider<Data>(): Map<string, Data> {
   AppState.addEventListener('change', handleAppStateChange);
 
   return map;
+}
+
+export async function clearAppCache(cache?: Cache): Promise<void> {
+  try {
+    await AsyncStorage.removeItem('app-cache');
+    if (cache) {
+      for (const key of cache.keys()) {
+        cache.delete(key);
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to clear app-cache from AsyncStorage:', e);
+  }
 }
