@@ -12,7 +12,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import useSWRInfinite from 'swr/infinite';
-import useSWR, { mutate } from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import { baseTheme, useTheme } from '@/lib/theme';
 import TaskList, { TaskListLoading } from '@/components/TaskList';
 import { useCurrentUserId } from '@/lib/auth';
@@ -25,6 +25,8 @@ import Button from '@/components/Button';
 const PAGE_SIZE = 20;
 
 function useArchivedTasksInfinite(userId: string | null) {
+  const { mutate } = useSWRConfig();
+
   return useSWRInfinite(
     (index, prevData) => {
       if (!userId) return null;
@@ -33,6 +35,21 @@ function useArchivedTasksInfinite(userId: string | null) {
     },
     async key => {
       const page = parseInt(key.split(':')[1], 10);
+
+      if (page === 1) {
+        // Invalidate all SWR caches related to archived tasks for this user
+        await mutate(
+          (cacheKey: string | null) => {
+            return typeof cacheKey === 'string' && cacheKey.startsWith(`${userId}:`);
+          },
+          undefined,
+          { revalidate: true },
+        );
+        await mutate(`archivedTasksCount-${userId}`, undefined, { revalidate: true });
+      } else {
+        console.log('useArchivedTasksInfinite not clearing cache cuz page not 1');
+      }
+
       return fetchArchivedTasks(userId!, page, PAGE_SIZE);
     },
     { suspense: true },
@@ -75,11 +92,12 @@ function ArchivedTaskList({ onCount }: { onCount?: (count: number) => void }) {
 }
 
 export default function ArchiveScreen() {
-  const theme = useTheme();
-  const [total, setTotal] = useState<number | null>(null);
   const userId = useCurrentUserId();
+  const theme = useTheme();
   const count = useArchivedTasksCountSWR(userId);
+  const [total, setTotal] = useState<number>(count ?? 0);
   const [isClearing, setIsClearing] = useState(false);
+  const { mutate } = useSWRConfig();
 
   const handleClearAll = useCallback(async () => {
     if (!userId) return;
@@ -87,19 +105,16 @@ export default function ArchiveScreen() {
     try {
       setIsClearing(true);
       await clearArchivedTasks(userId);
-      // Invalidate all SWR caches related to archived tasks
+      // Invalidate all SWR caches related to archived tasks for this user
       await Promise.all([
         mutate(
-          (key: string | null) => {
-            if (typeof key === 'string' && key.startsWith('archivedTasks-')) {
-              return null;
-            }
-            return key;
+          (cacheKey: string | null) => {
+            return typeof cacheKey === 'string' && cacheKey.startsWith(`${userId}:`);
           },
           undefined,
           { revalidate: true },
         ),
-        mutate(`archivedTasksCount-${userId}`, 0, false),
+        mutate(`archivedTasksCount-${userId}`, undefined, { revalidate: true }),
       ]);
     } catch (error) {
       console.error('Failed to clear archived tasks:', error);
@@ -107,7 +122,7 @@ export default function ArchiveScreen() {
     } finally {
       setIsClearing(false);
     }
-  }, [userId]);
+  }, [mutate, userId]);
 
   return (
     <Screen>

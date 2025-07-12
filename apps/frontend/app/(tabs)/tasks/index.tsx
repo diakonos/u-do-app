@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { Link } from 'expo-router';
 import React, { Suspense } from 'react';
 import { View, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
 import { baseTheme, useTheme } from '@/lib/theme';
@@ -17,20 +17,22 @@ import FriendTasksSection from '@/components/FriendTasksSection';
 function TodayTaskList({ showFriendsTasks = true }: { showFriendsTasks?: boolean }) {
   const userId = useCurrentUserId();
   const { tasks, revalidateKey } = useTodayTasks(userId);
-  const router = useRouter();
   const theme = useTheme();
   return (
     <View>
       <TaskList hideDueDate tasks={tasks} revalidateKey={revalidateKey} />
       <NewTaskInput revalidateKey={revalidateKey} />
-      <Button
-        title="Archived tasks"
-        onPress={() => router.push('/tasks/archive')}
-        style={[styles.archiveButton, { backgroundColor: theme.backgroundSecondary }]}
-        labelStyle={{ color: theme.textSecondary }}
-        labelAlign="left"
-        icon={<CaretRightIcon color={theme.textSecondary} />}
-      />
+      <Link href="/tasks/archive" style={styles.archiveLink}>
+        <Button
+          title="Archived tasks"
+          onPress={() => {} /* router.push('/tasks/archive') */}
+          style={[styles.archiveButton, { backgroundColor: theme.backgroundSecondary }]}
+          labelStyle={{ color: theme.textSecondary }}
+          labelAlign="left"
+          icon={<CaretRightIcon color={theme.textSecondary} />}
+        />
+      </Link>
+
       {showFriendsTasks && (
         <Suspense fallback={<TaskListLoading />}>
           <FriendTasksSection userId={userId} friendTasksStyle={styles.friendTasks} />
@@ -64,8 +66,11 @@ export default function TodayScreen() {
 
 const styles = StyleSheet.create({
   archiveButton: {
-    flexGrow: 0,
     margin: baseTheme.margin[3],
+  },
+  archiveLink: {
+    display: 'flex',
+    width: '100%',
   },
   container: {
     flex: 1,
