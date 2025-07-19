@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import FriendPokeDialog from '@/components/FriendPokeDialog';
 import { View, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
 import Text from '@/components/Text';
 import TaskList from '@/components/TaskList';
@@ -25,6 +26,7 @@ export default function FriendTasksCollapse({
 }: FriendTasksCollapseProps) {
   const [open, setOpen] = useState(true); // Open by default
   const [expanded, setExpanded] = useState(false); // For show all/less
+  const [pokeDialogVisible, setPokeDialogVisible] = useState(false);
   const theme = useTheme();
   const userId = useCurrentUserId();
   const { data: canCreateTasks } = useFriendCreateTasksPermission(friendUserId, userId);
@@ -40,6 +42,16 @@ export default function FriendTasksCollapse({
         <Text weight="medium" style={styles.title}>
           {friendName}&apos;s tasks
         </Text>
+        <TouchableOpacity
+          style={styles.pokeButton}
+          onPress={e => {
+            e.stopPropagation();
+            setPokeDialogVisible(true);
+          }}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.pokeText}>Poke</Text>
+        </TouchableOpacity>
         <Text style={styles.count}>
           {completed}/{total}
         </Text>
@@ -49,6 +61,14 @@ export default function FriendTasksCollapse({
           <CaretDownIcon color={theme.text} style={styles.caret} />
         )}
       </TouchableOpacity>
+      <FriendPokeDialog
+        visible={pokeDialogVisible}
+        friendName={friendName}
+        onClose={() => setPokeDialogVisible(false)}
+        onSelect={option => {
+          // You can add logic here, e.g. toast or API call
+        }}
+      />
       {open && (
         <View style={styles.listWrap}>
           <TaskList tasks={visibleTasks} readonly hideDueDate />
@@ -105,6 +125,19 @@ const styles = StyleSheet.create({
     paddingVertical: baseTheme.margin[2],
   },
   listWrap: {},
+  pokeButton: {
+    backgroundColor: '#e0e7ff',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginLeft: 8,
+    marginRight: 8,
+  },
+  pokeText: {
+    color: '#3730a3',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
   title: {
     flex: 1,
   },
