@@ -1,13 +1,13 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState, useRef } from 'react';
 import { View, StyleSheet, Keyboard, TouchableOpacity } from 'react-native';
-import { supabase } from '@/lib/supabase';
+// import { supabase } from '@/lib/supabase';
 import { baseTheme, useTheme } from '@/lib/theme';
 import Text from '@/components/Text';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
 import { formatErrorMessage } from '@/lib/error';
-import { useAuth } from '@/lib/auth';
+import { requestEmailOtp, verifyEmailOtp, useSession } from '@/lib/auth-client';
 import Screen from '@/components/Screen';
 import ScreenTitle from '@/components/ScreenTitle';
 
@@ -20,7 +20,7 @@ export default function LoginScreen() {
   const [error, setError] = useState('');
   const [resendTimer, setResendTimer] = useState(60);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const { session, loading: isLoadingSession } = useAuth();
+  const { data: session, isPending: isLoadingSession } = useSession();
   const router = useRouter();
 
   // Start resend timer
@@ -43,8 +43,7 @@ export default function LoginScreen() {
     setLoading(true);
     setError('');
     try {
-      const { error } = await supabase.auth.signInWithOtp({ email });
-      if (error) throw error;
+      await requestEmailOtp(email);
       setStep('code');
       startTimer();
       Keyboard.dismiss();
@@ -60,8 +59,7 @@ export default function LoginScreen() {
     setLoading(true);
     setError('');
     try {
-      const { error } = await supabase.auth.verifyOtp({ email, token: code, type: 'email' });
-      if (error) throw error;
+      await verifyEmailOtp(email, code);
       // User is now logged in
       // ...navigate or update state as needed...
     } catch (e: unknown) {

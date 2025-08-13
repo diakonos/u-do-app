@@ -2,51 +2,41 @@ import { useRef, useState, useEffect } from 'react';
 import { View, TextInput, StyleSheet, type ViewStyle, Platform } from 'react-native';
 import { TouchableOpacity, TouchableHighlight } from 'react-native-gesture-handler';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
-import { useSWRConfig } from 'swr';
-import useSWRMutation from 'swr/mutation';
 import { Link } from 'expo-router';
 import Text from '@/components/Text';
 import {
   Task,
-  updateTaskName,
-  toggleTaskDone,
-  deleteTask,
-  updateTaskDueDate,
-  updateTaskIsPrivate,
-} from '@/db/tasks';
+  useUpdateTaskName,
+  useToggleTaskDone,
+  useDeleteTask,
+  useUpdateTaskDueDate,
+  useUpdateTaskIsPrivate,
+} from '@/db/tasks-convex';
 import { baseTheme, useTheme } from '@/lib/theme';
 import CheckIcon from '@/assets/icons/check.svg';
 import ClockIcon from '@/assets/icons/clock.svg';
 import LockIcon from '@/assets/icons/lock.svg';
 import UnlockIcon from '@/assets/icons/unlock.svg';
-import { formatDateUI, formatDateYMD } from '@/lib/date';
+import { formatDateUI } from '@/lib/date';
 import DatePickerModal from '@/components/DatePickerModal';
-import { useCurrentUserId } from '@/lib/auth';
+import { useCurrentUserId } from '@/lib/auth-client';
+import { Id } from '../../backend/convex/_generated/dataModel';
 
 interface TaskProps {
   hideDueDate?: boolean;
   onUpdate?: (task: Task) => void;
   style?: ViewStyle | ViewStyle[];
   task: Task;
-  revalidateKey?: string | null;
   readonly?: boolean; // Add readonly prop
 }
-
-type UpdateTaskIsPrivateArgs = { isPrivate: boolean };
-type UpdateTaskNameArgs = { name: string };
-type UpdateTaskDueDateArgs = { dueDate: Date };
-type UpdateTaskDoneArgs = { isDone: boolean };
-type DeleteTaskArgs = { taskId: number };
 
 export default function TaskItem({
   task,
   onUpdate,
   style,
   hideDueDate = false,
-  revalidateKey,
   readonly = false, // Default to false
 }: TaskProps) {
-  const { mutate } = useSWRConfig();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(task.task_name);
   const [datePickerVisible, setDatePickerVisible] = useState(false);
@@ -57,157 +47,102 @@ export default function TaskItem({
   const userId = useCurrentUserId();
   const isCurrentUserTask = userId === task.user_id;
 
-  // SWR mutation for updating is_private with optimistic response
-  const { trigger: triggerUpdateIsPrivate, isMutating: isUpdatingPrivate } = useSWRMutation<
-    Task[],
-    Error,
-    string | null | undefined,
-    UpdateTaskIsPrivateArgs
-  >(
-    revalidateKey,
-    async (key: string, { arg }: { arg: { isPrivate: boolean } }) => {
-      const updated = await updateTaskIsPrivate(task.id, arg.isPrivate);
-      if (onUpdate) {
-        onUpdate(updated);
-      }
-      return [updated];
-    },
-    {
-      optimisticData: (currentData = []) => {
-        // Return a new array with the updated task
-        return currentData.map(t =>
-          t.id === task.id ? { ...t, is_private: !task.is_private } : t,
-        );
-      },
-      revalidate: false,
-    },
-  );
+  // Convex mutations
+  const updateIsPrivate = useUpdateTaskIsPrivate();
+  const toggleTaskDone = useToggleTaskDone();
+  const updateTaskName = useUpdateTaskName();
+  const updateDueDate = useUpdateTaskDueDate();
+  const deleteTask = useDeleteTask();
 
-  // SWR mutation for toggling completion with optimistic response
-  const { trigger: triggerToggleTaskDone, isMutating: isTogglingDone } = useSWRMutation<
-    Task[],
-    Error,
-    string | null | undefined,
-    UpdateTaskDoneArgs
-  >(revalidateKey, async (key: string, { arg }: { arg: UpdateTaskDoneArgs }) => {
-    const updated = await toggleTaskDone(task.id, arg.isDone);
-    if (onUpdate) {
-      onUpdate(updated);
-    }
-    return [updated];
-  });
+  // For now, we'll use a simple loading state
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleToggle = async () => {
     if (readonly) return; // Prevent toggle if readonly
-    await triggerToggleTaskDone(
-      { isDone: !task.is_done },
-      {
-        optimisticData: (currentData = []) =>
-          currentData.map(t => (t.id === task.id ? { ...t, is_done: !task.is_done } : t)),
-        revalidate: false,
-      },
-    );
-  };
-
-  // SWR mutation for updating task name with optimistic response (updates the list)
-  const { trigger: triggerUpdateTaskName, isMutating: isUpdatingName } = useSWRMutation<
-    Task[],
-    Error,
-    string | null | undefined,
-    UpdateTaskNameArgs
-  >(revalidateKey, async (key: string, { arg }: { arg: UpdateTaskNameArgs }) => {
-    const updated = await updateTaskName(task.id, arg.name);
-    if (onUpdate) {
-      onUpdate(updated);
-    }
-    return [updated];
-  });
-
-  // SWR mutation for updating due date with optimistic response
-  const { trigger: triggerUpdateDueDate, isMutating: isUpdatingDueDate } = useSWRMutation<
-    Task[],
-    Error,
-    string | null | undefined,
-    UpdateTaskDueDateArgs
-  >(
-    revalidateKey,
-    async (key: string, { arg }: { arg: UpdateTaskDueDateArgs }) => {
-      const updated = await updateTaskDueDate(task.id, arg.dueDate);
-      if (onUpdate) {
+    try {
+      setIsLoading(true);
+      const updated = await toggleTaskDone({
+        taskId: task._id,
+        isDone: !task.is_done,
+      });
+      if (onUpdate && updated) {
         onUpdate(updated);
       }
-      return [updated];
-    },
-    {
-      onSuccess: () => {
-        mutate(`scheduledTasks:${userId}`);
-        mutate(`todayTasks:${userId}`);
-      },
-    },
-  );
-
-  // SWR mutation for deleting task with optimistic response
-  const { trigger: triggerDeleteTask, isMutating: isDeleting } = useSWRMutation<
-    Task[],
-    Error,
-    string | null | undefined,
-    DeleteTaskArgs
-  >(
-    revalidateKey,
-    async (key: string, { arg }: { arg: DeleteTaskArgs }) => {
-      await deleteTask(arg.taskId);
-      return [];
-    },
-    {
-      optimisticData: (currentData = []) => {
-        // Remove the task from the current data optimistically
-        return currentData.filter(t => t.id !== task.id);
-      },
-      revalidate: false,
-      onSuccess: () => {
-        // Revalidate related data after successful deletion
-        mutate(`scheduledTasks:${userId}`);
-        mutate(`todayTasks:${userId}`);
-      },
-    },
-  );
-
-  // Combined loading state from all mutations
-  const loading =
-    isUpdatingPrivate || isTogglingDone || isUpdatingName || isUpdatingDueDate || isDeleting;
+    } catch (error) {
+      console.error('Failed to toggle task:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleEdit = async () => {
     if (readonly) return; // Prevent edit if readonly
     if (name !== task.task_name) {
-      await triggerUpdateTaskName(
-        { name },
-        {
-          optimisticData: (currentData = []) =>
-            currentData.map(t => (t.id === task.id ? { ...t, task_name: name } : t)),
-          revalidate: false,
-        },
-      );
+      try {
+        setIsLoading(true);
+        const updated = await updateTaskName({
+          taskId: task._id,
+          taskName: name,
+        });
+        if (onUpdate && updated) {
+          onUpdate(updated);
+        }
+      } catch (error) {
+        console.error('Failed to update task name:', error);
+      } finally {
+        setIsLoading(false);
+      }
     }
     setEditing(false);
   };
 
   const handleDelete = async () => {
     if (readonly) return; // Prevent delete if readonly
-    await triggerDeleteTask({ taskId: task.id });
+    try {
+      setIsLoading(true);
+      await deleteTask({ taskId: task._id });
+    } catch (error) {
+      console.error('Failed to delete task:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDueDateChange = async (newDate: Date) => {
     if (readonly) return; // Prevent due date change if readonly
-    await triggerUpdateDueDate(
-      { dueDate: newDate },
-      {
-        optimisticData: (currentData = []) =>
-          currentData.map(t =>
-            t.id === task.id ? { ...t, due_date: newDate ? formatDateYMD(newDate) : null } : t,
-          ),
-      },
-    );
+    try {
+      setIsLoading(true);
+      const updated = await updateDueDate({
+        taskId: task._id,
+        dueDate: newDate.getTime(),
+      });
+      if (onUpdate && updated) {
+        onUpdate(updated);
+      }
+    } catch (error) {
+      console.error('Failed to update due date:', error);
+    } finally {
+      setIsLoading(false);
+    }
     setDatePickerVisible(false);
+  };
+
+  const handleTogglePrivate = async () => {
+    if (readonly) return;
+    try {
+      setIsLoading(true);
+      const updated = await updateIsPrivate({
+        taskId: task._id,
+        isPrivate: !task.is_private,
+      });
+      if (onUpdate && updated) {
+        onUpdate(updated);
+      }
+    } catch (error) {
+      console.error('Failed to update task privacy:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const renderRightActions = () =>
@@ -244,9 +179,9 @@ export default function TaskItem({
         <View style={[styles.container, { backgroundColor: theme.background }, style]}>
           <TouchableOpacity
             onPress={handleToggle}
-            disabled={loading || readonly}
+            disabled={isLoading || readonly}
             // eslint-disable-next-line react-native/no-inline-styles
-            style={[styles.checkbox, { cursor: loading || readonly ? 'auto' : 'pointer' }]}
+            style={[styles.checkbox, { cursor: isLoading || readonly ? 'auto' : 'pointer' }]}
           >
             {task.is_done ? (
               <View style={[styles.checkedBox, { backgroundColor: theme.success }]}>
@@ -336,13 +271,10 @@ export default function TaskItem({
                     ) : (
                       <>
                         Assigned by{' '}
-                        {task.assigned_by_username ? (
-                          <Link
-                            href={`/friends/${task.assigned_by_username}`}
-                            style={styles.usernameLink}
-                          >
+                        {task.assigned_by ? (
+                          <Link href={`/friends/${task.assigned_by}`} style={styles.usernameLink}>
                             <Text size="small" style={{ color: theme.link }}>
-                              {task.assigned_by_username}
+                              {task.assigned_by}
                             </Text>
                           </Link>
                         ) : (
@@ -366,10 +298,7 @@ export default function TaskItem({
           {isCurrentUserTask && (
             <TouchableOpacity
               style={styles.editDueDateButton}
-              onPress={async () => {
-                const newValue = !task.is_private;
-                await triggerUpdateIsPrivate({ isPrivate: newValue });
-              }}
+              onPress={handleTogglePrivate}
               accessibilityLabel={task.is_private ? 'Set task public' : 'Set task private'}
             >
               {task.is_private ? (

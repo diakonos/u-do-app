@@ -6,9 +6,10 @@ import NewTaskInput from '@/components/NewTaskInput'; // Import NewTaskInput
 import CaretDownIcon from '@/assets/icons/caret-down.svg';
 import CaretRightIcon from '@/assets/icons/caret-right.svg';
 import { baseTheme, useTheme } from '@/lib/theme';
-import { Task } from '@/db/tasks';
-import { useCurrentUserId } from '@/lib/auth'; // Corrected import path
+import { Task } from '@/db/tasks-convex';
+import { useCurrentUserId } from '@/lib/auth-client'; // Corrected import path
 import { useFriendCreateTasksPermission } from '@/db/hooks/useFriendCreateTasksPermission'; // Corrected import path
+import { Id } from '../../backend/convex/_generated/dataModel';
 
 interface FriendTasksCollapseProps {
   friendName: string;
@@ -27,7 +28,10 @@ export default function FriendTasksCollapse({
   const [expanded, setExpanded] = useState(false); // For show all/less
   const theme = useTheme();
   const userId = useCurrentUserId();
-  const { data: canCreateTasks } = useFriendCreateTasksPermission(friendUserId, userId);
+  const canCreateTasks = useFriendCreateTasksPermission(
+    friendUserId as Id<'users'>,
+    userId as Id<'users'>,
+  );
 
   const completed = tasks.filter(t => t.is_done).length;
   const total = tasks.length;
@@ -64,11 +68,7 @@ export default function FriendTasksCollapse({
             </TouchableOpacity>
           )}
           {canCreateTasks && (
-            <NewTaskInput
-              placeholder={`New task for ${friendName}`}
-              revalidateKey={`dashboard-friend-tasks:${userId}`}
-              ownerUserId={friendUserId}
-            />
+            <NewTaskInput placeholder={`New task for ${friendName}`} ownerUserId={friendUserId} />
           )}
         </View>
       )}

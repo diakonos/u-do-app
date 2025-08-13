@@ -5,7 +5,7 @@ import { baseTheme, useTheme } from '@/lib/theme';
 import Text from '@/components/Text';
 import TaskList, { TaskListLoading } from '@/components/TaskList';
 import { useTodayTasks } from '@/db/hooks/useTodayTasks';
-import { useCurrentUserId } from '@/lib/auth';
+import { useCurrentUserId } from '@/lib/auth-client';
 import NewTaskInput from '@/components/NewTaskInput';
 import { formatDateUI } from '@/lib/date';
 import Screen from '@/components/Screen';
@@ -16,12 +16,12 @@ import FriendTasksSection from '@/components/FriendTasksSection';
 
 function TodayTaskList({ showFriendsTasks = true }: { showFriendsTasks?: boolean }) {
   const userId = useCurrentUserId();
-  const { tasks, revalidateKey } = useTodayTasks(userId);
+  const { tasks } = useTodayTasks(userId);
   const theme = useTheme();
   return (
     <View>
-      <TaskList hideDueDate tasks={tasks} revalidateKey={revalidateKey} />
-      <NewTaskInput revalidateKey={revalidateKey} />
+      <TaskList hideDueDate tasks={tasks} />
+      <NewTaskInput />
       <Link href="/tasks/archive" style={styles.archiveLink}>
         <Button
           title="Archived tasks"

@@ -3,14 +3,14 @@ import { View, StyleSheet } from 'react-native';
 import { baseTheme, useTheme } from '@/lib/theme';
 import Text from '@/components/Text';
 import Button from '@/components/Button';
-import { useCurrentUserId } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
+// import { supabase } from '@/lib/supabase';
+import { signOut } from '@/lib/auth-client';
 import Screen from '@/components/Screen';
 import ScreenTitle from '@/components/ScreenTitle';
-import useSWR from 'swr';
-import { fetchProfile } from '@/db/profiles';
 import { clearAppCache } from '@/lib/state';
 import { useSWRConfig } from 'swr';
+import { useQuery } from 'convex/react';
+import { api } from '../../../backend/convex/_generated/api';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,14 +22,13 @@ import {
 
 export default function SettingsScreen() {
   const theme = useTheme();
-  const userId = useCurrentUserId();
-  const { data: profile } = useSWR(userId ? `profile:${userId}` : null, () =>
-    userId ? fetchProfile(userId) : null,
-  );
   const { cache } = useSWRConfig();
   const [alertVisible, setAlertVisible] = React.useState(false);
   const [alertTitle, setAlertTitle] = React.useState('');
   const [alertMessage, setAlertMessage] = React.useState('');
+
+  // Use Convex query to fetch current user profile
+  const profile = useQuery(api.auth.getCurrentUser);
 
   const showAlert = (title: string, message?: string) => {
     setAlertTitle(title);
@@ -38,8 +37,11 @@ export default function SettingsScreen() {
   };
 
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) showAlert('Logout failed', error.message);
+    try {
+      await signOut();
+    } catch (e: any) {
+      showAlert('Logout failed', e?.message ?? '');
+    }
   };
 
   const handleClearCache = async () => {

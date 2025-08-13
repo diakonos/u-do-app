@@ -2,14 +2,13 @@ import React, { ReactNode } from 'react';
 import ShimmerPlaceHolder from 'react-native-shimmer-placeholder';
 import { ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
 import TaskItem from '@/components/TaskItem';
-import { Task } from '@/db/tasks';
+import { Task } from '@/db/tasks-convex';
 import { baseTheme, useTheme } from '@/lib/theme';
 import Text from '@/components/Text';
 
 interface TaskListProps {
   emptyMessage?: string | ReactNode;
   hideDueDate?: boolean;
-  revalidateKey?: string | null;
   style?: ViewStyle | ViewStyle[];
   tasks: Task[];
   readonly?: boolean; // Add readonly prop
@@ -19,7 +18,6 @@ export default function TaskList({
   emptyMessage = 'No tasks',
   hideDueDate,
   tasks,
-  revalidateKey,
   readonly = false,
   style,
 }: TaskListProps) {
@@ -36,10 +34,9 @@ export default function TaskList({
     <ScrollView style={[styles.scroll, style]}>
       {tasks.map(task => (
         <TaskItem
-          key={task.id}
+          key={task._id}
           hideDueDate={hideDueDate}
           task={task}
-          revalidateKey={revalidateKey}
           readonly={readonly} // Pass readonly prop
         />
       ))}

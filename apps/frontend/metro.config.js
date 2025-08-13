@@ -16,6 +16,7 @@ module.exports = (() => {
     ...resolver,
     assetExts: resolver.assetExts.filter(ext => ext !== 'svg'),
     sourceExts: [...resolver.sourceExts, 'svg'],
+    unstable_enablePackageExports: true,
   };
 
   return withSentryConfig(withNativeWind(config, { input: './assets/global.css' }));

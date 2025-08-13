@@ -2,15 +2,16 @@ import { useTheme } from '@/lib/theme';
 import Text from './Text';
 import Button from './Button';
 import { View, StyleSheet } from 'react-native';
+import { Id } from '../../backend/convex/_generated/dataModel';
 
 interface FriendRequestItemProps {
   username: string;
   isSent: boolean;
-  requestId: number;
+  requestId: Id<'friendRequests'>;
   loading: boolean;
-  onWithdraw: (requestId: number) => void;
-  onAccept: (requestId: number) => void;
-  onReject: (requestId: number) => void;
+  onWithdraw: (requestId: Id<'friendRequests'>) => void;
+  onAccept: (requestId: Id<'friendRequests'>) => void;
+  onReject: (requestId: Id<'friendRequests'>) => void;
 }
 
 export default function FriendRequestItem({

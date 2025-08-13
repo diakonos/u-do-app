@@ -1,8 +1,8 @@
 import { Redirect } from 'expo-router';
-import { useAuth } from '@/lib/auth';
+import { useSession } from '@/lib/auth-client';
 
 export default function Homepage() {
-  const { loading } = useAuth();
+  const { isPending: loading } = useSession();
 
   // Only render something while loading, otherwise nothing (since we redirect)
   if (!loading) {
