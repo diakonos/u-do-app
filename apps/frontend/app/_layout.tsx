@@ -10,6 +10,8 @@ import { SWRConfig } from 'swr';
 import { ThemeProvider } from '@/lib/theme';
 import { AuthProvider, useAuth, useCurrentUserUsername } from '@/lib/auth';
 import { localStorageSWRProvider } from '@/lib/state';
+import { MAINTENANCE_MODE } from '@/lib/constants';
+import { MaintenancePage } from '@/components/MaintenancePage';
 
 Sentry.init({
   dsn: 'https://95ef48dd1caf60feb863806b6d0877d6@o4509234354651136.ingest.us.sentry.io/4509234356355072',
@@ -40,6 +42,11 @@ function RootNavigation() {
       router.replace('/complete-profile');
     }
   }, [loading, session, router, username, isLoadingUsername]);
+
+  // Show maintenance page if maintenance mode is enabled
+  if (MAINTENANCE_MODE) {
+    return <MaintenancePage />;
+  }
 
   return (
     <>
