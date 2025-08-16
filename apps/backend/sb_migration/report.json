@@ -1,0 +1,37 @@
+{
+  "users": {
+    "prepared": 7
+  },
+  "betterAuthUsers": {
+    "prepared": 0,
+    "migrated": 0,
+    "errors": 0
+  },
+  "betterAuthAccounts": {
+    "prepared": 0,
+    "migrated": 0,
+    "errors": 0
+  },
+  "tasks": {
+    "prepared": 63,
+    "skippedNoUserMap": 0
+  },
+  "friendRequests": {
+    "prepared": 3,
+    "skippedNoUserMap": 0
+  },
+  "friendships": {
+    "prepared": 4
+  },
+  "pinnedFriends": {
+    "prepared": 0,
+    "missingUsernames": 2,
+    "skippedSelfPins": 0,
+    "deduped": 0,
+    "duplicateUsernames": 0
+  },
+  "friendPermissions": {
+    "prepared": 3,
+    "skippedNoUserMap": 0
+  }
+}

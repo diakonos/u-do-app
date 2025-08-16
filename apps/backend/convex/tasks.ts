@@ -5,7 +5,7 @@ import { Doc } from "./_generated/dataModel";
 
 // Query to get dashboard friend tasks (pinned friends' tasks due today)
 export const getDashboardFriendTasks = query({
-  args: { userId: v.id("users") },
+  args: { userId: v.id("users"), today: v.number() },
   handler: async (ctx, args) => {
     // Find pinned friends for the user
     const pinned = await ctx.db
@@ -27,12 +27,6 @@ export const getDashboardFriendTasks = query({
         .map((u) => [u._id, u.username ?? ""] as const),
     );
 
-    // Compute today boundaries
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const tomorrowStart = new Date(todayStart);
-    tomorrowStart.setDate(tomorrowStart.getDate() + 1);
-
     // For each friend, fetch today's non-private tasks
     const results = await Promise.all(
       friendIds.map(async (friendId) => {
@@ -40,6 +34,7 @@ export const getDashboardFriendTasks = query({
           api.tasks.getTodayTasks,
           {
             userId: friendId,
+            today: args.today,
           },
         );
 
@@ -61,11 +56,9 @@ export const getDashboardFriendTasks = query({
 
 // Query to get today's tasks for a user
 export const getTodayTasks = query({
-  args: { userId: v.id("users") },
+  args: { userId: v.id("users"), today: v.number() },
   handler: async (ctx, args) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
+    const tomorrow = new Date(args.today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const tasks = await ctx.db
@@ -78,12 +71,15 @@ export const getTodayTasks = query({
             q.eq(q.field("is_done"), false),
             q.not(q.gte(q.field("due_date"), 0)),
           ),
-          // Due today or earlier
-          q.lte(q.field("due_date"), tomorrow.getTime()),
+          // Due today
+          q.and(
+            q.gte(q.field("due_date"), args.today),
+            q.lt(q.field("due_date"), tomorrow.getTime()),
+          ),
           // Completed today
           q.and(
             q.eq(q.field("is_done"), true),
-            q.lte(q.field("updated_at"), tomorrow.getTime()),
+            q.gte(q.field("updated_at"), args.today),
           ),
         ),
       )
@@ -95,15 +91,14 @@ export const getTodayTasks = query({
 
 // Query to get scheduled tasks for a user
 export const getScheduledTasks = query({
-  args: { userId: v.id("users") },
+  args: { userId: v.id("users"), today: v.number() },
   handler: async (ctx, args) => {
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-
+    const tomorrow = new Date(args.today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
     const tasks = await ctx.db
       .query("tasks")
       .withIndex("by_user_due_date", (q) =>
-        q.eq("user_id", args.userId).gt("due_date", today.getTime()),
+        q.eq("user_id", args.userId).gte("due_date", tomorrow.getTime()),
       )
       .order("asc")
       .collect();

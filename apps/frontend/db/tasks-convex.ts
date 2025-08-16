@@ -7,13 +7,23 @@ export type Task = Doc<'tasks'>;
 
 // Hook for fetching today's tasks
 export function useTodayTasks(userId?: Id<'users'> | null) {
-  const tasks = useQuery(api.tasks.getTodayTasks, userId ? { userId } : 'skip');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tasks = useQuery(
+    api.tasks.getTodayTasks,
+    userId ? { userId, today: today.getTime() } : 'skip',
+  );
   return { tasks: tasks ?? [], isLoading: tasks === undefined };
 }
 
 // Hook for fetching scheduled tasks
 export function useScheduledTasks(userId?: Id<'users'> | null) {
-  const tasks = useQuery(api.tasks.getScheduledTasks, userId ? { userId } : 'skip');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tasks = useQuery(
+    api.tasks.getScheduledTasks,
+    userId ? { userId, today: today.getTime() } : 'skip',
+  );
   return { tasks: tasks ?? [], isLoading: tasks === undefined };
 }
 

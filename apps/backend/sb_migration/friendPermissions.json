@@ -1,0 +1,17 @@
+[
+  {
+    "userId": "dry_users_cdd09bda-e6db-444f-b8b0-0dd7070d9072",
+    "friendId": "dry_users_f3cabe76-f36b-45d9-849e-cc99b01f33af",
+    "canCreateTasks": true
+  },
+  {
+    "userId": "dry_users_f3cabe76-f36b-45d9-849e-cc99b01f33af",
+    "friendId": "dry_users_cdd09bda-e6db-444f-b8b0-0dd7070d9072",
+    "canCreateTasks": true
+  },
+  {
+    "userId": "dry_users_f3cabe76-f36b-45d9-849e-cc99b01f33af",
+    "friendId": "dry_users_e877c3ac-2762-4ec4-bd53-88438422f6cd",
+    "canCreateTasks": false
+  }
+]

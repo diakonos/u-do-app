@@ -8,6 +8,8 @@ import {
   migrateFriendshipsHttp,
   migratePinnedFriendsHttp,
   migrateFriendPermissionsHttp,
+  migrateBetterAuthUserHttp,
+  migrateBetterAuthAccountHttp,
 } from "./import";
 
 const http = httpRouter();
@@ -54,4 +56,17 @@ http.route({
   path: "/migrate/friendPermissions",
   method: "POST",
   handler: migrateFriendPermissionsHttp,
+});
+
+/* Better Auth migration endpoints */
+http.route({
+  path: "/migrate/betterAuthUser",
+  method: "POST",
+  handler: migrateBetterAuthUserHttp,
+});
+
+http.route({
+  path: "/migrate/betterAuthAccount",
+  method: "POST",
+  handler: migrateBetterAuthAccountHttp,
 });

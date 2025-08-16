@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { mutation, httpAction } from "./_generated/server";
 import { api } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
+import { betterAuthComponent } from "./auth";
 
 // ----------------------
 // Internal mutations
@@ -209,6 +210,66 @@ export const upsertFriendPermissions = mutation({
 });
 
 // ----------------------
+// Better Auth Migration
+// ----------------------
+
+export const migrateBetterAuthUser = mutation({
+  args: {
+    user: v.object({
+      id: v.string(), // Original Supabase ID
+      email: v.string(),
+      name: v.string(),
+      emailVerified: v.boolean(),
+      image: v.optional(v.string()),
+      createdAt: v.string(), // ISO date string
+      updatedAt: v.string(), // ISO date string
+    }),
+  },
+  handler: async (ctx, args) => {
+    // For now, we'll create a user in the Convex users table
+    // and mark it as migrated from Supabase
+    // Better Auth will handle the actual auth when the user first signs in
+    const userId = await ctx.db.insert("users", {
+      email: args.user.email,
+      name: args.user.name,
+      username: undefined, // Will be set later if needed
+      updatedAt: Date.now(),
+    });
+
+    // Store migration metadata in a separate field or table
+    // For now, we'll just return the userId and handle the migration
+    // metadata separately if needed
+    return { userId };
+  },
+});
+
+export const migrateBetterAuthAccount = mutation({
+  args: {
+    account: v.object({
+      userId: v.string(),
+      providerId: v.string(),
+      accountId: v.string(),
+      password: v.optional(v.string()),
+      createdAt: v.string(), // ISO date string
+      updatedAt: v.string(), // ISO date string
+    }),
+  },
+  handler: async (ctx, args) => {
+    // For now, we'll just log the account information
+    // since we don't have a migrationAccounts table
+    console.log("Account migration:", {
+      userId: args.account.userId,
+      providerId: args.account.providerId,
+      accountId: args.account.accountId,
+      migratedAt: new Date().toISOString(),
+    });
+
+    // Return success for now
+    return { success: true };
+  },
+});
+
+// ----------------------
 // HTTP endpoints (for Node script)
 // Requires MIGRATION_SECRET
 // ----------------------
@@ -322,4 +383,49 @@ export const migrateFriendPermissionsHttp = httpAction(async (ctx, req) => {
     perms: body.perms as any,
   });
   return new Response("OK");
+});
+
+export const migrateBetterAuthUserHttp = httpAction(async (ctx, req) => {
+  if (!authz(req, process.env.MIGRATION_SECRET)) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+  const body = (await req.json()) as {
+    user: {
+      id: string;
+      email: string;
+      name: string;
+      emailVerified: boolean;
+      image?: string;
+      createdAt: string;
+      updatedAt: string;
+    };
+  };
+  const result = await ctx.runMutation(api.import.migrateBetterAuthUser, {
+    user: body.user,
+  });
+  return new Response(JSON.stringify(result), {
+    headers: { "Content-Type": "application/json" },
+  });
+});
+
+export const migrateBetterAuthAccountHttp = httpAction(async (ctx, req) => {
+  if (!authz(req, process.env.MIGRATION_SECRET)) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+  const body = (await req.json()) as {
+    account: {
+      userId: string;
+      providerId: string;
+      accountId: string;
+      password?: string;
+      createdAt: string;
+      updatedAt: string;
+    };
+  };
+  const result = await ctx.runMutation(api.import.migrateBetterAuthAccount, {
+    account: body.account,
+  });
+  return new Response(JSON.stringify(result), {
+    headers: { "Content-Type": "application/json" },
+  });
 });

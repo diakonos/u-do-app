@@ -13,9 +13,11 @@ interface FriendTasksSectionProps {
 }
 
 export default function FriendTasksSection({ userId, friendTasksStyle }: FriendTasksSectionProps) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const data = useQuery(
     api.tasks.getDashboardFriendTasks,
-    userId ? { userId: userId as Id<'users'> } : 'skip',
+    userId ? { userId: userId as Id<'users'>, today: today.getTime() } : 'skip',
   );
 
   if (!userId || data === undefined) return null;
