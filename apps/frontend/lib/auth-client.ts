@@ -8,7 +8,7 @@ import { api } from '../../backend/convex/_generated/api';
 import { Id } from '../../backend/convex/_generated/dataModel';
 
 export const authClient = createAuthClient({
-  baseURL: process.env.EXPO_PUBLIC_CONVEX_SITE!,
+  baseURL: process.env.EXPO_PUBLIC_CONVEX_URL!.replace('.cloud', '.site'),
   plugins: [
     convexClient(),
     crossDomainClient(),
