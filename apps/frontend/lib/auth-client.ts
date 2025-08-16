@@ -44,7 +44,7 @@ export function useCurrentUserId() {
 }
 
 export function useCurrentUserUsername(): [string | undefined | null, boolean] {
-  const { isPending } = useSession();
-  const username = useQuery(api.users.getCurrentUsername, !isPending ? {} : 'skip');
+  const { data, isPending } = useSession();
+  const username = useQuery(api.users.getCurrentUsername, !isPending && data?.user ? {} : 'skip');
   return [username, username === undefined];
 }
