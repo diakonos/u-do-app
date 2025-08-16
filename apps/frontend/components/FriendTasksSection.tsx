@@ -1,17 +1,11 @@
 import React from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
-import useSWR from 'swr';
-import { loadDashboardFriendTasks } from '@/db/dashboard';
+import { useQuery } from 'convex/react';
+import { api } from '../../backend/convex/_generated/api';
 import FriendTasksCollapse from '@/components/FriendTasksCollapse';
-import { Task } from '@/db/tasks';
 import { baseTheme } from '@/lib/theme';
 import Text from '@/components/Text';
-
-interface FriendData {
-  friend_id: string;
-  friend_username: string;
-  tasks: Task[];
-}
+import { Id } from '../../backend/convex/_generated/dataModel';
 
 interface FriendTasksSectionProps {
   userId: string | null;
@@ -19,14 +13,13 @@ interface FriendTasksSectionProps {
 }
 
 export default function FriendTasksSection({ userId, friendTasksStyle }: FriendTasksSectionProps) {
-  const { data, isLoading, error } = useSWR<FriendData[]>(
-    userId ? `dashboard-friend-tasks:${userId}` : null,
-    () => loadDashboardFriendTasks(userId!),
+  const data = useQuery(
+    api.tasks.getDashboardFriendTasks,
+    userId ? { userId: userId as Id<'users'> } : 'skip',
   );
-  if (!userId || isLoading) return null;
-  if (error) return null;
-  if (!data || data.length === 0)
-    return <Text style={styles.emptyMessage}>No friends pinned.</Text>;
+
+  if (!userId || data === undefined) return null;
+  if (data.length === 0) return <Text style={styles.emptyMessage}>No friends pinned.</Text>;
   return (
     <View>
       {data.map(friend => {

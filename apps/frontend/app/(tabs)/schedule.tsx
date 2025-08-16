@@ -4,7 +4,7 @@ import { baseTheme, useTheme } from '@/lib/theme';
 import Text from '@/components/Text';
 import TaskList, { TaskListLoading } from '@/components/TaskList';
 import { useScheduledTasks } from '@/db/hooks/useScheduledTasks';
-import { useCurrentUserId } from '@/lib/auth';
+import { useCurrentUserId } from '@/lib/auth-client';
 import NewTaskInput from '@/components/NewTaskInput';
 import DatePickerModal from '@/components/DatePickerModal';
 import { formatDateUI } from '@/lib/date';
@@ -14,8 +14,8 @@ import ScreenTitle from '@/components/ScreenTitle';
 
 function ScheduledTaskList() {
   const userId = useCurrentUserId();
-  const { tasks, revalidateKey } = useScheduledTasks(userId);
-  return <TaskList tasks={tasks} revalidateKey={revalidateKey} />;
+  const { tasks } = useScheduledTasks(userId);
+  return <TaskList tasks={tasks} />;
 }
 
 export default function ScheduleScreen() {
@@ -24,19 +24,12 @@ export default function ScheduleScreen() {
   tomorrow.setDate(tomorrow.getDate() + 1);
   const [date, setDate] = useState(tomorrow);
   const [modalVisible, setModalVisible] = useState(false);
-  const userId = useCurrentUserId();
-  const { revalidateKey } = useScheduledTasks(userId);
 
   return (
     <Screen>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <ScreenTitle>Scheduled tasks</ScreenTitle>
-        <NewTaskInput
-          placeholder="New scheduled task"
-          style={styles.newTask}
-          dueDate={date}
-          revalidateKey={revalidateKey}
-        />
+        <NewTaskInput placeholder="New scheduled task" style={styles.newTask} dueDate={date} />
         <View style={styles.dueDateContainer}>
           <Text style={{ color: theme.secondary }}>for</Text>
           <Text style={styles.dueDateLabel} weight="medium">

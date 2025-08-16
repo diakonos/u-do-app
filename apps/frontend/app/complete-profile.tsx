@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { supabase } from '@/lib/supabase';
-import { useCurrentUserId } from '@/lib/auth';
+import { useConvex, useMutation } from 'convex/react';
 import Text from '@/components/Text';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
@@ -10,14 +9,16 @@ import Screen from '@/components/Screen';
 import ScreenTitle from '@/components/ScreenTitle';
 import { formatErrorMessage } from '@/lib/error';
 import { baseTheme, useTheme } from '@/lib/theme';
+import { api } from '../../backend/convex/_generated/api';
 
 export default function CompleteProfileScreen() {
-  const userId = useCurrentUserId();
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const theme = useTheme();
+  const convex = useConvex();
+  const updateProfile = useMutation(api.users.updateUsername);
 
   const handleSubmit = async () => {
     if (!username.trim()) {
@@ -28,23 +29,14 @@ export default function CompleteProfileScreen() {
     setError(null);
     try {
       // Check if username is taken
-      const { data: existing, error: checkError } = await supabase
-        .from('user_profiles')
-        .select('id')
-        .eq('username', username.trim())
-        .maybeSingle();
-      if (checkError) throw checkError;
-      if (existing) {
+      const available = await convex.query(api.users.isUsernameAvailable, { username });
+      if (!available) {
         setError('That username is already taken.');
         setLoading(false);
         return;
       }
       // Update user profile
-      const { error: updateError } = await supabase
-        .from('user_profiles')
-        .update({ username: username.trim() })
-        .eq('user_id', userId);
-      if (updateError) throw updateError;
+      await updateProfile({ username });
       router.push('/(tabs)/tasks');
     } catch (e) {
       setError(formatErrorMessage(e, 'Something went wrong.'));

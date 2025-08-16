@@ -1,3 +1,5 @@
+import { ConvexReactClient } from 'convex/react';
+import { ConvexBetterAuthProvider } from '@convex-dev/better-auth/react';
 import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
@@ -8,10 +10,12 @@ import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 import { SWRConfig } from 'swr';
 import { ThemeProvider } from '@/lib/theme';
-import { AuthProvider, useAuth, useCurrentUserUsername } from '@/lib/auth';
 import { localStorageSWRProvider } from '@/lib/state';
+import { authClient, useCurrentUserUsername, useSession } from '@/lib/auth-client';
 import { MAINTENANCE_MODE } from '@/lib/constants';
 import { MaintenancePage } from '@/components/MaintenancePage';
+
+const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL!);
 
 Sentry.init({
   dsn: 'https://95ef48dd1caf60feb863806b6d0877d6@o4509234354651136.ingest.us.sentry.io/4509234356355072',
@@ -22,7 +26,7 @@ Sentry.init({
 SplashScreen.preventAutoHideAsync();
 
 function RootNavigation() {
-  const { session, loading } = useAuth();
+  const { data: session, isPending: loading } = useSession();
   const router = useRouter();
   const [username, isLoadingUsername] = useCurrentUserUsername();
 
@@ -89,9 +93,9 @@ export default Sentry.wrap(function RootLayout() {
       <SWRConfig value={{ provider: localStorageSWRProvider }}>
         <ThemeProvider>
           <PaperProvider>
-            <AuthProvider>
+            <ConvexBetterAuthProvider client={convex} authClient={authClient}>
               <RootNavigation />
-            </AuthProvider>
+            </ConvexBetterAuthProvider>
           </PaperProvider>
         </ThemeProvider>
       </SWRConfig>

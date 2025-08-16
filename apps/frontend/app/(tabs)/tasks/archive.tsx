@@ -12,78 +12,36 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import useSWRInfinite from 'swr/infinite';
-import useSWR, { useSWRConfig } from 'swr';
 import { baseTheme, useTheme } from '@/lib/theme';
 import TaskList, { TaskListLoading } from '@/components/TaskList';
-import { useCurrentUserId } from '@/lib/auth';
+import { useCurrentUserId } from '@/lib/auth-client';
 import Screen from '@/components/Screen';
-import { clearArchivedTasks, fetchArchivedTasks, fetchArchivedTasksCount } from '@/db/tasks';
+import { useArchivedTasks, useArchivedTasksCount, useClearArchivedTasks } from '@/db/tasks-convex';
 import ScreenTitle from '@/components/ScreenTitle';
 import Text from '@/components/Text';
 import Button from '@/components/Button';
 
 const PAGE_SIZE = 20;
 
-function useArchivedTasksInfinite(userId: string | null) {
-  const { mutate } = useSWRConfig();
-
-  return useSWRInfinite(
-    (index, prevData) => {
-      if (!userId) return null;
-      if (prevData && prevData.length === 0) return null; // reached end
-      return `${userId}:${index + 1}`;
-    },
-    async key => {
-      const page = parseInt(key.split(':')[1], 10);
-
-      if (page === 1) {
-        // Invalidate all SWR caches related to archived tasks for this user
-        await mutate(
-          (cacheKey: string | null) => {
-            return typeof cacheKey === 'string' && cacheKey.startsWith(`${userId}:`);
-          },
-          undefined,
-          { revalidate: true },
-        );
-        await mutate(`archivedTasksCount-${userId}`, undefined, { revalidate: true });
-      }
-
-      return fetchArchivedTasks(userId!, page, PAGE_SIZE);
-    },
-    { suspense: true },
-  );
-}
-
-function useArchivedTasksCountSWR(userId: string | null) {
-  const { data } = useSWR(
-    userId ? `archivedTasksCount-${userId}` : null,
-    () => fetchArchivedTasksCount(userId!),
-    { suspense: true },
-  );
-
-  return data;
-}
-
 function ArchivedTaskList() {
   const userId = useCurrentUserId();
-  const { data, size, setSize, isValidating } = useArchivedTasksInfinite(userId);
-  const count = useArchivedTasksCountSWR(userId);
+  const [page, setPage] = useState(1);
+  const { tasks, isLoading } = useArchivedTasks(userId, page, PAGE_SIZE);
+  const { count } = useArchivedTasksCount(userId);
 
-  const allTasks = data ? data.flat() : [];
-  const hasMore =
-    typeof count === 'number'
-      ? allTasks.length < count
-      : data && data[data.length - 1]?.length === PAGE_SIZE;
+  const hasMore = typeof count === 'number' ? tasks.length < count : false;
+
+  const loadMore = () => {
+    setPage(prev => prev + 1);
+  };
+
   return (
     <>
-      <TaskList tasks={allTasks} hideDueDate />
+      <TaskList tasks={tasks} hideDueDate />
       {hasMore && (
         <View style={styles.loadMoreContainer}>
-          <TouchableOpacity onPress={() => setSize(size + 1)}>
-            <Text style={styles.loadMoreBtn}>
-              {isValidating ? 'Loading...' : 'Load more tasks'}
-            </Text>
+          <TouchableOpacity onPress={loadMore}>
+            <Text style={styles.loadMoreBtn}>{isLoading ? 'Loading...' : 'Load more tasks'}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -94,11 +52,10 @@ function ArchivedTaskList() {
 export default function ArchiveScreen() {
   const userId = useCurrentUserId();
   const theme = useTheme();
-  const count = useArchivedTasksCountSWR(userId);
+  const { count } = useArchivedTasksCount(userId);
+  const clearArchivedTasks = useClearArchivedTasks();
 
-  // const [total, setTotal] = useState<number>(count ?? 0);
   const [isClearing, setIsClearing] = useState(false);
-  const { mutate } = useSWRConfig();
   const router = useRouter();
 
   const handleClearAll = useCallback(async () => {
@@ -106,25 +63,15 @@ export default function ArchiveScreen() {
 
     try {
       setIsClearing(true);
-      await clearArchivedTasks(userId);
-      // Invalidate all SWR caches related to archived tasks for this user
-      await Promise.all([
-        mutate(
-          (cacheKey: string | null) => {
-            return typeof cacheKey === 'string' && cacheKey.startsWith(`${userId}:`);
-          },
-          undefined,
-          { revalidate: true },
-        ),
-        mutate(`archivedTasksCount-${userId}`, undefined, { revalidate: true }),
-      ]);
+      await clearArchivedTasks({ userId });
+      // The Convex queries will automatically update due to real-time subscriptions
     } catch (error) {
       console.error('Failed to clear archived tasks:', error);
       Alert.alert('Error', 'Failed to clear archived tasks. Please try again.');
     } finally {
       setIsClearing(false);
     }
-  }, [mutate, userId]);
+  }, [clearArchivedTasks, userId]);
 
   return (
     <Screen>

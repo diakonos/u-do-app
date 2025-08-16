@@ -5,30 +5,26 @@ import { baseTheme, useTheme } from '@/lib/theme';
 import Text from '@/components/Text';
 import Screen from '@/components/Screen';
 import ScreenTitle from '@/components/ScreenTitle';
-import { useCurrentUserId } from '@/lib/auth';
+import { useCurrentUserId } from '@/lib/auth-client';
 import {
-  searchUsersByUsername,
-  sendFriendRequest,
-  withdrawFriendRequest,
-  acceptFriendRequest,
-  declineFriendRequest,
-} from '@/db/friends';
+  useWithdrawFriendRequest,
+  useAcceptFriendRequest,
+  useDeclineFriendRequest,
+  useSendFriendRequest,
+  useSearchUsers,
+} from '@/db/friends-convex';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
 import PlusIcon from '@/assets/icons/plus.svg';
 import FriendItem from '@/components/FriendItem';
 import FriendRequestItem from '@/components/FriendRequestItem';
 import { useFriendsData } from '@/db/hooks/useFriendsData';
-import { useSWRConfig } from 'swr';
-
-type UserProfile = { user_id: string; username: string };
-type Friend = { friend_id: string; friend_username: string };
-type FriendRequest = { id: number; requester_id: string; recipient_id: string };
+import { Id, Doc } from '../../../../backend/convex/_generated/dataModel';
 
 type StatusType =
   | { type: 'friend' }
-  | { type: 'pending_sent'; requestId: number }
-  | { type: 'pending_received'; requestId: number }
+  | { type: 'pending_sent'; requestId: Id<'friendRequests'> }
+  | { type: 'pending_received'; requestId: Id<'friendRequests'> }
   | { type: 'none' };
 
 function FriendsList() {
@@ -36,39 +32,35 @@ function FriendsList() {
   const { friends, requests } = useFriendsData(userId);
   const theme = useTheme();
   const router = useRouter();
-  const [actionLoading, setActionLoading] = useState<number | null>(null);
-  const { mutate } = useSWRConfig();
+  const [actionLoading, setActionLoading] = useState<Id<'friendRequests'> | null>(null);
 
-  const requestsKey = userId ? `friendRequests:${userId}` : null;
-  const friendsKey = userId ? `friends:${userId}` : null;
+  const withdrawFriendRequest = useWithdrawFriendRequest();
+  const acceptFriendRequest = useAcceptFriendRequest();
+  const declineFriendRequest = useDeclineFriendRequest();
 
-  const handleWithdraw = async (requestId: number) => {
+  const handleWithdraw = async (requestId: Id<'friendRequests'>) => {
     if (!userId) return;
     setActionLoading(requestId);
     try {
-      await withdrawFriendRequest(requestId, userId);
-      if (requestsKey) mutate(requestsKey);
+      await withdrawFriendRequest({ requestId, userId });
     } finally {
       setActionLoading(null);
     }
   };
-  const handleAccept = async (requestId: number) => {
+  const handleAccept = async (requestId: Id<'friendRequests'>) => {
     if (!userId) return;
     setActionLoading(requestId);
     try {
-      await acceptFriendRequest(requestId, userId);
-      if (requestsKey) mutate(requestsKey);
-      if (friendsKey) mutate(friendsKey);
+      await acceptFriendRequest({ requestId, userId });
     } finally {
       setActionLoading(null);
     }
   };
-  const handleReject = async (requestId: number) => {
+  const handleReject = async (requestId: Id<'friendRequests'>) => {
     if (!userId) return;
     setActionLoading(requestId);
     try {
-      await declineFriendRequest(requestId, userId);
-      if (requestsKey) mutate(requestsKey);
+      await declineFriendRequest({ requestId, userId });
     } finally {
       setActionLoading(null);
     }
@@ -80,14 +72,16 @@ function FriendsList() {
         <View style={styles.section}>
           {requests.map(req => {
             const isSent = req.requester_id === userId;
-            const username = isSent ? req.recipient.username : req.requester.username;
+            // For now, we'll show the user ID since we don't have username data in the request
+            // This would need to be enhanced to fetch user data separately
+            const displayName = req.user?.username ?? 'Unnamed user';
             return (
               <FriendRequestItem
-                key={req.id}
-                username={username}
+                key={req._id}
+                username={displayName}
                 isSent={isSent}
-                requestId={req.id}
-                loading={actionLoading === req.id}
+                requestId={req._id}
+                loading={actionLoading === req._id}
                 onWithdraw={handleWithdraw}
                 onAccept={handleAccept}
                 onReject={handleReject}
@@ -126,88 +120,86 @@ function SearchResults({
   onClear,
 }: {
   query: string;
-  userId: string;
-  friends: Friend[];
-  requests: FriendRequest[];
+  userId: Id<'users'>;
+  friends: ReturnType<typeof useFriendsData>['friends'];
+  requests: Doc<'friendRequests'>[];
   onClear: () => void;
 }) {
   const theme = useTheme();
   const router = useRouter();
-  const { mutate } = useSWRConfig();
-  const [results, setResults] = useState<UserProfile[]>([]);
+  const [results, setResults] = useState<Doc<'users'>[]>([]);
   const [loading, setLoading] = useState(false);
-  const [actionLoading, setActionLoading] = useState<string | number | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | Id<'friendRequests'> | null>(null);
 
-  const requestsKey = userId ? `friendRequests:${userId}` : null;
-  const friendsKey = userId ? `friends:${userId}` : null;
+  const withdrawFriendRequest = useWithdrawFriendRequest();
+  const acceptFriendRequest = useAcceptFriendRequest();
+  const declineFriendRequest = useDeclineFriendRequest();
+  const sendFriendRequest = useSendFriendRequest();
+  const searchUsers = useSearchUsers(query);
 
   useEffect(() => {
     let active = true;
     if (!query) return;
     setLoading(true);
-    searchUsersByUsername(query)
-      .then((users: UserProfile[]) => {
-        if (active) setResults(users.filter(u => u.user_id !== userId));
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+
+    if (searchUsers) {
+      if (active) setResults(searchUsers);
+    }
+
+    if (active) setLoading(false);
+
     return () => {
       active = false;
     };
-  }, [query, userId]);
+  }, [query, userId, searchUsers]);
 
-  function getStatus(user: UserProfile): StatusType {
-    if (friends.some(f => f.friend_id === user.user_id || f.friend_username === user.username)) {
+  function getStatus(user: Doc<'users'>): StatusType {
+    if (friends.some(f => f.user_id === user._id || f.friend_username === user.username)) {
       return { type: 'friend' };
     }
     const req = requests.find(
       r =>
-        (r.requester_id === userId && r.recipient_id === user.user_id) ||
-        (r.requester_id === user.user_id && r.recipient_id === userId),
+        (r.requester_id === userId && r.recipient_id === user._id) ||
+        (r.requester_id === user._id && r.recipient_id === userId),
     );
     if (req) {
-      if (req.requester_id === userId) return { type: 'pending_sent', requestId: req.id };
-      if (req.recipient_id === userId) return { type: 'pending_received', requestId: req.id };
+      if (req.requester_id === userId) return { type: 'pending_sent', requestId: req._id };
+      if (req.recipient_id === userId) return { type: 'pending_received', requestId: req._id };
     }
     return { type: 'none' };
   }
 
-  const handleSend = async (user: UserProfile) => {
-    setActionLoading(user.user_id);
+  const handleSend = async (user: Doc<'users'>) => {
+    setActionLoading(user._id);
     try {
-      await sendFriendRequest(userId, user.user_id);
-      if (requestsKey) mutate(requestsKey);
+      await sendFriendRequest({ requesterId: userId, recipientId: user._id });
       onClear();
     } finally {
       setActionLoading(null);
     }
   };
-  const handleWithdraw = async (requestId: number) => {
+  const handleWithdraw = async (requestId: Id<'friendRequests'>) => {
     setActionLoading(requestId);
     try {
-      await withdrawFriendRequest(requestId, userId);
+      await withdrawFriendRequest({ requestId, userId });
       onClear();
     } finally {
       setActionLoading(null);
     }
   };
-  const handleAccept = async (requestId: number) => {
+  const handleAccept = async (requestId: Id<'friendRequests'>) => {
     setActionLoading(requestId);
     try {
-      await acceptFriendRequest(requestId, userId);
-      if (requestsKey) mutate(requestsKey);
-      if (friendsKey) mutate(friendsKey);
+      await acceptFriendRequest({ requestId, userId });
       onClear();
     } finally {
       setActionLoading(null);
     }
   };
-  const handleReject = async (requestId: number) => {
+  const handleReject = async (requestId: Id<'friendRequests'>) => {
     setActionLoading(requestId);
     try {
-      await declineFriendRequest(requestId, userId);
-      if (requestsKey) mutate(requestsKey);
+      await declineFriendRequest({ requestId, userId });
       onClear();
     } finally {
       setActionLoading(null);
@@ -224,13 +216,13 @@ function SearchResults({
       ) : (
         <FlatList
           data={results}
-          keyExtractor={item => item.user_id}
+          keyExtractor={item => item._id}
           renderItem={({ item }) => {
             const status = getStatus(item);
             if (status.type === 'friend') {
               return (
                 <FriendItem
-                  username={item.username}
+                  username={item.username || 'Unknown User'}
                   onPress={() => router.push(`/friends/${item.username}`)}
                 />
               );
@@ -238,7 +230,7 @@ function SearchResults({
               const isSent = status.type === 'pending_sent';
               return (
                 <FriendRequestItem
-                  username={item.username}
+                  username={item.username || 'Unknown User'}
                   isSent={isSent}
                   requestId={status.requestId}
                   loading={actionLoading === status.requestId}
@@ -250,11 +242,13 @@ function SearchResults({
             } else {
               return (
                 <View style={styles.resultRow}>
-                  <Text style={[styles.friendItem, styles.resultUsername]}>{item.username}</Text>
+                  <Text style={[styles.friendItem, styles.resultUsername]}>
+                    {item.username || 'Unknown User'}
+                  </Text>
                   <Button
                     title="Add Friend"
                     onPress={() => handleSend(item)}
-                    loading={actionLoading === item.user_id}
+                    loading={actionLoading === item._id}
                     style={styles.addFriendButton}
                     labelStyle={{ color: theme.success }}
                     icon={<PlusIcon color={theme.success} />}

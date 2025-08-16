@@ -1,11 +1,10 @@
 import { Stack, Slot, Link } from 'expo-router';
 import { SafeAreaView, useWindowDimensions, View, StyleSheet } from 'react-native';
 import ScheduleScreen from '@/app/(tabs)/schedule';
-import { useCurrentUserId } from '@/lib/auth';
+import { useCurrentUserId } from '@/lib/auth-client';
 import FriendTasksSection from '@/components/FriendTasksSection';
 import { baseTheme, useTheme } from '@/lib/theme';
 import ScreenTitle from '@/components/ScreenTitle';
-import Button from '@/components/Button';
 import Text from '@/components/Text';
 
 export default function TasksLayout() {
