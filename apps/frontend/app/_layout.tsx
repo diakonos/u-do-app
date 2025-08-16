@@ -12,6 +12,8 @@ import { SWRConfig } from 'swr';
 import { ThemeProvider } from '@/lib/theme';
 import { localStorageSWRProvider } from '@/lib/state';
 import { authClient, useCurrentUserUsername, useSession } from '@/lib/auth-client';
+import { MAINTENANCE_MODE } from '@/lib/constants';
+import { MaintenancePage } from '@/components/MaintenancePage';
 
 const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL!);
 
@@ -44,6 +46,11 @@ function RootNavigation() {
       router.replace('/complete-profile');
     }
   }, [loading, session, router, username, isLoadingUsername]);
+
+  // Show maintenance page if maintenance mode is enabled
+  if (MAINTENANCE_MODE) {
+    return <MaintenancePage />;
+  }
 
   return (
     <>

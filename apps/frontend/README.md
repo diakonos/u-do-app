@@ -25,6 +25,16 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
+## Environment Configuration
+
+### Maintenance Mode
+
+To enable maintenance mode and show a maintenance page to all users, set `EXPO_PUBLIC_MAINTENANCE_MODE` to true and restart the server.
+
+When maintenance mode is enabled, users will see a maintenance page instead of the normal app interface. This is useful for planned maintenance windows or emergency situations.
+
+To disable maintenance mode, set the variable to `false` or remove it entirely.
+
 ## Get a fresh project
 
 When you're ready, run:

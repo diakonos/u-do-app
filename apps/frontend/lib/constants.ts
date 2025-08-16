@@ -16,3 +16,6 @@ export const NAV_THEME = {
     text: 'hsl(0 0% 98%)', // foreground
   },
 };
+
+// Maintenance mode configuration
+export const MAINTENANCE_MODE = process.env.EXPO_PUBLIC_MAINTENANCE_MODE === 'true';
