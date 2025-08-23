@@ -7,7 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Provider as PaperProvider } from 'react-native-paper';
 import * as Sentry from '@sentry/react-native';
 import { useFonts } from 'expo-font';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { SWRConfig } from 'swr';
 import { ThemeProvider } from '@/lib/theme';
 import { localStorageSWRProvider } from '@/lib/state';
@@ -29,6 +29,7 @@ function RootNavigation() {
   const { data: session, isPending: loading } = useSession();
   const router = useRouter();
   const [username, isLoadingUsername] = useCurrentUserUsername();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     if (!loading) {
@@ -37,7 +38,7 @@ function RootNavigation() {
   }, [loading]);
 
   useEffect(() => {
-    if (loading) {
+    if (loading || !mounted) {
       return;
     }
     if (!session) {
@@ -46,6 +47,10 @@ function RootNavigation() {
       router.replace('/complete-profile');
     }
   }, [loading, session, router, username, isLoadingUsername]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Show maintenance page if maintenance mode is enabled
   if (MAINTENANCE_MODE) {
