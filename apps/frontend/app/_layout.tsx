@@ -92,7 +92,7 @@ export default Sentry.wrap(function RootLayout() {
     'SF-Pro-Display-UltralightItalic': require('@/assets/fonts/SF-Pro-Display/SF-Pro-Display-UltralightItalic.otf'),
   });
   /* eslint-enable @typescript-eslint/no-require-imports */
-  if (!fontsLoaded) return null;
+  // if (!fontsLoaded) return null;
   return (
     <GestureHandlerRootView>
       <SWRConfig value={{ provider: localStorageSWRProvider }}>
