@@ -1,17 +1,1 @@
-[
-  {
-    "requesterId": "dry_users_f3cabe76-f36b-45d9-849e-cc99b01f33af",
-    "recipientId": "dry_users_cdd09bda-e6db-444f-b8b0-0dd7070d9072",
-    "status": "accepted"
-  },
-  {
-    "requesterId": "dry_users_f3cabe76-f36b-45d9-849e-cc99b01f33af",
-    "recipientId": "dry_users_e877c3ac-2762-4ec4-bd53-88438422f6cd",
-    "status": "accepted"
-  },
-  {
-    "requesterId": "dry_users_500d27a6-2efa-4f21-bc3e-148d6a3cfec0",
-    "recipientId": "dry_users_cdd09bda-e6db-444f-b8b0-0dd7070d9072",
-    "status": "pending"
-  }
-]
+[]

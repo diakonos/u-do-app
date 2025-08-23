@@ -1,6 +1,6 @@
 {
   "users": {
-    "prepared": 7
+    "prepared": 0
   },
   "betterAuthUsers": {
     "prepared": 0,
@@ -13,25 +13,25 @@
     "errors": 0
   },
   "tasks": {
-    "prepared": 63,
+    "prepared": 91,
     "skippedNoUserMap": 0
   },
   "friendRequests": {
-    "prepared": 3,
+    "prepared": 0,
     "skippedNoUserMap": 0
   },
   "friendships": {
-    "prepared": 4
+    "prepared": 0
   },
   "pinnedFriends": {
     "prepared": 0,
-    "missingUsernames": 2,
+    "missingUsernames": 0,
     "skippedSelfPins": 0,
     "deduped": 0,
     "duplicateUsernames": 0
   },
   "friendPermissions": {
-    "prepared": 3,
+    "prepared": 0,
     "skippedNoUserMap": 0
   }
 }

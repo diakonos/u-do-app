@@ -50,6 +50,7 @@ npx tsx scripts/supabaseToConvex.ts --migrate-to-better-auth betterAuth
 - `--skip-users`: Skip user migration (useful when re-running other sections)
 - `--migrate-to-better-auth, -m`: Enable Better Auth migration (default: false)
 - `--better-auth-url, -u`: URL for Better Auth service (default: localhost:3000)
+- `--user-map-file`: Path to a JSON file providing a manual Supabase→Convex user ID map. The file must be an object of the form `{ "<supabaseUserId>": "<convexUserId>", ... }`. Especially useful together with `--skip-users`.
 
 ### Migration Sections
 
@@ -151,6 +152,9 @@ npx tsx scripts/supabaseToConvex.ts --migrate-to-better-auth betterAuth users ta
 
 # Migrate everything except Better Auth
 npx tsx scripts/supabaseToConvex.ts users tasks friendRequests friendships
+
+# Re-run data migrations using an existing user mapping (skip migrating users)
+npx tsx scripts/supabaseToConvex.ts --skip-users --user-map-file ./migration_out/users-map.json tasks friendRequests friendPermissions pinnedFriends
 ```
 
 ### Testing

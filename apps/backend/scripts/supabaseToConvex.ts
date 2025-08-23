@@ -70,6 +70,8 @@ type MigrationOptions = {
   // New options for Better Auth migration
   migrateToBetterAuth: boolean;
   betterAuthUrl: string;
+  // Optional path to a JSON file mapping Supabase user IDs -> Convex user IDs
+  userMapFile?: string;
 };
 
 type MigrationReport = {
@@ -164,6 +166,31 @@ async function postConvex<T>(pathName: string, payload: unknown): Promise<T> {
     return (await res.json()) as T;
   }
   return undefined as T;
+}
+
+// Load a userId mapping from a JSON file on disk.
+// Expected format: { "<supabaseUserId>": "<convexUserId>", ... }
+async function loadUserIdMapFromFile(
+  filePath: string,
+): Promise<Map<string, string>> {
+  const absPath = path.resolve(filePath);
+  const content = await fs.readFile(absPath, "utf8");
+  const parsed = JSON.parse(content);
+  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+    const m = new Map<string, string>();
+    for (const [k, v] of Object.entries(parsed)) {
+      if (typeof k !== "string" || typeof v !== "string") {
+        throw new Error(
+          "userMapFile must be a JSON object of string-to-string mappings",
+        );
+      }
+      m.set(k, v);
+    }
+    return m;
+  }
+  throw new Error(
+    "userMapFile must be a JSON object mapping Supabase IDs to Convex IDs",
+  );
 }
 
 // New function to migrate to Better Auth
@@ -683,6 +710,7 @@ function parseArgs(): MigrationOptions {
   let skipUsers = false;
   let migrateToBetterAuth = defaultMigrateToBetterAuth;
   let betterAuthUrl = BETTER_AUTH_URL || "http://localhost:3000"; // Default to localhost if not set
+  let userMapFile = process.env.USER_MAP_FILE || undefined;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -709,6 +737,7 @@ OPTIONS:
   --skip-users      Skip user migration (useful when re-running other sections)
   --migrate-to-better-auth, -m  Enable Better Auth migration (default: ${defaultMigrateToBetterAuth})
   --better-auth-url, -u  URL for the Better Auth service (default: ${betterAuthUrl})
+  --user-map-file   Path to JSON file with { [supabaseUserId]: convexUserId }
 
 EXAMPLES:
   # Run all migrations including Better Auth
@@ -771,6 +800,10 @@ EXAMPLES:
       case "--better-auth-url":
       case "-u":
         betterAuthUrl = args[++i];
+        break;
+
+      case "--user-map-file":
+        userMapFile = args[++i];
         break;
 
       default:
@@ -876,6 +909,7 @@ EXAMPLES:
     skipUsers,
     migrateToBetterAuth,
     betterAuthUrl,
+    userMapFile,
   };
 }
 
@@ -928,6 +962,14 @@ async function main() {
   }> = [];
 
   try {
+    // If users are being skipped and a user map file is provided, load it first
+    if (options.skipUsers && options.userMapFile) {
+      console.log(`Loading user mappings from file: ${options.userMapFile}`);
+      const loaded = await loadUserIdMapFromFile(options.userMapFile);
+      for (const [k, v] of loaded.entries()) userIdMap.set(k, v);
+      console.log(`Loaded ${userIdMap.size} user ID mappings from file.`);
+    }
+
     // 1a) Better Auth migration (if requested)
     if (
       options.sections.includes("betterAuth") &&
